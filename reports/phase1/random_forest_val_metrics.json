@@ -1,0 +1,136 @@
+{
+  "model": "Random Forest",
+  "split": "val",
+  "total_evaluated_points": 13846086,
+  "overall_rmse": 0.026,
+  "overall_mae": 0.004,
+  "overall_bias": -0.0,
+  "overall_r2": 1.0,
+  "overall_corr": 1.0,
+  "depth_breakdown": [
+    {
+      "depth_m": 0.0,
+      "n_valid": 1003374,
+      "rmse": 0.016,
+      "mae": 0.006,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 5.0,
+      "n_valid": 1003374,
+      "rmse": 0.016,
+      "mae": 0.006,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 10.0,
+      "n_valid": 1003374,
+      "rmse": 0.015,
+      "mae": 0.006,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 20.0,
+      "n_valid": 1003374,
+      "rmse": 0.015,
+      "mae": 0.006,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 30.0,
+      "n_valid": 1003374,
+      "rmse": 0.014,
+      "mae": 0.005,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 50.0,
+      "n_valid": 1003374,
+      "rmse": 0.012,
+      "mae": 0.005,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 75.0,
+      "n_valid": 1003374,
+      "rmse": 0.011,
+      "mae": 0.004,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 100.0,
+      "n_valid": 1003374,
+      "rmse": 0.009,
+      "mae": 0.004,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 125.0,
+      "n_valid": 1003374,
+      "rmse": 0.008,
+      "mae": 0.003,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 150.0,
+      "n_valid": 1003374,
+      "rmse": 0.007,
+      "mae": 0.003,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 200.0,
+      "n_valid": 1003374,
+      "rmse": 0.005,
+      "mae": 0.002,
+      "bias": 0.0,
+      "corr": 1.0
+    },
+    {
+      "depth_m": 300.0,
+      "n_valid": 837702,
+      "rmse": 0.076,
+      "mae": 0.003,
+      "bias": -0.001,
+      "corr": 0.875
+    },
+    {
+      "depth_m": 500.0,
+      "n_valid": 745956,
+      "rmse": 0.027,
+      "mae": 0.001,
+      "bias": -0.001,
+      "corr": 0.852
+    },
+    {
+      "depth_m": 700.0,
+      "n_valid": 665658,
+      "rmse": 0.043,
+      "mae": 0.002,
+      "bias": -0.002,
+      "corr": 0.305
+    },
+    {
+      "depth_m": 1000.0,
+      "n_valid": 559656,
+      "rmse": 0.048,
+      "mae": 0.006,
+      "bias": -0.006,
+      "corr": 0.073
+    }
+  ],
+  "best_params": {
+    "n_estimators": 30,
+    "max_depth": 15
+  }
+}

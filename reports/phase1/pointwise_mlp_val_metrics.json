@@ -1,0 +1,132 @@
+{
+  "model": "Pointwise MLP",
+  "split": "val",
+  "total_evaluated_points": 13846086,
+  "overall_rmse": 0.033,
+  "overall_mae": 0.026,
+  "overall_bias": 0.005,
+  "overall_r2": 1.0,
+  "overall_corr": 1.0,
+  "depth_breakdown": [
+    {
+      "depth_m": 0.0,
+      "n_valid": 1003374,
+      "rmse": 0.039,
+      "mae": 0.031,
+      "bias": 0.007,
+      "corr": 0.999
+    },
+    {
+      "depth_m": 5.0,
+      "n_valid": 1003374,
+      "rmse": 0.039,
+      "mae": 0.031,
+      "bias": 0.007,
+      "corr": 0.999
+    },
+    {
+      "depth_m": 10.0,
+      "n_valid": 1003374,
+      "rmse": 0.042,
+      "mae": 0.033,
+      "bias": 0.007,
+      "corr": 0.998
+    },
+    {
+      "depth_m": 20.0,
+      "n_valid": 1003374,
+      "rmse": 0.043,
+      "mae": 0.034,
+      "bias": 0.006,
+      "corr": 0.998
+    },
+    {
+      "depth_m": 30.0,
+      "n_valid": 1003374,
+      "rmse": 0.035,
+      "mae": 0.028,
+      "bias": 0.006,
+      "corr": 0.999
+    },
+    {
+      "depth_m": 50.0,
+      "n_valid": 1003374,
+      "rmse": 0.032,
+      "mae": 0.025,
+      "bias": 0.006,
+      "corr": 0.999
+    },
+    {
+      "depth_m": 75.0,
+      "n_valid": 1003374,
+      "rmse": 0.029,
+      "mae": 0.023,
+      "bias": 0.005,
+      "corr": 0.998
+    },
+    {
+      "depth_m": 100.0,
+      "n_valid": 1003374,
+      "rmse": 0.029,
+      "mae": 0.022,
+      "bias": 0.005,
+      "corr": 0.998
+    },
+    {
+      "depth_m": 125.0,
+      "n_valid": 1003374,
+      "rmse": 0.029,
+      "mae": 0.023,
+      "bias": 0.004,
+      "corr": 0.998
+    },
+    {
+      "depth_m": 150.0,
+      "n_valid": 1003374,
+      "rmse": 0.026,
+      "mae": 0.02,
+      "bias": 0.004,
+      "corr": 0.998
+    },
+    {
+      "depth_m": 200.0,
+      "n_valid": 1003374,
+      "rmse": 0.029,
+      "mae": 0.024,
+      "bias": 0.003,
+      "corr": 0.995
+    },
+    {
+      "depth_m": 300.0,
+      "n_valid": 837702,
+      "rmse": 0.036,
+      "mae": 0.028,
+      "bias": 0.002,
+      "corr": 0.978
+    },
+    {
+      "depth_m": 500.0,
+      "n_valid": 745956,
+      "rmse": 0.022,
+      "mae": 0.016,
+      "bias": 0.002,
+      "corr": 0.921
+    },
+    {
+      "depth_m": 700.0,
+      "n_valid": 665658,
+      "rmse": 0.028,
+      "mae": 0.022,
+      "bias": 0.001,
+      "corr": 0.677
+    },
+    {
+      "depth_m": 1000.0,
+      "n_valid": 559656,
+      "rmse": 0.024,
+      "mae": 0.019,
+      "bias": 0.001,
+      "corr": 0.441
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+Model,Family,Selected Hyperparameters,Val RMSE (°C),Val MAE (°C),Val R²,Test RMSE (°C),Test MAE (°C),Test Bias (°C),Test R²,Test Pearson r
+1. Training Climatology,Spatial-Depth Climatology,None,0.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0
+2. Multi-Output Ridge,Linear / L2-Regularized,alpha=0.01,0.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0
+3. Random Forest,Ensemble Trees (Bagging),"{'n_estimators': 30, 'max_depth': 15}",0.026,0.004,1.0,0.026,0.004,-0.0,1.0,1.0
+4. LightGBM Regressor,Gradient Boosted Trees,"{'num_leaves': 31, 'learning_rate': 0.1, 'n_estimators': 50}",0.004,0.002,1.0,0.004,0.002,0.0,1.0,1.0
+5. Pointwise MLP,Feed-Forward Neural Net (PyTorch),"Linear(7-128-128-64-15), AdamW lr=1e-3",0.033,0.026,1.0,0.033,0.026,0.005,1.0,1.0
