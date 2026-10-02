@@ -81,14 +81,21 @@ def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), outpu
     # Use NASA Earthdata session
     session = requests.Session()
     edl_token = os.environ.get("EARTHDATA_TOKEN")
+    edl_user = os.environ.get("EARTHDATA_USERNAME")
+    edl_pass = os.environ.get("EARTHDATA_PASSWORD")
     if edl_token:
         session.headers.update({"Authorization": f"Bearer {edl_token}"})
+    elif edl_user and edl_pass:
+        session.auth = (edl_user, edl_pass)
 
     tmp_raw = out_file + ".tmp.nc"
     def _fetch():
         with session.get(url, stream=True, timeout=30) as r:
             if r.status_code == 401 or "login.earthdata.nasa.gov" in r.url:
-                raise PermissionError("NASA Earthdata authentication required for OSCAR direct download.")
+                raise PermissionError(
+                    "NASA Earthdata authentication required for OSCAR direct download.\n"
+                    "Please set EARTHDATA_TOKEN or EARTHDATA_USERNAME/EARTHDATA_PASSWORD environment variables."
+                )
             r.raise_for_status()
             with open(tmp_raw, "wb") as f:
                 for chunk in r.iter_content(chunk_size=65536):

@@ -26,6 +26,7 @@ from scripts.download_duacs import download_duacs_period
 from scripts.download_oscar import download_oscar_period
 from scripts.download_ccmp import download_ccmp_period
 from scripts.download_argo import download_argo_profiles
+from scripts.preflight_and_pilot_gate import run_preflight_checks, is_pilot_acceptance_certified
 
 def load_config():
     with open("config/data_config.yaml", "r") as f:
@@ -37,11 +38,21 @@ def run_download_pipeline(mode="pilot"):
     print(f"STARTING DATA ACQUISITION PIPELINE [MODE: {mode.upper()}]")
     print("=" * 70)
 
-    # 1. Pre-flight disk space check
+    # 1. Pilot-First Gate Enforcement
+    if mode == "full-year" and not is_pilot_acceptance_certified():
+        raise PermissionError(
+            "[PILOT ACCEPTANCE GATE] Full-year 2020 acquisition is strictly locked until the 7-day authentic pilot has been downloaded, harmonized, and certified through all 3 QA gates.\n"
+            "Run 'python scripts/download_all.py --pilot' and 'python scripts/harmonize_and_validate.py' first."
+        )
+
+    # 2. Pre-flight verification (Auth, Dry-runs & Endpoints)
+    run_preflight_checks()
+
+    # 3. Pre-flight disk space check
     free_gb = check_free_disk(config["size_control"]["min_free_disk_gb"])
     print(f"[PASS] Pre-flight disk check: {free_gb:.2f} GB available (minimum required: {config['size_control']['min_free_disk_gb']} GB)")
 
-    # 2. Determine date bounds
+    # 4. Determine date bounds
     if mode == "pilot":
         start_date = config["scientific_problem"]["temporal"]["pilot_start"]
         end_date = config["scientific_problem"]["temporal"]["pilot_end"]

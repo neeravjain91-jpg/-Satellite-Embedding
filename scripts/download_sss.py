@@ -21,9 +21,20 @@ from scripts.estimate_sizes import estimate_request_size, check_free_disk, plan_
 DATASET_ID = "cmems_obs-mob_glo_phy-sss_my_multi_P1D"
 VARIABLE = "sos"
 
+def check_copernicus_credentials():
+    cred_file = os.path.expanduser("~/.copernicusmarine/.copernicusmarine-credentials")
+    has_env = "COPERNICUSMARINE_SERVICE_USERNAME" in os.environ and "COPERNICUSMARINE_SERVICE_PASSWORD" in os.environ
+    if not (os.path.exists(cred_file) or has_env):
+        raise PermissionError(
+            "Copernicus Marine credentials required for Multi-Obs SSS download.\n"
+            "Please configure COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD environment variables,\n"
+            "or run 'copernicusmarine login' in terminal."
+        )
+
 def download_sss_chunk(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/sss"):
     os.makedirs(output_dir, exist_ok=True)
     check_free_disk()
+    check_copernicus_credentials()
     manifest_mgr = ManifestManager()
 
     lat_min, lat_max, lon_min, lon_max = bbox
@@ -62,7 +73,9 @@ def download_sss_chunk(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0), outp
             end_datetime=f"{end_date}T23:59:59",
             output_directory=output_dir,
             output_filename=out_filename,
-            overwrite=True
+            overwrite=True,
+            username=os.environ.get("COPERNICUSMARINE_SERVICE_USERNAME"),
+            password=os.environ.get("COPERNICUSMARINE_SERVICE_PASSWORD")
         )
         return out_filepath
 
