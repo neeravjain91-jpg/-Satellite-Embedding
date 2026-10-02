@@ -1,0 +1,30 @@
+{
+  "METOFFICE-GLO-SST-L4-REP-OBS-SST": {
+    "product_id": "SST_GLO_SST_L4_REP_OBSERVATIONS_010_011",
+    "title": "Global Ocean OSTIA Sea Surface Temperature and Sea Ice Reprocessed",
+    "doi": "10.48670/moi-00168",
+    "dataset_id": "METOFFICE-GLO-SST-L4-REP-OBS-SST",
+    "variables": []
+  },
+  "cmems_obs-mob_glo_phy-sss_my_multi_P1D": {
+    "product_id": "MULTIOBS_GLO_PHY_S_SURFACE_MYNRT_015_013",
+    "title": "Multi Observation Global Ocean Sea Surface Salinity and Sea Surface Density",
+    "doi": "10.48670/moi-00051",
+    "dataset_id": "cmems_obs-mob_glo_phy-sss_my_multi_P1D",
+    "variables": []
+  },
+  "c3s_obs-sl_glo_phy-ssh_my_twosat-l4-duacs-0.25deg_P1D": {
+    "product_id": "SEALEVEL_GLO_PHY_CLIMATE_L4_MY_008_057",
+    "title": "GLOBAL OCEAN GRIDDED L4 SEA SURFACE HEIGHTS AND DERIVED VARIABLES REPROCESSED (COPERNICUS CLIMATE SERVICE)",
+    "doi": "10.48670/moi-00145",
+    "dataset_id": "c3s_obs-sl_glo_phy-ssh_my_twosat-l4-duacs-0.25deg_P1D",
+    "variables": []
+  },
+  "cmems_mod_glo_phy_my_0.083deg_P1D-m": {
+    "product_id": "GLOBAL_MULTIYEAR_PHY_001_030",
+    "title": "Global Ocean Physics Reanalysis",
+    "doi": "10.48670/moi-00021",
+    "dataset_id": "cmems_mod_glo_phy_my_0.083deg_P1D-m",
+    "variables": []
+  }
+}

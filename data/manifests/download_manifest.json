@@ -1,0 +1,19 @@
+{
+  "ARGO_TEMP_2020-01-01_2020-01-07": {
+    "chunk_key": "ARGO_TEMP_2020-01-01_2020-01-07",
+    "dataset": "ARGO",
+    "dataset_id": "ArgoFloats",
+    "variable": "TEMP",
+    "start_datetime": "2020-01-01",
+    "end_datetime": "2020-01-07",
+    "bbox": "(5.0, 30.0, 45.0, 105.0)",
+    "depth_range": "(0.0, 1000.0)",
+    "output_file": "data/raw/argo\\argo_profiles_2020-01-01_2020-01-07.csv",
+    "size": 1470866,
+    "checksum": "4e709927b7caf00a3f951d09ce8385eaee6ec38988b05b152f95055790f95dfd",
+    "status": "COMPLETE",
+    "retry_count": 0,
+    "error": null,
+    "timestamp": "2026-10-02T08:31:52.180069+00:00"
+  }
+}

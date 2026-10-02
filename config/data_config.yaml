@@ -1,0 +1,127 @@
+# config/data_config.yaml
+# Configuration for North Indian Ocean Subsurface Temperature Reconstruction Pipeline
+
+scientific_problem:
+  title: "Satellite Embedding-Based Deep Learning Framework for Subsurface Ocean Temperature Reconstruction"
+  region: "North Indian Ocean"
+  spatial_bounds:
+    lat_min: 5.0
+    lat_max: 30.0
+    lon_min: 45.0
+    lon_max: 105.0
+    resolution: 0.25
+  temporal:
+    common_intersection_start: "1993-01-01"
+    common_intersection_end: "2024-12-15"
+    pilot_start: "2020-01-01"
+    pilot_end: "2020-01-07"
+    selected_year: 2020
+    year_start: "2020-01-01"
+    year_end: "2020-12-31"
+
+canonical_grid:
+  lat_start: 5.0
+  lat_end: 30.0
+  lat_step: 0.25
+  lat_points: 101
+  lon_start: 45.0
+  lon_end: 105.0
+  lon_step: 0.25
+  lon_points: 241
+  target_depths: [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000]
+
+size_control:
+  max_request_gb: 5.0
+  max_file_gb: 2.0
+  min_free_disk_gb: 20.0
+
+datasets:
+  sst:
+    name: "OSTIA"
+    doi: "10.48670/moi-00168"
+    product_id: "SST_GLO_SST_L4_REP_OBSERVATIONS_010_011"
+    dataset_id: "METOFFICE-GLO-SST-L4-REP-OBS-SST"
+    source_type: "satellite-derived/reprocessed L4 SST product"
+    variable: "analysed_sst"
+    raw_units: "Kelvin"
+    canonical_units: "degC"
+    native_resolution: 0.05
+    regrid_method: "bilinear"
+
+  sss:
+    name: "Copernicus Multi-Observation SSS"
+    doi: "10.48670/moi-00051"
+    product_id: "MULTIOBS_GLO_PHY_S_SURFACE_MYNRT_015_013"
+    dataset_id: "cmems_obs-mob_glo_phy-sss_my_multi_P1D"
+    source_type: "multisource L4 product combining satellite and in-situ information"
+    variable: "sos"
+    raw_units: "psu"
+    canonical_units: "psu"
+    native_resolution: 0.125
+    regrid_method: "bilinear"
+
+  ssh:
+    name: "DUACS"
+    doi: "10.48670/moi-00145"
+    product_id: "SEALEVEL_GLO_PHY_CLIMATE_L4_MY_008_057"
+    dataset_id: "c3s_obs-sl_glo_phy-ssh_my_twosat-l4-duacs-0.25deg_P1D"
+    source_type: "satellite altimetry-derived L4 product"
+    variable: "sla"
+    raw_units: "m"
+    canonical_units: "m"
+    native_resolution: 0.25
+    regrid_method: "bilinear"
+
+  current:
+    name: "OSCAR"
+    doi: "10.5067/OSCAR-25F20"
+    product_id: "OSCAR_L4_OC_FINAL_V2.0"
+    dataset_id: "C2098858642-POCLOUD"
+    source_type: "derived surface-current analysis"
+    variables: ["u", "v"]
+    raw_units: "m/s"
+    canonical_units: "m/s"
+    native_resolution: 0.25
+    regrid_method: "bilinear"
+
+  wind:
+    name: "CCMP"
+    doi: "10.5067/CCMP3-6H431"
+    product_id: "CCMP_WINDS_10M6HR_L4_V3.1"
+    dataset_id: "C2916514952-POCLOUD"
+    source_type: "satellite-based/blended surface wind analysis"
+    variables: ["uwnd", "vwnd"]
+    raw_units: "m/s"
+    canonical_units: "m/s"
+    native_resolution: 0.25
+    temporal_native: "6-hourly"
+    temporal_aggregation: "daily_mean"
+    regrid_method: "bilinear"
+
+  target:
+    name: "GLORYS"
+    doi: "10.48670/moi-00021"
+    product_id: "GLOBAL_MULTIYEAR_PHY_001_030"
+    dataset_id: "cmems_mod_glo_phy_my_0.083deg_P1D-m"
+    source_type: "ocean physics reanalysis"
+    variable: "thetao"
+    raw_units: "degC"
+    canonical_units: "degC"
+    native_resolution: 0.083333
+    regrid_method: "bilinear"
+
+  validation:
+    name: "ARGO"
+    source_type: "in-situ profiling floats (IFREMER / INCOIS)"
+    variables: ["temp", "pres"]
+    quality_threshold: 1
+
+paths:
+  raw: "data/raw"
+  interim: "data/interim"
+  processed: "data/processed"
+  manifests: "data/manifests"
+  metadata: "data/metadata"
+  checksums: "data/checksums.csv"
+  reports: "reports"
+  logs: "logs"

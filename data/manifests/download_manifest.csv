@@ -1,0 +1,2 @@
+chunk_key,dataset,dataset_id,variable,start_datetime,end_datetime,bbox,depth_range,output_file,size,checksum,status,retry_count,error,timestamp
+ARGO_TEMP_2020-01-01_2020-01-07,ARGO,ArgoFloats,TEMP,2020-01-01,2020-01-07,"(5.0, 30.0, 45.0, 105.0)","(0.0, 1000.0)",data/raw/argo\argo_profiles_2020-01-01_2020-01-07.csv,1470866,4e709927b7caf00a3f951d09ce8385eaee6ec38988b05b152f95055790f95dfd,COMPLETE,0,,2026-10-02T08:31:52.180069+00:00

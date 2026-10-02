@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Large binary datasets (raw chunks & processed data stores)
+# Keep manifests, metadata, and checksums tracked in Git
+data/raw/glorys/*.nc
+data/raw/ostia/*.nc
+data/raw/sss/*.nc
+data/raw/duacs/*.nc
+data/raw/oscar/*.nc
+data/raw/ccmp/*.nc
+data/interim/*
+data/processed/*.zarr/
+data/processed/*.nc
+
+# Logs
+logs/*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
