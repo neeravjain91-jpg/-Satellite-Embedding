@@ -125,22 +125,36 @@ def check_earthdata_credentials():
     else:
         return False, "No NASA Earthdata credentials found (set EARTHDATA_TOKEN or EARTHDATA_USERNAME/EARTHDATA_PASSWORD)."
 
-def check_public_sources():
+def check_public_sources(session=None, argo_url=None):
     """
     Verifies availability of public open-access endpoints (CCMP winds on RemSS and ARGO on IFREMER).
     """
     status = {}
+    http = session or requests
+
     # CCMP on Remote Sensing Systems
     try:
-        r_ccmp = requests.head("https://data.remss.com/ccmp/v03.1/Y2020/M01/", timeout=10)
+        r_ccmp = http.head("https://data.remss.com/ccmp/v03.1/Y2020/M01/", timeout=10)
         status["ccmp"] = (r_ccmp.status_code == 200, f"HTTP Status {r_ccmp.status_code}")
     except Exception as e:
         status["ccmp"] = (False, str(e))
 
     # ARGO on IFREMER GDAC ERDDAP
+    url = argo_url or "https://www.ifremer.fr/erddap/tabledap/ArgoFloats.html"
     try:
-        r_argo = requests.head("https://www.ifremer.fr/erddap/tabledap/ArgoFloats.html", timeout=10)
-        status["argo"] = (r_argo.status_code == 200, f"HTTP Status {r_argo.status_code}")
+        r_argo = http.head(url, allow_redirects=True, timeout=15)
+        initial_code = r_argo.history[0].status_code if r_argo.history else r_argo.status_code
+        final_code = r_argo.status_code
+        final_url = r_argo.url
+
+        if final_code == 200:
+            if r_argo.history:
+                msg = f"HTTP 200 after redirect (initial {initial_code})"
+            else:
+                msg = "HTTP Status 200"
+            status["argo"] = (True, msg)
+        else:
+            status["argo"] = (False, f"HTTP {final_code} at {final_url}")
     except Exception as e:
         status["argo"] = (False, str(e))
 
@@ -188,7 +202,7 @@ def run_preflight_checks():
     pub_status = check_public_sources()
     results["public_sources"] = pub_status
     for k, (ok, msg) in pub_status.items():
-        status_tag = "[PASS]" if ok else "[WARN]"
+        status_tag = "[PASS]" if ok else "[FAIL]"
         print(f"  {k.upper():10s}: {status_tag} {msg}")
 
     return results
