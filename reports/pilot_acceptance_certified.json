@@ -1,17 +1,913 @@
 {
   "pilot_certified": true,
-  "certification_timestamp": "2026-10-03T06:07:03.840594+00:00",
+  "certification_timestamp": "2026-10-03T06:25:16.221869+00:00",
+  "git_commit_sha": "db1a44d42a43a5a1ca4f681d63183143b70e58bf",
+  "environment": {
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "packages": {
+      "numpy": "2.4.6",
+      "xarray": "2025.9.0",
+      "pandas": "2.3.3",
+      "scipy": "1.17.1",
+      "torch": "2.13.0+cpu",
+      "zarr": "3.1.6"
+    }
+  },
   "period": "2020-01-01 to 2020-01-07",
   "qa_checks_passed": [
     "provenance",
     "variable_temporal_variability",
-    "cross_variable_physical_sanity"
+    "cross_variable_physical_sanity",
+    "argo_glorys_reference_consistency",
+    "dataset_masks_and_integrity"
   ],
   "metadata": {
     "start_date": "2020-01-01",
     "end_date": "2020-01-07",
     "days_count": 7,
     "provenance_files_count": 42,
+    "provenance_resolutions": [
+      {
+        "date": "2020-01-01",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 0,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-01",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 0,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-01",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 0,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-01",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-01.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "25b37144f8c661872530bdef48178c08a498b19e7e97a0f86ecae42903ee1742"
+      },
+      {
+        "date": "2020-01-01",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-01.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "3727c765961b3a386f95c46bdeb0c94819fc5d9a7123d6c5093a44f9650bf8e5"
+      },
+      {
+        "date": "2020-01-01",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 0,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      },
+      {
+        "date": "2020-01-02",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 1,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-02",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 1,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-02",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 1,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-02",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-02.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "5cf791d9208979eb8c3f8f6a8dd3cd6466142b68bd94139174d2151c5e7098c0"
+      },
+      {
+        "date": "2020-01-02",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-02.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "88bb17ee09f6757d7d10848f02c324c2237ac120fb1a6284202eab86e02e2785"
+      },
+      {
+        "date": "2020-01-02",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 1,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      },
+      {
+        "date": "2020-01-03",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 2,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-03",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 2,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-03",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 2,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-03",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-03.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "bb08b54cd82ff73ffa9d670a9fb3c0f83baa906c008d411000d4bb5e92a29321"
+      },
+      {
+        "date": "2020-01-03",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-03.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "b07e38a8ca865f2ee4d0ed6aa58fb354d5411ca2310876a1cc165a632362e6ff"
+      },
+      {
+        "date": "2020-01-03",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 2,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      },
+      {
+        "date": "2020-01-04",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 3,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-04",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 3,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-04",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 3,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-04",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-04.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "57eac982ae77a46cc8bc506b177cb62d929675b3b80ca115bd48d52fdf65d3b3"
+      },
+      {
+        "date": "2020-01-04",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-04.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "4dc23f298db7c7b3acd2428c1dd969a5b21efa0b62ccf0ffe82080674134039b"
+      },
+      {
+        "date": "2020-01-04",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 3,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      },
+      {
+        "date": "2020-01-05",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 4,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-05",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 4,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-05",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 4,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-05",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-05.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "c6c7309bb268987f098a5875aab1a213b956bb3a96dc656830ca53310b0a951c"
+      },
+      {
+        "date": "2020-01-05",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-05.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "afbc5226027601b97d0b3ff9f31a0ba528445c29095585190cfaed564728fe64"
+      },
+      {
+        "date": "2020-01-05",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 4,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      },
+      {
+        "date": "2020-01-06",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 5,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-06",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 5,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-06",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 5,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-06",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-06.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "14e37697677dedb81678640b1405779210fc014b64b2e4ef27e590284fa894f2"
+      },
+      {
+        "date": "2020-01-06",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-06.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "71744715b339eb194284a382915eab787bdd0205c02463a9d8f2838f633daa6e"
+      },
+      {
+        "date": "2020-01-06",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 5,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      },
+      {
+        "date": "2020-01-07",
+        "dataset": "OSTIA SST",
+        "file": "data/raw/ostia/ostia_sst_2020-01-01_2020-01-07.nc",
+        "time_index": 6,
+        "size_bytes": 8432372,
+        "sha256": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec"
+      },
+      {
+        "date": "2020-01-07",
+        "dataset": "Multi-Obs SSS",
+        "file": "data/raw/sss/sss_multi_2020-01-01_2020-01-07.nc",
+        "time_index": 6,
+        "size_bytes": 2709758,
+        "sha256": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2"
+      },
+      {
+        "date": "2020-01-07",
+        "dataset": "DUACS SSH",
+        "file": "data/raw/duacs/duacs_sla_2020-01-01_2020-01-07.nc",
+        "time_index": 6,
+        "size_bytes": 1372618,
+        "sha256": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6"
+      },
+      {
+        "date": "2020-01-07",
+        "dataset": "OSCAR Currents",
+        "file": "data/raw/oscar/oscar_2020-01-07.nc",
+        "time_index": 0,
+        "size_bytes": 424878,
+        "sha256": "59aa0f0ba5fb282169a03c38e0e772d73bee2de1366c6bf10d49250170eeee61"
+      },
+      {
+        "date": "2020-01-07",
+        "dataset": "CCMP Winds",
+        "file": "data/raw/ccmp/ccmp_daily_2020-01-07.nc",
+        "time_index": 0,
+        "size_bytes": 235942,
+        "sha256": "f140fa442a8d0a9f77eac345798dc3592d184d94e36e34bd6e9ee481afee21a0"
+      },
+      {
+        "date": "2020-01-07",
+        "dataset": "GLORYS thetao",
+        "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
+        "time_index": 6,
+        "size_bytes": 106367980,
+        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+      }
+    ],
+    "grid_definition": {
+      "latitude_bounds": [
+        5.0,
+        30.0
+      ],
+      "longitude_bounds": [
+        45.0,
+        105.0
+      ],
+      "spatial_resolution_deg": 0.25,
+      "shape": [
+        101,
+        241
+      ]
+    },
+    "canonical_depths_m": [
+      0.0,
+      5.0,
+      10.0,
+      20.0,
+      30.0,
+      50.0,
+      75.0,
+      100.0,
+      125.0,
+      150.0,
+      200.0,
+      300.0,
+      500.0,
+      700.0,
+      1000.0
+    ],
+    "surface_features": [
+      "sst",
+      "sss",
+      "ssh",
+      "current_u",
+      "current_v",
+      "wind_u",
+      "wind_v"
+    ],
+    "temporal_variability": {
+      "surface_features": {
+        "wind_u": {
+          "max_diff": 8.134077072143555,
+          "mean_diff": 0.7576444149017334,
+          "frac_diff": 0.9888001352436498,
+          "required_min_frac": 0.3,
+          "required_min_max": 0.2
+        },
+        "wind_v": {
+          "max_diff": 6.921742916107178,
+          "mean_diff": 0.9878945350646973,
+          "frac_diff": 0.9868982714170998,
+          "required_min_frac": 0.3,
+          "required_min_max": 0.2
+        },
+        "current_u": {
+          "max_diff": 0.19003449380397797,
+          "mean_diff": 0.02103540301322937,
+          "frac_diff": 0.821105267695491,
+          "required_min_frac": 0.05,
+          "required_min_max": 0.02
+        },
+        "current_v": {
+          "max_diff": 0.1786491721868515,
+          "mean_diff": 0.021077832207083702,
+          "frac_diff": 0.8305888438658505,
+          "required_min_frac": 0.05,
+          "required_min_max": 0.02
+        },
+        "sst": {
+          "max_diff": 1.1275005340576172,
+          "mean_diff": 0.0987323671579361,
+          "frac_diff": 0.9248909029875797,
+          "required_min_frac": 0.05,
+          "required_min_max": 0.05
+        },
+        "ssh": {
+          "max_diff": 0.037949997931718826,
+          "mean_diff": 0.004209279548376799,
+          "frac_diff": 0.8264953833801686,
+          "required_min_frac": 0.03,
+          "required_min_max": 0.005
+        },
+        "sss": {
+          "max_diff": 1.1999549865722656,
+          "mean_diff": 0.08510152250528336,
+          "frac_diff": 0.9889252454064938,
+          "required_min_frac": 0.01,
+          "required_min_max": 0.005
+        }
+      },
+      "thetao_0_50m": {
+        "max_diff": 1.969461441040039,
+        "frac_diff": 0.8852244850561031
+      },
+      "thetao_75_300m": {
+        "max_diff": 1.7247886657714844,
+        "frac_diff": 0.9040713887339654
+      },
+      "thetao_500_1000m": {
+        "max_diff": 0.5402746200561523
+      }
+    },
+    "physical_sanity_ranges": {
+      "surface": {
+        "sst": {
+          "min": 10.217496871948242,
+          "max": 30.322492599487305,
+          "permitted": [
+            10.0,
+            35.0
+          ]
+        },
+        "sss": {
+          "min": 14.180217742919922,
+          "max": 40.008304595947266,
+          "permitted": [
+            12.0,
+            42.0
+          ]
+        },
+        "ssh": {
+          "min": -0.2825999855995178,
+          "max": 0.38304999470710754,
+          "permitted": [
+            -1.5,
+            1.5
+          ]
+        },
+        "current_u": {
+          "min": -1.0828425884246826,
+          "max": 0.7334549427032471,
+          "permitted": [
+            -3.0,
+            3.0
+          ]
+        },
+        "current_v": {
+          "min": -0.8813866376876831,
+          "max": 0.8316023945808411,
+          "permitted": [
+            -3.0,
+            3.0
+          ]
+        },
+        "wind_u": {
+          "min": -11.6489896774292,
+          "max": 6.776493549346924,
+          "permitted": [
+            -35.0,
+            35.0
+          ]
+        },
+        "wind_v": {
+          "min": -9.638042449951172,
+          "max": 10.258026123046875,
+          "permitted": [
+            -35.0,
+            35.0
+          ]
+        }
+      },
+      "target": {
+        "thetao": {
+          "min": 7.88054895401001,
+          "max": 32.64291763305664,
+          "permitted": [
+            -2.0,
+            35.0
+          ]
+        }
+      },
+      "anti_synthetic": {
+        "sst_vs_thetao_100m_r": 0.29034906521680637
+      }
+    },
+    "argo_glorys_reference_consistency": {
+      "num_matched_points": 16711,
+      "rmse_degC": 0.598,
+      "mae_degC": 0.397,
+      "bias_degC": 0.11,
+      "correlation_r": 0.995
+    },
+    "dataset_qa_summary": {
+      "report_path": "reports/pilot_dataset_qa_report.md",
+      "regional_ocean_cells": {
+        "entire_domain": 12038,
+        "arabian_sea": 7267,
+        "bay_of_bengal": 4784
+      },
+      "regional_ocean_fraction_pct": {
+        "entire_domain": 49.46,
+        "arabian_sea": 54.92,
+        "bay_of_bengal": 42.67
+      },
+      "regional_shallow_fraction_pct": {
+        "entire_domain": 19.23,
+        "arabian_sea": 14.08,
+        "bay_of_bengal": 27.09
+      },
+      "daily_summary": [
+        {
+          "date": "2020-01-01",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-01",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-01",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        },
+        {
+          "date": "2020-01-02",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-02",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-02",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        },
+        {
+          "date": "2020-01-03",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-03",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-03",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        },
+        {
+          "date": "2020-01-04",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-04",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-04",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        },
+        {
+          "date": "2020-01-05",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-05",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-05",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        },
+        {
+          "date": "2020-01-06",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-06",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-06",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        },
+        {
+          "date": "2020-01-07",
+          "region": "entire_domain",
+          "sst_pct": 97.82,
+          "sss_pct": 97.59,
+          "ssh_pct": 98.01,
+          "currents_pct": 96.21,
+          "winds_pct": 98.01,
+          "overlap_all7_pct": 94.28,
+          "overlap_target_pct": 94.28
+        },
+        {
+          "date": "2020-01-07",
+          "region": "arabian_sea",
+          "sst_pct": 97.95,
+          "sss_pct": 97.77,
+          "ssh_pct": 98.14,
+          "currents_pct": 96.71,
+          "winds_pct": 98.14,
+          "overlap_all7_pct": 94.95,
+          "overlap_target_pct": 94.95
+        },
+        {
+          "date": "2020-01-07",
+          "region": "bay_of_bengal",
+          "sst_pct": 97.62,
+          "sss_pct": 97.3,
+          "ssh_pct": 97.81,
+          "currents_pct": 95.46,
+          "winds_pct": 97.81,
+          "overlap_all7_pct": 93.27,
+          "overlap_target_pct": 93.27
+        }
+      ],
+      "depth_summary": [
+        {
+          "depth_m": 0,
+          "domain_valid_pct": 100.0,
+          "domain_nan_pct": 0.0,
+          "as_valid_pct": 100.0,
+          "bob_valid_pct": 100.0
+        },
+        {
+          "depth_m": 5,
+          "domain_valid_pct": 100.0,
+          "domain_nan_pct": 0.0,
+          "as_valid_pct": 100.0,
+          "bob_valid_pct": 100.0
+        },
+        {
+          "depth_m": 10,
+          "domain_valid_pct": 97.15,
+          "domain_nan_pct": 2.85,
+          "as_valid_pct": 98.1,
+          "bob_valid_pct": 95.71
+        },
+        {
+          "depth_m": 20,
+          "domain_valid_pct": 94.84,
+          "domain_nan_pct": 5.16,
+          "as_valid_pct": 96.39,
+          "bob_valid_pct": 92.5
+        },
+        {
+          "depth_m": 30,
+          "domain_valid_pct": 92.12,
+          "domain_nan_pct": 7.88,
+          "as_valid_pct": 94.29,
+          "bob_valid_pct": 88.82
+        },
+        {
+          "depth_m": 50,
+          "domain_valid_pct": 88.17,
+          "domain_nan_pct": 11.83,
+          "as_valid_pct": 91.67,
+          "bob_valid_pct": 82.86
+        },
+        {
+          "depth_m": 75,
+          "domain_valid_pct": 84.65,
+          "domain_nan_pct": 15.35,
+          "as_valid_pct": 89.21,
+          "bob_valid_pct": 77.72
+        },
+        {
+          "depth_m": 100,
+          "domain_valid_pct": 82.48,
+          "domain_nan_pct": 17.52,
+          "as_valid_pct": 87.27,
+          "bob_valid_pct": 75.19
+        },
+        {
+          "depth_m": 125,
+          "domain_valid_pct": 82.02,
+          "domain_nan_pct": 17.98,
+          "as_valid_pct": 87.0,
+          "bob_valid_pct": 74.46
+        },
+        {
+          "depth_m": 150,
+          "domain_valid_pct": 81.52,
+          "domain_nan_pct": 18.48,
+          "as_valid_pct": 86.54,
+          "bob_valid_pct": 73.87
+        },
+        {
+          "depth_m": 200,
+          "domain_valid_pct": 80.77,
+          "domain_nan_pct": 19.23,
+          "as_valid_pct": 85.92,
+          "bob_valid_pct": 72.91
+        },
+        {
+          "depth_m": 300,
+          "domain_valid_pct": 80.08,
+          "domain_nan_pct": 19.92,
+          "as_valid_pct": 85.37,
+          "bob_valid_pct": 72.01
+        },
+        {
+          "depth_m": 500,
+          "domain_valid_pct": 78.75,
+          "domain_nan_pct": 21.25,
+          "as_valid_pct": 84.46,
+          "bob_valid_pct": 70.05
+        },
+        {
+          "depth_m": 700,
+          "domain_valid_pct": 77.78,
+          "domain_nan_pct": 22.22,
+          "as_valid_pct": 83.78,
+          "bob_valid_pct": 68.65
+        },
+        {
+          "depth_m": 1000,
+          "domain_valid_pct": 0.0,
+          "domain_nan_pct": 100.0,
+          "as_valid_pct": 0.0,
+          "bob_valid_pct": 0.0
+        }
+      ]
+    },
     "zarr_surface": "data/processed/real_ml_dataset_pilot_surface.zarr",
     "zarr_target": "data/processed/real_ml_dataset_pilot_target.zarr"
   }

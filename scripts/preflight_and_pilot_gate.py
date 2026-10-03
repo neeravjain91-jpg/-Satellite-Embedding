@@ -246,6 +246,7 @@ def certify_pilot_acceptance(pilot_metadata):
     """
     Certifies that the 7-day pilot has met all acceptance criteria.
     Strictly prevents certification if any required dataset is missing.
+    Upgraded with full provenance (git commit, environment, package versions, and QA records).
     """
     from scripts.download_all import check_pilot_completeness
     start_date = pilot_metadata.get("start_date", "2020-01-01")
@@ -258,12 +259,47 @@ def certify_pilot_acceptance(pilot_metadata):
             f"All 7 sources (ARGO, GLORYS, OSTIA, SSS, DUACS, OSCAR, CCMP) must be present, non-empty, and provenance-verified."
         )
 
+    # Git commit SHA
+    git_sha = "UNKNOWN"
+    try:
+        git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root).decode().strip()
+    except Exception:
+        pass
+
+    import platform
+    import numpy as np
+    import xarray as xr
+    import scipy
+    import torch
+    import zarr
+    
+    env_info = {
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "packages": {
+            "numpy": np.__version__,
+            "xarray": xr.__version__,
+            "pandas": pd.__version__,
+            "scipy": scipy.__version__,
+            "torch": torch.__version__,
+            "zarr": zarr.__version__
+        }
+    }
+
     os.makedirs(os.path.dirname(PILOT_VALIDATION_MARKER), exist_ok=True)
     record = {
         "pilot_certified": True,
         "certification_timestamp": pd.Timestamp.now(tz="UTC").isoformat(),
+        "git_commit_sha": git_sha,
+        "environment": env_info,
         "period": f"{start_date} to {end_date}",
-        "qa_checks_passed": ["provenance", "variable_temporal_variability", "cross_variable_physical_sanity"],
+        "qa_checks_passed": [
+            "provenance",
+            "variable_temporal_variability",
+            "cross_variable_physical_sanity",
+            "argo_glorys_reference_consistency",
+            "dataset_masks_and_integrity"
+        ],
         "metadata": pilot_metadata
     }
     with open(PILOT_VALIDATION_MARKER, "w") as f:

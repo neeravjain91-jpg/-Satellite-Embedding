@@ -24,6 +24,24 @@ CANONICAL_FEATURES = [
     "wind_v"
 ]
 
+REGIONAL_BOUNDS = {
+    "entire_domain": {"lat_min": 5.0, "lat_max": 30.0, "lon_min": 45.0, "lon_max": 105.0},
+    "arabian_sea":   {"lat_min": 5.0, "lat_max": 30.0, "lon_min": 45.0, "lon_max": 77.5},
+    "bay_of_bengal": {"lat_min": 5.0, "lat_max": 30.0, "lon_min": 77.5, "lon_max": 105.0}
+}
+
+def get_region_mask(region_name, lats=CANONICAL_LATS, lons=CANONICAL_LONS):
+    """
+    Returns a 2D boolean mask (latitude, longitude) for the given regional sub-domain.
+    """
+    if region_name not in REGIONAL_BOUNDS:
+        raise KeyError(f"Unknown region '{region_name}'. Available: {list(REGIONAL_BOUNDS.keys())}")
+    bounds = REGIONAL_BOUNDS[region_name]
+    lat_mask = (lats >= bounds["lat_min"]) & (lats <= bounds["lat_max"])
+    lon_mask = (lons >= bounds["lon_min"]) & (lons <= bounds["lon_max"])
+    return np.outer(lat_mask, lon_mask)
+
+
 def get_canonical_coords():
     """Returns a dictionary of canonical coordinates."""
     return {

@@ -1,7 +1,12 @@
 """
 preprocessing/argo_matchup.py
-Independent validation pipeline matching in-situ ARGO / INCOIS float profiles
-against the reconstructed / model temperature field.
+ARGO–GLORYS Reference Consistency Assessment pipeline matching in-situ ARGO / INCOIS float profiles
+against the GLORYS reference / model grid.
+
+IMPORTANT SCIENTIFIC CONSTRAINT:
+This assessment evaluates reference consistency between in-situ ARGO observations
+and the GLORYS ocean reanalysis on the canonical grid. It does NOT constitute
+validation of an ML model until an ML model is actively producing predictions.
 
 For every matched observation record:
     - argo_id
@@ -15,7 +20,7 @@ For every matched observation record:
     - temporal_distance (hours)
     - quality_flag
 
-STRICT RULE: Do not train on ARGO. ARGO is solely for independent evaluation.
+STRICT RULE: Do not train on ARGO. ARGO is reserved for independent evaluation.
 """
 
 import os
@@ -149,8 +154,8 @@ def evaluate_argo_matchups(df_matched, out_csv="data/processed/argo_matchup_eval
         "correlation_r": round(corr, 3)
     }
     
-    print("\n--- Independent ARGO Validation Metrics ---")
+    print("\n--- ARGO–GLORYS Reference Consistency Assessment ---")
     for k, v in metrics.items():
         print(f"  {k}: {v}")
-    print(f"Matchup records saved to: {out_csv}")
+    print(f"Assessment records saved to: {out_csv}")
     return metrics

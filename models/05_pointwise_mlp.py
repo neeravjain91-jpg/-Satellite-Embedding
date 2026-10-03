@@ -57,14 +57,18 @@ class PointwiseMLP(nn.Module):
 
 def masked_mse_loss(y_pred, y_true, mask):
     """
-    Masked MSE loss respecting variable bathymetric depth cutoffs.
+    Masked MSE loss strictly evaluated where mask is True.
+    Guarantees that unobserved / below-seabed target NaNs outside mask
+    never contaminate loss calculations or gradient propagation.
     y_pred: (B, 15)
     y_true: (B, 15)
     mask:   (B, 15) bool tensor
     """
-    diff = (y_pred - y_true) * mask.float()
-    loss = (diff ** 2).sum() / (mask.float().sum() + 1e-8)
-    return loss
+    valid_pred = y_pred[mask]
+    valid_true = y_true[mask]
+    if valid_true.numel() == 0:
+        return torch.tensor(0.0, requires_grad=True, device=y_pred.device)
+    return torch.mean((valid_pred - valid_true) ** 2)
 
 def evaluate_torch_model(model, dataloader, device="cpu"):
     model.eval()
