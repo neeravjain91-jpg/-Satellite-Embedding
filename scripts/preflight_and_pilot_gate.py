@@ -97,7 +97,7 @@ def run_copernicus_dry_run(ds_info, test_date="2020-01-01"):
         cmd.extend(["-z", str(d_min), "-Z", str(d_max)])
 
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         combined_output = proc.stdout + " " + proc.stderr
         if proc.returncode == 0:
             return True, "Dry-run query executed successfully. Dataset accessible and parameters valid."

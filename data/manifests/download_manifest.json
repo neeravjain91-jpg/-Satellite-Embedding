@@ -150,7 +150,7 @@
     "status": "DOWNLOADING",
     "retry_count": 0,
     "error": null,
-    "timestamp": "2026-10-02T18:56:39.280593+00:00"
+    "timestamp": "2026-10-03T04:11:24.994484+00:00"
   },
   "CCMP_UWND_VWND_2020-01-01_2020-01-01": {
     "chunk_key": "CCMP_UWND_VWND_2020-01-01_2020-01-01",
@@ -270,5 +270,73 @@
     "retry_count": 0,
     "error": null,
     "timestamp": "2026-10-02T19:20:28.182263+00:00"
+  },
+  "GLORYS_THETAO_2020-01-01_2020-01-07": {
+    "chunk_key": "GLORYS_THETAO_2020-01-01_2020-01-07",
+    "dataset": "GLORYS",
+    "dataset_id": "cmems_mod_glo_phy_my_0.083deg_P1D-m",
+    "variable": "thetao",
+    "start_datetime": "2020-01-01",
+    "end_datetime": "2020-01-07",
+    "bbox": "(5.0, 30.0, 45.0, 105.0)",
+    "depth_range": "(0.0, 1000.0)",
+    "output_file": "data/raw/glorys\\glorys_thetao_2020-01-01_2020-01-07.nc",
+    "size": 106367980,
+    "checksum": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881",
+    "status": "COMPLETE",
+    "retry_count": 0,
+    "error": null,
+    "timestamp": "2026-10-03T04:10:56.493149+00:00"
+  },
+  "OSTIA_ANALYSED_SST_2020-01-01_2020-01-07": {
+    "chunk_key": "OSTIA_ANALYSED_SST_2020-01-01_2020-01-07",
+    "dataset": "OSTIA",
+    "dataset_id": "METOFFICE-GLO-SST-L4-REP-OBS-SST",
+    "variable": "analysed_sst",
+    "start_datetime": "2020-01-01",
+    "end_datetime": "2020-01-07",
+    "bbox": "(5.0, 30.0, 45.0, 105.0)",
+    "depth_range": "(0, 0)",
+    "output_file": "data/raw/ostia\\ostia_sst_2020-01-01_2020-01-07.nc",
+    "size": 8432372,
+    "checksum": "04ebd1409bc311e916dd6129abf211d898f0d3508aec6fadba5f0b91aa1dacec",
+    "status": "COMPLETE",
+    "retry_count": 0,
+    "error": null,
+    "timestamp": "2026-10-03T04:11:05.491825+00:00"
+  },
+  "SSS_SOS_2020-01-01_2020-01-07": {
+    "chunk_key": "SSS_SOS_2020-01-01_2020-01-07",
+    "dataset": "SSS",
+    "dataset_id": "cmems_obs-mob_glo_phy-sss_my_multi_P1D",
+    "variable": "sos",
+    "start_datetime": "2020-01-01",
+    "end_datetime": "2020-01-07",
+    "bbox": "(5.0, 30.0, 45.0, 105.0)",
+    "depth_range": "(0, 0)",
+    "output_file": "data/raw/sss\\sss_multi_2020-01-01_2020-01-07.nc",
+    "size": 2709758,
+    "checksum": "7dab0d59bf18658bd8d9dc338abbb5840e571e09a02fa89abb1126567ce456a2",
+    "status": "COMPLETE",
+    "retry_count": 0,
+    "error": null,
+    "timestamp": "2026-10-03T04:11:14.891539+00:00"
+  },
+  "DUACS_SLA_2020-01-01_2020-01-07": {
+    "chunk_key": "DUACS_SLA_2020-01-01_2020-01-07",
+    "dataset": "DUACS",
+    "dataset_id": "c3s_obs-sl_glo_phy-ssh_my_twosat-l4-duacs-0.25deg_P1D",
+    "variable": "sla",
+    "start_datetime": "2020-01-01",
+    "end_datetime": "2020-01-07",
+    "bbox": "(5.0, 30.0, 45.0, 105.0)",
+    "depth_range": "(0, 0)",
+    "output_file": "data/raw/duacs\\duacs_sla_2020-01-01_2020-01-07.nc",
+    "size": 1372618,
+    "checksum": "1ee874e0df1bc663b0eaf501594f3b2a88657760a331666a90198fdb2aa19da6",
+    "status": "COMPLETE",
+    "retry_count": 0,
+    "error": null,
+    "timestamp": "2026-10-03T04:11:24.202371+00:00"
   }
 }
