@@ -11,6 +11,7 @@ Automated acquisition for OSCAR Surface Currents:
 import os
 import sys
 import requests
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -48,6 +49,96 @@ def query_oscar_granules(start_date, end_date):
         if download_url:
             granules.append({"title": title, "url": download_url, "time_start": e.get("time_start")})
     return granules
+
+def subset_oscar_dataset(ds, bbox=(5.0, 30.0, 45.0, 105.0)):
+    """
+    Schema-aware spatial subsetting for OSCAR v2.0 NetCDF datasets.
+
+    Official OSCAR v2.0 schema:
+        dimensions:
+            latitude = 719
+            longitude = 1440
+            time = 1
+        coordinate variables:
+            lat(latitude)
+            lon(longitude)
+        velocity variables:
+            u(time, longitude, latitude)
+            v(time, longitude, latitude)
+
+    Subsets using integer indices along actual dimensions 'latitude' and 'longitude'
+    based on boolean masks of coordinate variables 'lat' and 'lon'.
+    """
+    lat_min, lat_max, lon_min, lon_max = bbox
+
+    # 1. Use actual coordinate arrays
+    if "lat" in ds.coords or "lat" in ds.variables:
+        lat_values = ds["lat"].values
+        lat_coord_name = "lat"
+    elif "latitude" in ds.coords or "latitude" in ds.variables:
+        lat_values = ds["latitude"].values
+        lat_coord_name = "latitude"
+    else:
+        raise KeyError("Neither 'lat' nor 'latitude' coordinate found in OSCAR dataset.")
+
+    if "lon" in ds.coords or "lon" in ds.variables:
+        lon_values = ds["lon"].values
+        lon_coord_name = "lon"
+    elif "longitude" in ds.coords or "longitude" in ds.variables:
+        lon_values = ds["longitude"].values
+        lon_coord_name = "longitude"
+    else:
+        raise KeyError("Neither 'lon' nor 'longitude' coordinate found in OSCAR dataset.")
+
+    # 2. Build boolean masks for bounding box
+    lat_mask = (lat_values >= lat_min) & (lat_values <= lat_max)
+    lon_mask = (lon_values >= lon_min) & (lon_values <= lon_max)
+
+    # 3. Convert masks to integer indices using np.where()
+    lat_idx = np.where(lat_mask)[0]
+    lon_idx = np.where(lon_mask)[0]
+
+    if len(lat_idx) == 0:
+        raise ValueError(f"No latitude coordinates found in range [{lat_min}, {lat_max}]")
+    if len(lon_idx) == 0:
+        raise ValueError(f"No longitude coordinates found in range [{lon_min}, {lon_max}]")
+
+    # 4. Identify dimension names
+    lat_dim = ds[lat_coord_name].dims[0] if ds[lat_coord_name].dims else ("latitude" if "latitude" in ds.dims else "lat")
+    lon_dim = ds[lon_coord_name].dims[0] if ds[lon_coord_name].dims else ("longitude" if "longitude" in ds.dims else "lon")
+
+    # 5. Subset using actual dimensions with isel()
+    sub = ds[["u", "v"]].isel({lat_dim: lat_idx, lon_dim: lon_idx})
+
+    # 6. Preserve original lat/lon coordinate variables and time coordinate
+    if lat_coord_name not in sub.coords and lat_coord_name in ds:
+        sub = sub.assign_coords({lat_coord_name: ds[lat_coord_name].isel({lat_dim: lat_idx})})
+    if lon_coord_name not in sub.coords and lon_coord_name in ds:
+        sub = sub.assign_coords({lon_coord_name: ds[lon_coord_name].isel({lon_dim: lon_idx})})
+    if "time" in ds.coords and "time" not in sub.coords:
+        sub = sub.assign_coords({"time": ds["time"]})
+
+    # 7. Explicit assertions after subsetting
+    sub_lat_min = float(sub[lat_coord_name].min())
+    sub_lat_max = float(sub[lat_coord_name].max())
+    sub_lon_min = float(sub[lon_coord_name].min())
+    sub_lon_max = float(sub[lon_coord_name].max())
+
+    assert sub_lat_min >= lat_min - 1e-5, f"Assertion failed: min(lat) {sub_lat_min} < {lat_min}"
+    assert sub_lat_max <= lat_max + 1e-5, f"Assertion failed: max(lat) {sub_lat_max} > {lat_max}"
+    assert sub_lon_min >= lon_min - 1e-5, f"Assertion failed: min(lon) {sub_lon_min} < {lon_min}"
+    assert sub_lon_max <= lon_max + 1e-5, f"Assertion failed: max(lon) {sub_lon_max} > {lon_max}"
+    assert "u" in sub and "v" in sub, "Assertion failed: 'u' and 'v' must exist in subset"
+    assert len(sub[lat_dim]) == 101, f"Assertion failed: Expected 101 latitude points, got {len(sub[lat_dim])}"
+    assert len(sub[lon_dim]) == 241, f"Assertion failed: Expected 241 longitude points, got {len(sub[lon_dim])}"
+    assert "time" in sub.dims or "time" in sub.coords, "Assertion failed: 'time' dimension/coordinate must exist"
+    assert sub["u"].size > 0 and sub["v"].size > 0, "Assertion failed: Output velocity arrays must be non-empty"
+
+    expected_dims = {lat_dim, lon_dim, "time"}
+    actual_dims = set(sub.dims)
+    assert actual_dims.issubset(expected_dims), f"Assertion failed: unexpected dimensions {actual_dims - expected_dims}"
+
+    return sub
 
 def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar"):
     """Downloads one OSCAR granule, subsets to North Indian Ocean bbox, and saves."""
@@ -103,18 +194,9 @@ def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), outpu
 
     try:
         retry_with_backoff(_fetch, max_retries=3)
-        # Subset to bounding box
-        lat_min, lat_max, lon_min, lon_max = bbox
+        # Subset to bounding box using schema-aware function
         with xr.open_dataset(tmp_raw) as ds:
-            # Harmonize coordinate names (lat/latitude, lon/longitude)
-            lat_coord = "latitude" if "latitude" in ds.coords else "lat"
-            lon_coord = "longitude" if "longitude" in ds.coords else "lon"
-            
-            # Select bounding box
-            sub = ds[["u", "v"]].sel({
-                lat_coord: slice(lat_min, lat_max) if ds[lat_coord][0] < ds[lat_coord][-1] else slice(lat_max, lat_min),
-                lon_coord: slice(lon_min, lon_max)
-            })
+            sub = subset_oscar_dataset(ds, bbox=bbox)
             sub.to_netcdf(out_file)
             
         if os.path.exists(tmp_raw):

@@ -144,13 +144,13 @@
     "end_datetime": "2020-01-01",
     "bbox": "(5.0, 30.0, 45.0, 105.0)",
     "depth_range": "(0, 0)",
-    "output_file": "data/raw/oscar\\oscar_2020-01-01.nc",
+    "output_file": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\tmp2862vab5\\raw\\oscar\\oscar_2020-01-01.nc",
     "size": 0,
     "checksum": null,
     "status": "DOWNLOADING",
     "retry_count": 0,
     "error": null,
-    "timestamp": "2026-10-03T04:18:26.929251+00:00"
+    "timestamp": "2026-10-03T04:42:16.382007+00:00"
   },
   "CCMP_UWND_VWND_2020-01-01_2020-01-01": {
     "chunk_key": "CCMP_UWND_VWND_2020-01-01_2020-01-01",
