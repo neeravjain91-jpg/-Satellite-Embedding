@@ -62,18 +62,48 @@ def download_argo_profiles(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0),
     )
     req_url = ARGO_ERDDAP_URL + query
     print(f"Querying ARGO ERDDAP for {start_date} to {end_date}...")
-    
-    def _fetch():
-        resp = requests.get(req_url, timeout=30)
+
+    dt_start = pd.to_datetime(start_date)
+    dt_end = pd.to_datetime(end_date)
+    is_multi_month = (dt_end - dt_start).days > 31
+
+    def _fetch_url(url):
+        resp = requests.get(url, timeout=60)
         resp.raise_for_status()
         return resp.json()
 
     try:
-        data = retry_with_backoff(_fetch, max_retries=3)
-        col_names = data["table"]["columnNames"]
-        rows = data["table"]["rows"]
-        
-        df = pd.DataFrame(rows, columns=col_names)
+        if is_multi_month:
+            print(f"Splitting multi-month ARGO query into monthly intervals...")
+            dfs = []
+            curr = dt_start
+            while curr <= dt_end:
+                m_end = min(curr + pd.offsets.MonthEnd(1), dt_end)
+                m_start_str = curr.strftime("%Y-%m-%d")
+                m_end_str = m_end.strftime("%Y-%m-%d")
+                m_query = (
+                    f"?platform_number,time,latitude,longitude,pres,temp,temp_qc"
+                    f"&time>={m_start_str}T00:00:00Z&time<={m_end_str}T23:59:59Z"
+                    f"&latitude>={lat_min}&latitude<={lat_max}"
+                    f"&longitude>={lon_min}&longitude<={lon_max}"
+                    f"&pres>={pres_min}&pres<={pres_max}"
+                )
+                m_url = ARGO_ERDDAP_URL + m_query
+                print(f"  Fetching ARGO profiles for {m_start_str} to {m_end_str}...")
+                m_data = retry_with_backoff(lambda: _fetch_url(m_url), max_retries=3)
+                m_col_names = m_data["table"]["columnNames"]
+                m_rows = m_data["table"]["rows"]
+                m_df = pd.DataFrame(m_rows, columns=m_col_names)
+                dfs.append(m_df)
+                curr = m_end + pd.Timedelta(days=1)
+
+            df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+        else:
+            data = retry_with_backoff(lambda: _fetch_url(req_url), max_retries=3)
+            col_names = data["table"]["columnNames"]
+            rows = data["table"]["rows"]
+            df = pd.DataFrame(rows, columns=col_names)
+
         # Rename columns to standard schema
         df = df.rename(columns={
             "platform_number": "argo_id",
@@ -83,8 +113,9 @@ def download_argo_profiles(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0),
         })
         
         # Filter for good quality flags (1 = good, 2 = probably good)
-        df["quality_flag"] = pd.to_numeric(df["quality_flag"], errors="coerce").fillna(1).astype(int)
-        df = df[df["quality_flag"].isin([1, 2])]
+        if not df.empty and "quality_flag" in df.columns:
+            df["quality_flag"] = pd.to_numeric(df["quality_flag"], errors="coerce").fillna(1).astype(int)
+            df = df[df["quality_flag"].isin([1, 2])]
         
         # Save to CSV
         df.to_csv(out_file, index=False)

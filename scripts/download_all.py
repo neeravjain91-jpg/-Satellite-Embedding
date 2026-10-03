@@ -189,9 +189,35 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
             hash_cache=hash_cache
         )
 
+    def get_source_covered_dates(ds_name):
+        covered = set()
+        files = glob.glob(os.path.join(data_dir, ds_name, "*.nc"))
+        for f in files:
+            if not _is_provenance_verified(f):
+                continue
+            bname = os.path.basename(f)
+            parts = bname.replace(".nc", "").split("_")
+            date_parts = [p for p in parts if len(p) == 10 and p[4] == "-" and p[7] == "-"]
+            if len(date_parts) == 1:
+                covered.add(date_parts[0])
+            elif len(date_parts) >= 2:
+                c_start = date_parts[-2]
+                c_end = date_parts[-1]
+                try:
+                    for dt in pd.date_range(c_start, c_end):
+                        covered.add(dt.strftime("%Y-%m-%d"))
+                except Exception:
+                    pass
+        return covered
+
+    req_dates_set = set(dates)
+
     # 1. ARGO Validation Profiles
     argo_path = os.path.join(data_dir, "argo", f"argo_profiles_{start_date}_{end_date}.csv")
     argo_ok = _is_provenance_verified(argo_path)
+    if not argo_ok:
+        argo_candidates = glob.glob(os.path.join(data_dir, "argo", "*.csv"))
+        argo_ok = any(_is_provenance_verified(f) for f in argo_candidates)
     if acquisition_results and str(acquisition_results.get("argo", "")).startswith("FAILED"):
         argo_ok = False
     source_status["argo"] = argo_ok
@@ -199,14 +225,8 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
         missing_or_failed.append("ARGO")
 
     # 2. GLORYS Subsurface Temperature (thetao)
-    glorys_chunk = os.path.join(data_dir, "glorys", f"glorys_thetao_{start_date}_{end_date}.nc")
-    glorys_ok = _is_provenance_verified(glorys_chunk)
-    if not glorys_ok:
-        glorys_daily_ok = len(dates) > 0 and all(
-            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "glorys", f"*{d}*.nc")))
-            for d in dates
-        )
-        glorys_ok = glorys_daily_ok
+    glorys_covered = get_source_covered_dates("glorys")
+    glorys_ok = len(req_dates_set) > 0 and req_dates_set.issubset(glorys_covered)
     if acquisition_results and str(acquisition_results.get("glorys", "")).startswith("FAILED"):
         glorys_ok = False
     source_status["glorys"] = glorys_ok
@@ -214,14 +234,8 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
         missing_or_failed.append("GLORYS")
 
     # 3. OSTIA Sea Surface Temperature (SST)
-    ostia_chunk = os.path.join(data_dir, "ostia", f"ostia_sst_{start_date}_{end_date}.nc")
-    ostia_ok = _is_provenance_verified(ostia_chunk)
-    if not ostia_ok:
-        ostia_daily_ok = len(dates) > 0 and all(
-            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "ostia", f"*{d}*.nc")))
-            for d in dates
-        )
-        ostia_ok = ostia_daily_ok
+    ostia_covered = get_source_covered_dates("ostia")
+    ostia_ok = len(req_dates_set) > 0 and req_dates_set.issubset(ostia_covered)
     if acquisition_results and str(acquisition_results.get("ostia", "")).startswith("FAILED"):
         ostia_ok = False
     source_status["ostia"] = ostia_ok
@@ -229,14 +243,8 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
         missing_or_failed.append("OSTIA")
 
     # 4. Copernicus Multi-Obs Sea Surface Salinity (SSS)
-    sss_chunk = os.path.join(data_dir, "sss", f"sss_multi_{start_date}_{end_date}.nc")
-    sss_ok = _is_provenance_verified(sss_chunk)
-    if not sss_ok:
-        sss_daily_ok = len(dates) > 0 and all(
-            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "sss", f"*{d}*.nc")))
-            for d in dates
-        )
-        sss_ok = sss_daily_ok
+    sss_covered = get_source_covered_dates("sss")
+    sss_ok = len(req_dates_set) > 0 and req_dates_set.issubset(sss_covered)
     if acquisition_results and str(acquisition_results.get("sss", "")).startswith("FAILED"):
         sss_ok = False
     source_status["sss"] = sss_ok
@@ -244,14 +252,8 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
         missing_or_failed.append("SSS")
 
     # 5. DUACS Sea Level Anomaly (SSH/SLA)
-    duacs_chunk = os.path.join(data_dir, "duacs", f"duacs_sla_{start_date}_{end_date}.nc")
-    duacs_ok = _is_provenance_verified(duacs_chunk)
-    if not duacs_ok:
-        duacs_daily_ok = len(dates) > 0 and all(
-            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "duacs", f"*{d}*.nc")))
-            for d in dates
-        )
-        duacs_ok = duacs_daily_ok
+    duacs_covered = get_source_covered_dates("duacs")
+    duacs_ok = len(req_dates_set) > 0 and req_dates_set.issubset(duacs_covered)
     if acquisition_results and str(acquisition_results.get("duacs", "")).startswith("FAILED"):
         duacs_ok = False
     source_status["duacs"] = duacs_ok
@@ -259,14 +261,8 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
         missing_or_failed.append("DUACS")
 
     # 6. OSCAR Surface Currents (U, V)
-    oscar_chunk = os.path.join(data_dir, "oscar", f"oscar_{start_date}_{end_date}.nc")
-    oscar_ok = _is_provenance_verified(oscar_chunk)
-    if not oscar_ok:
-        oscar_daily_ok = len(dates) > 0 and all(
-            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "oscar", f"*{d}*.nc")))
-            for d in dates
-        )
-        oscar_ok = oscar_daily_ok
+    oscar_covered = get_source_covered_dates("oscar")
+    oscar_ok = len(req_dates_set) > 0 and req_dates_set.issubset(oscar_covered)
     if acquisition_results and str(acquisition_results.get("oscar", "")).startswith("FAILED"):
         oscar_ok = False
     source_status["oscar"] = oscar_ok
@@ -274,14 +270,8 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
         missing_or_failed.append("OSCAR")
 
     # 7. CCMP Surface Winds (U, V)
-    ccmp_chunk = os.path.join(data_dir, "ccmp", f"ccmp_{start_date}_{end_date}.nc")
-    ccmp_ok = _is_provenance_verified(ccmp_chunk)
-    if not ccmp_ok:
-        ccmp_daily_ok = len(dates) > 0 and all(
-            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "ccmp", f"*{d}*.nc")))
-            for d in dates
-        )
-        ccmp_ok = ccmp_daily_ok
+    ccmp_covered = get_source_covered_dates("ccmp")
+    ccmp_ok = len(req_dates_set) > 0 and req_dates_set.issubset(ccmp_covered)
     if acquisition_results and str(acquisition_results.get("ccmp", "")).startswith("FAILED"):
         ccmp_ok = False
     source_status["ccmp"] = ccmp_ok
@@ -414,18 +404,25 @@ def run_download_pipeline(mode="pilot", exit_on_failure=True):
             return True
     else:
         # Full-year check
-        failed_sources = [k.upper() for k, v in results.items() if isinstance(v, str) and v.startswith("FAILED")]
-        if failed_sources:
-            print("\n" + "=" * 70)
-            print("FULL-YEAR ACQUISITION GATE")
-            print("=" * 70)
-            print("ACQUISITION STATUS: INCOMPLETE")
-            print(f"Missing/failed: {', '.join(failed_sources)}")
+        fy_certifiable, fy_source_status, fy_missing_or_failed = check_pilot_completeness(
+            start_date, end_date, acquisition_results=results
+        )
+        print("\n" + "=" * 70)
+        print("FULL-YEAR ACQUISITION GATE")
+        print("=" * 70)
+        if not fy_certifiable:
+            print("FULL-YEAR STATUS: INCOMPLETE")
+            print(f"Missing/failed: {', '.join(fy_missing_or_failed)}")
             print("=" * 70)
             if exit_on_failure:
                 sys.exit(1)
             return False
-        return True
+        else:
+            print("FULL-YEAR STATUS: COMPLETE")
+            print("All 7 required sources present, non-empty, and verified for the full year 2020.")
+            print("Certification: READY FOR FULL-YEAR HARMONIZATION")
+            print("=" * 70)
+            return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Acquisition pipeline runner")

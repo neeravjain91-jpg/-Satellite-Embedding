@@ -321,5 +321,22 @@
     "retry_count": 0,
     "error": null,
     "timestamp": "2026-10-03T05:37:49.356032+00:00"
+  },
+  "OSCAR_U_V_2020-01-08_2020-01-08": {
+    "chunk_key": "OSCAR_U_V_2020-01-08_2020-01-08",
+    "dataset": "OSCAR",
+    "dataset_id": "OSCAR_L4_OC_FINAL_V2.0",
+    "variable": "u_v",
+    "start_datetime": "2020-01-08",
+    "end_datetime": "2020-01-08",
+    "bbox": "(5.0, 30.0, 45.0, 105.0)",
+    "depth_range": "(0, 0)",
+    "output_file": "data/raw/oscar/oscar_2020-01-08.nc",
+    "size": 424878,
+    "checksum": "01e8a4084e24b863a06f5cfd6cd39f3172b49dda360c68c5edcbf2c0e4b82178",
+    "status": "COMPLETE",
+    "retry_count": 0,
+    "error": null,
+    "timestamp": "2026-10-03T06:42:21.346560+00:00"
   }
 }

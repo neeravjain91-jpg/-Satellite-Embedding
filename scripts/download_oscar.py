@@ -330,22 +330,119 @@ def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), outpu
 def download_oscar_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar", manifest_mgr=None):
     """
     Downloads and subsets OSCAR granules for a given date range.
-    Queries CMR for granules to ensure exact catalog alignment, then calls download_and_subset_oscar.
+    Uses monthly batching with podaac-data-downloader for multi-day periods,
+    and falls back to per-granule acquisition if needed.
     """
-    print(f"Querying OSCAR granules for {start_date} to {end_date}...")
-    granules = query_oscar_granules(start_date, end_date)
-    print(f"Found {len(granules)} OSCAR granules.")
+    os.makedirs(output_dir, exist_ok=True)
+    check_free_disk()
+    if manifest_mgr is None:
+        manifest_mgr = ManifestManager()
+
+    dt_start = pd.to_datetime(start_date)
+    dt_end = pd.to_datetime(end_date)
+    all_dates = [d.strftime("%Y-%m-%d") for d in pd.date_range(start_date, end_date)]
+
+    # If single day, call download_and_subset_oscar directly
+    if dt_start == dt_end:
+        return [download_and_subset_oscar(start_date, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)]
+
+    print(f"Executing OSCAR acquisition for {start_date} to {end_date} ({len(all_dates)} days)...")
     results = []
-    if granules:
-        for g in granules:
-            f = download_and_subset_oscar(g, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
-            results.append(f)
-    else:
-        dates = [d.strftime("%Y-%m-%d") for d in pd.date_range(start_date, end_date)]
-        for d in dates:
-            f = download_and_subset_oscar(d, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
-            results.append(f)
-    return results
+
+    # Process in monthly chunks
+    curr = dt_start
+    while curr <= dt_end:
+        m_end = min(curr + pd.offsets.MonthEnd(1), dt_end)
+        m_start_str = curr.strftime("%Y-%m-%d")
+        m_end_str = m_end.strftime("%Y-%m-%d")
+        m_dates = [d.strftime("%Y-%m-%d") for d in pd.date_range(m_start_str, m_end_str)]
+
+        # Check which dates in this month are already complete
+        missing_dates = []
+        for d in m_dates:
+            chk_key = manifest_mgr.get_chunk_key("OSCAR", "u_v", d, d)
+            out_f = os.path.join(output_dir, f"oscar_{d}.nc")
+            if manifest_mgr.is_chunk_complete(chk_key) and os.path.exists(out_f) and os.path.getsize(out_f) > 0:
+                results.append(out_f)
+            else:
+                missing_dates.append(d)
+
+        if not missing_dates:
+            print(f"[SKIP] OSCAR month {m_start_str} to {m_end_str} already complete ({len(m_dates)} files).")
+            curr = m_end + pd.Timedelta(days=1)
+            continue
+
+        print(f"[OSCAR BATCH] Downloading {len(missing_dates)} missing granules for {m_start_str} to {m_end_str}...")
+        staging_dir = os.path.join(output_dir, f"_staging_{m_start_str}_{m_end_str}")
+        os.makedirs(staging_dir, exist_ok=True)
+
+        cmd = build_podaac_downloader_cmd(
+            collection=COLLECTION_SHORTNAME,
+            output_dir=staging_dir,
+            start_date=m_start_str,
+            end_date=m_end_str
+        )
+
+        try:
+            print(f"[PO.DAAC BATCH] Executing: {' '.join(cmd)}")
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            combined_output = (proc.stdout or "") + " " + (proc.stderr or "")
+
+            if proc.returncode != 0:
+                if "netrc" in combined_output.lower() or "401" in combined_output:
+                    raise PermissionError(f"PO.DAAC downloader authentication error:\n{combined_output.strip()}")
+                print(f"[WARN] Batch download returned non-zero code {proc.returncode}. Output: {combined_output.strip()[:300]}")
+
+            downloaded_nc = [
+                f for f in glob.glob(os.path.join(staging_dir, "**", "*.nc"), recursive=True)
+                if not f.endswith(".tmp.nc")
+            ]
+
+            for raw_file in downloaded_nc:
+                bname = os.path.basename(raw_file)
+                # Format: oscar_currents_final_YYYYMMDD.nc
+                date_part = bname.replace("oscar_currents_final_", "").replace(".nc", "").strip()
+                if len(date_part) == 8 and date_part.isdigit():
+                    f_date = f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:8]}"
+                else:
+                    continue
+
+                out_f = os.path.join(output_dir, f"oscar_{f_date}.nc")
+                chk_key = manifest_mgr.get_chunk_key("OSCAR", "u_v", f_date, f_date)
+
+                if f_date in missing_dates:
+                    try:
+                        with xr.open_dataset(raw_file) as ds:
+                            sub = subset_oscar_dataset(ds, bbox=bbox)
+                            sub.to_netcdf(out_f)
+
+                        if os.path.exists(out_f) and os.path.getsize(out_f) > 0:
+                            manifest_mgr.update_status(chk_key, "COMPLETE", output_file=out_f)
+                            print(f"[COMPLETE] OSCAR granule {f_date} saved to {out_f}")
+                            results.append(out_f)
+                            missing_dates.remove(f_date)
+                    except Exception as e:
+                        print(f"[ERROR] Failed to subset {raw_file}: {e}")
+
+            shutil.rmtree(staging_dir, ignore_errors=True)
+
+            # Fallback for any dates still missing
+            for d in list(missing_dates):
+                f = download_and_subset_oscar(d, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
+                results.append(f)
+
+        except Exception as e:
+            if os.path.exists(staging_dir):
+                shutil.rmtree(staging_dir, ignore_errors=True)
+            print(f"[ERROR] Batch download failed for {m_start_str} to {m_end_str}: {e}. Retrying daily fallback...")
+            for d in missing_dates:
+                f = download_and_subset_oscar(d, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
+                results.append(f)
+
+        curr = m_end + pd.Timedelta(days=1)
+
+    return sorted(list(set(results)))
 
 if __name__ == "__main__":
     download_oscar_period("2020-01-01", "2020-01-07")
+
