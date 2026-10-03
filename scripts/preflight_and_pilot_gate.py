@@ -219,12 +219,26 @@ def is_pilot_acceptance_certified():
         return False
 
 def certify_pilot_acceptance(pilot_metadata):
-    """Certifies that the 7-day pilot has met all acceptance criteria."""
+    """
+    Certifies that the 7-day pilot has met all acceptance criteria.
+    Strictly prevents certification if any required dataset is missing.
+    """
+    from scripts.download_all import check_pilot_completeness
+    start_date = pilot_metadata.get("start_date", "2020-01-01")
+    end_date = pilot_metadata.get("end_date", "2020-01-07")
+    is_certifiable, status, missing = check_pilot_completeness(start_date, end_date)
+    
+    if not is_certifiable:
+        raise RuntimeError(
+            f"Cannot certify partial pilot: required sources missing or incomplete: {', '.join(missing)}.\n"
+            f"All 7 sources (ARGO, GLORYS, OSTIA, SSS, DUACS, OSCAR, CCMP) must be present, non-empty, and provenance-verified."
+        )
+
     os.makedirs(os.path.dirname(PILOT_VALIDATION_MARKER), exist_ok=True)
     record = {
         "pilot_certified": True,
         "certification_timestamp": pd.Timestamp.now(tz="UTC").isoformat(),
-        "period": "2020-01-01 to 2020-01-07",
+        "period": f"{start_date} to {end_date}",
         "qa_checks_passed": ["provenance", "variable_temporal_variability", "cross_variable_physical_sanity"],
         "metadata": pilot_metadata
     }
