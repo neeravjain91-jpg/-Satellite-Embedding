@@ -44,6 +44,10 @@ def regrid_2d_field(data, src_lats, src_lons, dst_lats=CANONICAL_LATS, dst_lons=
     Regrids a 2D field (latitude, longitude) from source coordinates to destination coordinates.
     Handles NaN values and prevents bleeding of NaNs/land across coastlines.
     """
+    # Ensure data is oriented as (latitude, longitude)
+    if data.shape == (len(src_lons), len(src_lats)) and len(src_lons) != len(src_lats):
+        data = data.T
+
     # Ensure source latitudes are monotonically increasing
     if src_lats[0] > src_lats[-1]:
         src_lats = src_lats[::-1]
@@ -124,8 +128,16 @@ def regrid_glorys_thetao(da_thetao):
     Regrids GLORYS potential temperature horizontally from native 0.0833° to 0.25°.
     Preserves vertical depths.
     """
-    lats = da_thetao.latitude.values
-    lons = da_thetao.longitude.values
+    if hasattr(da_thetao, "dims") and "depth" in da_thetao.dims and ("latitude" in da_thetao.dims or "lat" in da_thetao.dims):
+        lat_c = "latitude" if "latitude" in da_thetao.dims else "lat"
+        lon_c = "longitude" if "longitude" in da_thetao.dims else "lon"
+        dim_order = [d for d in ["time", "depth", lat_c, lon_c] if d in da_thetao.dims]
+        da_thetao = da_thetao.transpose(*dim_order)
+
+    lat_name = "latitude" if "latitude" in da_thetao.coords else "lat"
+    lon_name = "longitude" if "longitude" in da_thetao.coords else "lon"
+    lats = da_thetao[lat_name].values
+    lons = da_thetao[lon_name].values
     # da_thetao: (time, depth, lat, lon) or (depth, lat, lon)
     vals = da_thetao.values
     

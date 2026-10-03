@@ -87,9 +87,13 @@ def interpolate_glorys_to_canonical_depths(da_thetao, target_depths=CANONICAL_DE
     # Rename target_depth back to depth and assign coordinate values
     result_data = result_data.rename({"target_depth": "depth"})
     result_data = result_data.assign_coords(depth=target_depths)
-    result_data.depth.attrs = {"units": "m", "standard_name": "depth", "positive": "down"}
     result_data.attrs = da_thetao.attrs
     result_data.name = "thetao"
+
+    # Ensure canonical dimension ordering: (time, depth, latitude, longitude) or (depth, latitude, longitude)
+    dim_order = [d for d in ["time", "depth", "latitude", "longitude"] if d in result_data.dims]
+    remaining_dims = [d for d in result_data.dims if d not in dim_order]
+    result_data = result_data.transpose(*(dim_order + remaining_dims))
     return result_data
 
 if __name__ == "__main__":

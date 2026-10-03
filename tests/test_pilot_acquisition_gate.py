@@ -21,13 +21,19 @@ class TestPilotAcquisitionGate(unittest.TestCase):
     """
 
     def setUp(self):
-        # Ensure clean state before each test
+        # Backup marker if present so test isolation does not clobber real acceptance marker
+        self.marker_backup = None
         if os.path.exists(PILOT_VALIDATION_MARKER):
+            with open(PILOT_VALIDATION_MARKER, "r") as f:
+                self.marker_backup = f.read()
             os.remove(PILOT_VALIDATION_MARKER)
 
     def tearDown(self):
-        # Cleanup
-        if os.path.exists(PILOT_VALIDATION_MARKER):
+        # Restore marker if it previously existed, otherwise clean up
+        if self.marker_backup is not None:
+            with open(PILOT_VALIDATION_MARKER, "w") as f:
+                f.write(self.marker_backup)
+        elif os.path.exists(PILOT_VALIDATION_MARKER):
             os.remove(PILOT_VALIDATION_MARKER)
 
     def test_one_required_source_failure_exits_nonzero(self):
@@ -60,21 +66,22 @@ class TestPilotAcquisitionGate(unittest.TestCase):
         Verify that a partial pilot (e.g., missing OSCAR) strictly blocks
         generation of reports/pilot_acceptance_certified.json.
         """
-        # On disk right now, ARGO, GLORYS, OSTIA, SSS, DUACS, and CCMP are present, but OSCAR is missing
-        is_certifiable, source_status, missing = check_pilot_completeness("2020-01-01", "2020-01-07")
-        self.assertFalse(is_certifiable, "Pilot should not be certifiable when OSCAR is missing")
-        self.assertIn("OSCAR", missing, "OSCAR must be reported in missing/failed list")
+        # Simulate a partial pilot where OSCAR is missing or failed
+        with patch("scripts.download_all.is_provenance_verified", side_effect=lambda p, **kwargs: False if "oscar" in str(p).lower() else True):
+            is_certifiable, source_status, missing = check_pilot_completeness("2020-01-01", "2020-01-07")
+            self.assertFalse(is_certifiable, "Pilot should not be certifiable when OSCAR is missing")
+            self.assertIn("OSCAR", missing, "OSCAR must be reported in missing/failed list")
 
-        # Attempting to certify must raise RuntimeError
-        metadata = {
-            "start_date": "2020-01-01",
-            "end_date": "2020-01-07",
-            "days_count": 7
-        }
-        with self.assertRaises(RuntimeError) as cm:
-            certify_pilot_acceptance(metadata)
-        self.assertIn("Cannot certify partial pilot", str(cm.exception))
-        self.assertIn("OSCAR", str(cm.exception))
+            # Attempting to certify must raise RuntimeError
+            metadata = {
+                "start_date": "2020-01-01",
+                "end_date": "2020-01-07",
+                "days_count": 7
+            }
+            with self.assertRaises(RuntimeError) as cm:
+                certify_pilot_acceptance(metadata)
+            self.assertIn("Cannot certify partial pilot", str(cm.exception))
+            self.assertIn("OSCAR", str(cm.exception))
 
         # Marker file must NOT have been created
         self.assertFalse(os.path.exists(PILOT_VALIDATION_MARKER))

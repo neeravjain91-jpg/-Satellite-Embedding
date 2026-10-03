@@ -1,0 +1,18 @@
+{
+  "pilot_certified": true,
+  "certification_timestamp": "2026-10-03T06:07:03.840594+00:00",
+  "period": "2020-01-01 to 2020-01-07",
+  "qa_checks_passed": [
+    "provenance",
+    "variable_temporal_variability",
+    "cross_variable_physical_sanity"
+  ],
+  "metadata": {
+    "start_date": "2020-01-01",
+    "end_date": "2020-01-07",
+    "days_count": 7,
+    "provenance_files_count": 42,
+    "zarr_surface": "data/processed/real_ml_dataset_pilot_surface.zarr",
+    "zarr_target": "data/processed/real_ml_dataset_pilot_target.zarr"
+  }
+}

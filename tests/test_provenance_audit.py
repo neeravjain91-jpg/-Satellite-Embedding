@@ -23,11 +23,17 @@ class TestProvenanceAudit(unittest.TestCase):
     """
 
     def setUp(self):
+        self.marker_backup = None
         if os.path.exists(PILOT_VALIDATION_MARKER):
+            with open(PILOT_VALIDATION_MARKER, "r") as f:
+                self.marker_backup = f.read()
             os.remove(PILOT_VALIDATION_MARKER)
 
     def tearDown(self):
-        if os.path.exists(PILOT_VALIDATION_MARKER):
+        if self.marker_backup is not None:
+            with open(PILOT_VALIDATION_MARKER, "w") as f:
+                f.write(self.marker_backup)
+        elif os.path.exists(PILOT_VALIDATION_MARKER):
             os.remove(PILOT_VALIDATION_MARKER)
 
     def test_checksum_mismatch_fails_provenance(self):
