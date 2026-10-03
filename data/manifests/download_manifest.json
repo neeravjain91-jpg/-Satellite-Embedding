@@ -143,14 +143,14 @@
     "start_datetime": "2020-01-01",
     "end_datetime": "2020-01-07",
     "bbox": "(5.0, 30.0, 45.0, 105.0)",
-    "depth_range": "(0.0, 1000.0)",
+    "depth_range": "(0.0, 1100.0)",
     "output_file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
-    "size": 106367980,
-    "checksum": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881",
+    "size": 109406282,
+    "checksum": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd",
     "status": "COMPLETE",
     "retry_count": 0,
     "error": null,
-    "timestamp": "2026-10-03T04:10:56.493149+00:00"
+    "timestamp": "2026-10-03T06:32:43.449682+00:00"
   },
   "OSTIA_ANALYSED_SST_2020-01-01_2020-01-07": {
     "chunk_key": "OSTIA_ANALYSED_SST_2020-01-01_2020-01-07",

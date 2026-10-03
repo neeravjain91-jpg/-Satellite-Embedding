@@ -5,7 +5,7 @@ Automated acquisition for GLORYS Global Ocean Physics Reanalysis:
 - Dataset ID: cmems_mod_glo_phy_my_0.083deg_P1D-m
 - Variable: thetao (potential temperature)
 - Domain: 5°N–30°N, 45°E–105°E
-- Depths: 0m to 1000m
+- Depths: 0m to 1100m (captures level 36 at 1062.4m to bracket canonical 1000m)
 - Automatic size check, monthly chunking, SHA-256 verification, and manifest tracking.
 """
 
@@ -34,7 +34,8 @@ def check_copernicus_credentials():
         )
 
 def download_glorys_chunk(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0),
-                          depth_range=(0.0, 1000.0), output_dir="data/raw/glorys"):
+                          depth_range=(0.0, 1100.0), output_dir="data/raw/glorys",
+                          overwrite=False):
     """
     Downloads a single temporal chunk of GLORYS thetao via copernicusmarine.subset.
     """
@@ -50,9 +51,20 @@ def download_glorys_chunk(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0),
     out_filename = f"glorys_thetao_{start_date}_{end_date}.nc"
     out_filepath = os.path.join(output_dir, out_filename)
 
-    if manifest_mgr.is_chunk_complete(chunk_key):
-        print(f"[SKIP] GLORYS chunk {start_date} to {end_date} already complete: {out_filepath}")
-        return out_filepath
+    if not overwrite and manifest_mgr.is_chunk_complete(chunk_key):
+        if os.path.exists(out_filepath):
+            try:
+                import xarray as _xr
+                with _xr.open_dataset(out_filepath) as _ds:
+                    if "depth" in _ds and float(_ds.depth.values.max()) >= min(depth_max, 1000.0):
+                        print(f"[SKIP] GLORYS chunk {start_date} to {end_date} already complete and depth-verified: {out_filepath}")
+                        return out_filepath
+                    else:
+                        print(f"[REACQUIRE] Existing GLORYS chunk {out_filepath} max depth {float(_ds.depth.values.max()):.1f}m does not reach requested depth {depth_max}m. Redownloading...")
+            except Exception:
+                pass
+        else:
+            print(f"[REACQUIRE] Manifest marks chunk complete but file missing: {out_filepath}. Redownloading...")
 
     # Size estimation
     est = estimate_request_size("glorys", start_date, end_date, bbox=bbox, depth_range=depth_range)
@@ -100,7 +112,8 @@ def download_glorys_chunk(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0),
         manifest_mgr.update_status(chunk_key, "FAILED", error=str(e))
         raise
 
-def download_glorys_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0)):
+def download_glorys_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0),
+                           depth_range=(0.0, 1100.0)):
     """
     Downloads period by splitting into safe monthly chunks.
     """
@@ -108,7 +121,7 @@ def download_glorys_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0)):
     print(f"Executing GLORYS download in {len(chunks)} chunks...")
     downloaded_files = []
     for c_start, c_end in chunks:
-        f = download_glorys_chunk(c_start, c_end, bbox=bbox)
+        f = download_glorys_chunk(c_start, c_end, bbox=bbox, depth_range=depth_range)
         downloaded_files.append(f)
     return downloaded_files
 

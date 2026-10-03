@@ -26,7 +26,7 @@ MIN_FREE_DISK_GB = 20.0
 DATASET_SPECS = {
     "glorys": {
         "res_deg": 0.083333,
-        "depth_levels_in_1000m": 35,
+        "depth_levels_in_1000m": 36,  # 36 native levels down to 1062.4m to bracket canonical 1000m
         "bytes_per_val": 4,  # float32
         "compression_ratio": 2.5,
         "default_vars": ["thetao"]

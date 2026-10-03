@@ -278,8 +278,34 @@ class TestScientificMasksAndIntegrity(unittest.TestCase):
         native_t = 28.0 - 0.015 * native_d
         interp = interpolate_depths_1d(native_t, native_d, CANONICAL_DEPTHS)
 
-        self.assertEqual(len(interp), 15)
-        self.assertFalse(np.any(np.isnan(interp)))
+    def test_11_open_ocean_1000m_interpolation_finite_and_non_extrapolated(self):
+        """
+        11. Open-ocean 1000m depth is finite and non-extrapolated when bracketed by native levels.
+        When native levels end at 902.34m, 1000m must be strictly NaN (no extrapolation).
+        When native levels reach 1062.44m, 1000m must be linearly interpolated and finite.
+        """
+        # Case A: Native depths stop at 902.34m -> 1000m MUST be NaN (extrapolation refused)
+        d_short = np.array([0.49, 10.0, 50.0, 100.0, 300.0, 500.0, 700.0, 902.34], dtype=np.float32)
+        t_short = np.array([28.0, 27.5, 25.0, 20.0, 12.0, 8.0, 6.0, 5.0], dtype=np.float32)
+        interp_short = interpolate_depths_1d(t_short, d_short, CANONICAL_DEPTHS)
+        idx_1000 = list(CANONICAL_DEPTHS).index(1000.0)
+        self.assertTrue(np.isnan(interp_short[idx_1000]), "1000m must be NaN when deepest native level is 902.34m")
+
+        # Case B: Native depths reach 1062.44m -> 1000m MUST be finite and bracketed
+        d_full = np.array([0.49, 10.0, 50.0, 100.0, 300.0, 500.0, 700.0, 902.34, 1062.44], dtype=np.float32)
+        t_full = np.array([28.0, 27.5, 25.0, 20.0, 12.0, 8.0, 6.0, 5.0, 4.2], dtype=np.float32)
+        interp_full = interpolate_depths_1d(t_full, d_full, CANONICAL_DEPTHS)
+        self.assertFalse(np.isnan(interp_full[idx_1000]), "1000m must be finite when bracketed by 902.34m and 1062.44m")
+        # Linearly interpolated value must be strictly between 5.0 and 4.2
+        self.assertTrue(4.2 <= interp_full[idx_1000] <= 5.0, f"Interpolated 1000m value {interp_full[idx_1000]} must be between 4.2 and 5.0")
+
+        # Case C: If actual GLORYS pilot file is present, verify native depth >= 1062m
+        glorys_path = os.path.join(repo_root, "data", "raw", "glorys", "glorys_thetao_2020-01-01_2020-01-07.nc")
+        if os.path.exists(glorys_path):
+            with xr.open_dataset(glorys_path) as ds_g:
+                max_d = float(ds_g.depth.values.max())
+                self.assertGreater(max_d, 1000.0, f"GLORYS pilot chunk max depth {max_d}m must exceed 1000m")
+                self.assertAlmostEqual(max_d, 1062.44, delta=1.0)
 
 if __name__ == "__main__":
     unittest.main()

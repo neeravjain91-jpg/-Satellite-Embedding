@@ -27,7 +27,7 @@ COPERNICUS_DATASETS = [
         "name": "GLORYS Subsurface Temperature (thetao)",
         "dataset_id": "cmems_mod_glo_phy_my_0.083deg_P1D-m",
         "variables": ["thetao"],
-        "depth_range": (0.0, 1000.0),
+        "depth_range": (0.0, 1100.0),
         "bbox": (5.0, 30.0, 45.0, 105.0)
     },
     {

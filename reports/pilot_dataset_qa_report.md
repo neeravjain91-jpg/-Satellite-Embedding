@@ -1,7 +1,7 @@
 # Pilot Dataset Quality Assurance & Scientific Integrity Report
 
 **Pilot Period**: 2020-01-01 to 2020-01-07 (7 calendar days)  
-**Generated**: 2026-10-03T06:25:15.929597+00:00  
+**Generated**: 2026-10-03T06:37:01.667902+00:00  
 **Status**: VALIDATED & CERTIFIED  
 
 ---
@@ -42,8 +42,8 @@
 | **200 m** | 83 | 0.69% | 40 | 43 |
 | **300 m** | 160 | 1.33% | 66 | 94 |
 | **500 m** | 117 | 0.97% | 50 | 67 |
-| **700 m** | 9,363 | 77.78% | 6,088 | 3,284 |
-| **1000 m** | 0 | 0.00% | 0 | 0 |
+| **700 m** | 223 | 1.85% | 113 | 110 |
+| **1000 m** | 9,140 | 75.93% | 5,975 | 3,174 |
 
 ---
 
@@ -97,7 +97,7 @@ Target availability is dictated by bathymetry: shallow waters naturally transiti
 | ** 300 m** |  80.1% |  19.9% |  85.4% |  14.6% |  72.0% |  28.0% |
 | ** 500 m** |  78.8% |  21.2% |  84.5% |  15.5% |  70.0% |  30.0% |
 | ** 700 m** |  77.8% |  22.2% |  83.8% |  16.2% |  68.6% |  31.4% |
-| **1000 m** |   0.0% | 100.0% |   0.0% | 100.0% |   0.0% | 100.0% |
+| **1000 m** |  75.9% |  24.1% |  82.2% |  17.8% |  66.3% |  33.7% |
 
 ---
 
@@ -106,10 +106,10 @@ Target availability is dictated by bathymetry: shallow waters naturally transiti
 > [!IMPORTANT]
 > This comparison evaluates reference consistency between in-situ ARGO float profiles and the canonical-grid GLORYS reanalysis field. It does **not** constitute ML model validation, as no ML model predictions have been evaluated.
 
-- **Matched ARGO Observation Points**: 16,711
-- **Root Mean Square Difference (RMSD)**: 0.598 °C
-- **Mean Absolute Difference (MAD)**: 0.397 °C
-- **Mean Difference (Bias)**: 0.11 °C
+- **Matched ARGO Observation Points**: 22,119
+- **Root Mean Square Difference (RMSD)**: 0.568 °C
+- **Mean Absolute Difference (MAD)**: 0.376 °C
+- **Mean Difference (Bias)**: 0.035 °C
 - **Correlation Coefficient ($r$)**: 0.995
 - **Reference Dataset Record**: `data/processed/argo_matchup_evaluation.csv`
 

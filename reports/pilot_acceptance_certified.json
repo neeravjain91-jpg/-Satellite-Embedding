@@ -1,7 +1,7 @@
 {
   "pilot_certified": true,
-  "certification_timestamp": "2026-10-03T06:25:16.221869+00:00",
-  "git_commit_sha": "40b514d2b3a86c0f4e876c61660ebbdac1b6d1b1",
+  "certification_timestamp": "2026-10-03T06:37:01.974436+00:00",
+  "git_commit_sha": "662fbb164c30dac542d0974d419fdbd57d8ab4b3",
   "environment": {
     "python_version": "3.11.9",
     "platform": "Windows-10-10.0.26300-SP0",
@@ -73,8 +73,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 0,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       },
       {
         "date": "2020-01-02",
@@ -121,8 +121,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 1,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       },
       {
         "date": "2020-01-03",
@@ -169,8 +169,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 2,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       },
       {
         "date": "2020-01-04",
@@ -217,8 +217,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 3,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       },
       {
         "date": "2020-01-05",
@@ -265,8 +265,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 4,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       },
       {
         "date": "2020-01-06",
@@ -313,8 +313,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 5,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       },
       {
         "date": "2020-01-07",
@@ -361,8 +361,8 @@
         "dataset": "GLORYS thetao",
         "file": "data/raw/glorys/glorys_thetao_2020-01-01_2020-01-07.nc",
         "time_index": 6,
-        "size_bytes": 106367980,
-        "sha256": "1686268cd43afb11b8b70fa80eb156f9f64a8b81a7359eeee87dff42a471b881"
+        "size_bytes": 109406282,
+        "sha256": "f6434a7d69800a90e673c69a183908087a0e3216418f7cbcb075893224dd7fdd"
       }
     ],
     "grid_definition": {
@@ -467,7 +467,7 @@
         "frac_diff": 0.9040713887339654
       },
       "thetao_500_1000m": {
-        "max_diff": 0.5402746200561523
+        "max_diff": 0.5987920761108398
       }
     },
     "physical_sanity_ranges": {
@@ -531,7 +531,7 @@
       },
       "target": {
         "thetao": {
-          "min": 7.88054895401001,
+          "min": 5.910186767578125,
           "max": 32.64291763305664,
           "permitted": [
             -2.0,
@@ -544,10 +544,10 @@
       }
     },
     "argo_glorys_reference_consistency": {
-      "num_matched_points": 16711,
-      "rmse_degC": 0.598,
-      "mae_degC": 0.397,
-      "bias_degC": 0.11,
+      "num_matched_points": 22119,
+      "rmse_degC": 0.568,
+      "mae_degC": 0.376,
+      "bias_degC": 0.035,
       "correlation_r": 0.995
     },
     "dataset_qa_summary": {
@@ -901,10 +901,10 @@
         },
         {
           "depth_m": 1000,
-          "domain_valid_pct": 0.0,
-          "domain_nan_pct": 100.0,
-          "as_valid_pct": 0.0,
-          "bob_valid_pct": 0.0
+          "domain_valid_pct": 75.93,
+          "domain_nan_pct": 24.07,
+          "as_valid_pct": 82.22,
+          "bob_valid_pct": 66.35
         }
       ]
     },
