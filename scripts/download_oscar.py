@@ -10,6 +10,10 @@ Automated acquisition for OSCAR Surface Currents:
 
 import os
 import sys
+import glob
+import shutil
+import subprocess
+import netrc
 import requests
 import numpy as np
 import pandas as pd
@@ -24,6 +28,79 @@ from scripts.estimate_sizes import check_free_disk
 
 CMR_GRANULES_URL = "https://cmr.earthdata.nasa.gov/search/granules.json"
 COLLECTION_SHORTNAME = "OSCAR_L4_OC_FINAL_V2.0"
+
+def ensure_earthdata_netrc():
+    """
+    Ensures that a valid .netrc credential configuration exists in the user's home directory.
+    Supports Windows robustly:
+    - Checks for both ~/.netrc and ~/_netrc.
+    - If ~/_netrc exists but ~/.netrc does not, copies ~/_netrc to ~/.netrc so Python's
+      netrc module can parse it without issue.
+    - If neither exists, checks for EARTHDATA_USERNAME and EARTHDATA_PASSWORD environment
+      variables. If present, creates a compliant ~/.netrc entry for urs.earthdata.nasa.gov.
+    - Validates that ~/.netrc exists and contains a non-empty entry for urs.earthdata.nasa.gov.
+    Returns:
+        (is_configured: bool, message: str)
+    """
+    home = os.path.expanduser("~")
+    dot_netrc = os.path.join(home, ".netrc")
+    underscore_netrc = os.path.join(home, "_netrc")
+
+    # If _netrc exists on Windows but .netrc doesn't, sync _netrc to .netrc
+    if os.path.exists(underscore_netrc) and not os.path.exists(dot_netrc):
+        try:
+            with open(underscore_netrc, "r", encoding="utf-8") as src, open(dot_netrc, "w", encoding="utf-8") as dst:
+                dst.write(src.read())
+        except Exception as e:
+            return False, f"Failed to synchronize ~/_netrc to ~/.netrc: {e}"
+
+    # If .netrc does not exist, check environment variables
+    if not os.path.exists(dot_netrc):
+        user = os.environ.get("EARTHDATA_USERNAME")
+        pwd = os.environ.get("EARTHDATA_PASSWORD")
+        if user and pwd:
+            try:
+                with open(dot_netrc, "w", encoding="utf-8") as f:
+                    f.write(f"machine urs.earthdata.nasa.gov login {user} password {pwd}\n")
+            except Exception as e:
+                return False, f"Failed to write ~/.netrc from environment variables: {e}"
+
+    if not os.path.exists(dot_netrc):
+        return False, (
+            "Earthdata credentials file (~/.netrc or ~/_netrc) not found in user home directory, "
+            "and EARTHDATA_USERNAME/EARTHDATA_PASSWORD environment variables are not set. "
+            "Please create ~/.netrc containing: 'machine urs.earthdata.nasa.gov login <user> password <pwd>'."
+        )
+
+    try:
+        n = netrc.netrc(dot_netrc)
+        auth = n.authenticators("urs.earthdata.nasa.gov")
+        if not auth or not auth[0] or not auth[2]:
+            return False, f"~/.netrc exists at {dot_netrc} but lacks credentials for 'urs.earthdata.nasa.gov'."
+        return True, f"Earthdata credentials found in {dot_netrc}"
+    except Exception as e:
+        return False, f"Failed to parse credentials from {dot_netrc}: {e}"
+
+def build_podaac_downloader_cmd(collection, output_dir, start_date, end_date, granule_name=None, dry_run=False):
+    """
+    Builds the official podaac-data-downloader command arguments.
+    Uses 'podaac-data-downloader' CLI or falls back to 'python -m subscriber.podaac_data_downloader'.
+    """
+    exe = shutil.which("podaac-data-downloader")
+    base_cmd = [exe] if exe else [sys.executable, "-m", "subscriber.podaac_data_downloader"]
+    cmd = base_cmd + [
+        "-c", collection,
+        "-d", output_dir,
+        "-sd", f"{start_date}T00:00:00Z",
+        "-ed", f"{end_date}T23:59:59Z",
+        "-e", ".nc",
+        "--verbose"
+    ]
+    if granule_name:
+        cmd.extend(["-gr", granule_name])
+    if dry_run:
+        cmd.append("--dry-run")
+    return cmd
 
 def query_oscar_granules(start_date, end_date):
     """Queries NASA CMR for OSCAR granule URLs in date range."""
@@ -141,19 +218,29 @@ def subset_oscar_dataset(ds, bbox=(5.0, 30.0, 45.0, 105.0)):
     return sub
 
 def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar", manifest_mgr=None):
-    """Downloads one OSCAR granule, subsets to North Indian Ocean bbox, and saves."""
+    """
+    Acquires one OSCAR granule using the official PO.DAAC downloader (podaac-data-downloader),
+    subsets to the North Indian Ocean bounding box using schema-aware logic, and records provenance.
+    """
     os.makedirs(output_dir, exist_ok=True)
     check_free_disk()
     if manifest_mgr is None:
         manifest_mgr = ManifestManager()
 
-    g_title = granule_info["title"]
-    url = granule_info["url"]
-    t_start = granule_info["time_start"][:10]
-    
+    if isinstance(granule_info, dict):
+        t_start = granule_info["time_start"][:10]
+        g_title = granule_info.get("title", f"oscar_currents_final_{t_start.replace('-', '')}")
+    else:
+        t_start = str(granule_info)[:10]
+        g_title = f"oscar_currents_final_{t_start.replace('-', '')}"
+
+    granule_date = t_start.replace("-", "")
+    granule_pattern = f"oscar_currents_final_{granule_date}*"
+
     chunk_key = manifest_mgr.get_chunk_key("OSCAR", "u_v", t_start, t_start)
     out_file = os.path.join(output_dir, f"oscar_{t_start}.nc")
 
+    # 1. Resumable check: skip if already verified COMPLETE
     if manifest_mgr.is_chunk_complete(chunk_key) and os.path.exists(out_file) and os.path.getsize(out_file) > 0:
         print(f"[SKIP] OSCAR {t_start} already downloaded and validated.")
         return out_file
@@ -170,57 +257,94 @@ def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), outpu
         status="DOWNLOADING"
     )
 
-    # Use NASA Earthdata session
-    session = requests.Session()
-    edl_token = os.environ.get("EARTHDATA_TOKEN")
-    edl_user = os.environ.get("EARTHDATA_USERNAME")
-    edl_pass = os.environ.get("EARTHDATA_PASSWORD")
-    if edl_token:
-        session.headers.update({"Authorization": f"Bearer {edl_token}"})
-    elif edl_user and edl_pass:
-        session.auth = (edl_user, edl_pass)
+    # 2. Authentication check
+    auth_ok, auth_msg = ensure_earthdata_netrc()
+    if not auth_ok:
+        manifest_mgr.update_status(chunk_key, "FAILED", error=auth_msg)
+        raise PermissionError(f"NASA Earthdata authentication required for OSCAR download:\n{auth_msg}")
 
-    tmp_raw = out_file + ".tmp.nc"
-    def _fetch():
-        with session.get(url, stream=True, timeout=30) as r:
-            if r.status_code == 401 or "login.earthdata.nasa.gov" in r.url:
-                raise PermissionError(
-                    "NASA Earthdata authentication required for OSCAR direct download.\n"
-                    "Please set EARTHDATA_TOKEN or EARTHDATA_USERNAME/EARTHDATA_PASSWORD environment variables."
-                )
-            r.raise_for_status()
-            with open(tmp_raw, "wb") as f:
-                for chunk in r.iter_content(chunk_size=65536):
-                    f.write(chunk)
+    # 3. Download full granule using official PO.DAAC downloader into isolated staging dir
+    staging_dir = os.path.join(output_dir, f"_staging_{t_start}")
+    os.makedirs(staging_dir, exist_ok=True)
+
+    cmd = build_podaac_downloader_cmd(
+        collection=COLLECTION_SHORTNAME,
+        output_dir=staging_dir,
+        start_date=t_start,
+        end_date=t_start,
+        granule_name=granule_pattern
+    )
 
     try:
-        retry_with_backoff(_fetch, max_retries=3)
-        # Subset to bounding box using schema-aware function
-        with xr.open_dataset(tmp_raw) as ds:
+        print(f"[PO.DAAC DOWNLOADER] Executing: {' '.join(cmd)}")
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        combined_output = (proc.stdout or "") + " " + (proc.stderr or "")
+
+        if proc.returncode != 0:
+            if "netrc" in combined_output.lower() or "401" in combined_output or "unauthorized" in combined_output.lower():
+                raise PermissionError(f"PO.DAAC downloader authentication error:\n{combined_output.strip()}")
+            raise RuntimeError(f"PO.DAAC downloader failed (exit {proc.returncode}):\n{combined_output.strip()}")
+
+        # Locate downloaded granule
+        downloaded_nc = [
+            f for f in glob.glob(os.path.join(staging_dir, "**", "*.nc"), recursive=True)
+            if not f.endswith(".tmp.nc")
+        ]
+
+        if not downloaded_nc:
+            raise FileNotFoundError(
+                f"PO.DAAC downloader completed successfully but no .nc granule was found in {staging_dir}.\n"
+                f"Output: {combined_output.strip()}"
+            )
+
+        raw_granule = downloaded_nc[0]
+
+        # 4. Schema-aware spatial subsetting
+        with xr.open_dataset(raw_granule) as ds:
             sub = subset_oscar_dataset(ds, bbox=bbox)
             sub.to_netcdf(out_file)
-            
-        if os.path.exists(tmp_raw):
-            os.remove(tmp_raw)
-            
+
+        # 5. Cleanup staging directory
+        shutil.rmtree(staging_dir, ignore_errors=True)
+
+        # 6. Verify non-empty and update manifest
+        if not os.path.exists(out_file) or os.path.getsize(out_file) == 0:
+            raise RuntimeError(f"Subsetted OSCAR file was not written properly: {out_file}")
+
         manifest_mgr.update_status(chunk_key, "COMPLETE", output_file=out_file)
         print(f"[COMPLETE] OSCAR granule {t_start} saved to {out_file}")
         return out_file
+
     except Exception as e:
-        if os.path.exists(tmp_raw):
-            os.remove(tmp_raw)
-        print(f"[ERROR] OSCAR download failed for {t_start}: {e}")
+        if os.path.exists(staging_dir):
+            shutil.rmtree(staging_dir, ignore_errors=True)
+        if os.path.exists(out_file) and os.path.getsize(out_file) == 0:
+            try:
+                os.remove(out_file)
+            except Exception:
+                pass
+        print(f"[ERROR] OSCAR acquisition failed for {t_start}: {e}")
         manifest_mgr.update_status(chunk_key, "FAILED", error=str(e))
         raise
 
 def download_oscar_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar", manifest_mgr=None):
+    """
+    Downloads and subsets OSCAR granules for a given date range.
+    Queries CMR for granules to ensure exact catalog alignment, then calls download_and_subset_oscar.
+    """
     print(f"Querying OSCAR granules for {start_date} to {end_date}...")
     granules = query_oscar_granules(start_date, end_date)
     print(f"Found {len(granules)} OSCAR granules.")
     results = []
-    for g in granules:
-        f = download_and_subset_oscar(g, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
-        results.append(f)
+    if granules:
+        for g in granules:
+            f = download_and_subset_oscar(g, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
+            results.append(f)
+    else:
+        dates = [d.strftime("%Y-%m-%d") for d in pd.date_range(start_date, end_date)]
+        for d in dates:
+            f = download_and_subset_oscar(d, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
+            results.append(f)
     return results
 
 if __name__ == "__main__":
