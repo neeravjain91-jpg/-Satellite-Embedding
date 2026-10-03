@@ -140,27 +140,28 @@ def subset_oscar_dataset(ds, bbox=(5.0, 30.0, 45.0, 105.0)):
 
     return sub
 
-def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar"):
+def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar", manifest_mgr=None):
     """Downloads one OSCAR granule, subsets to North Indian Ocean bbox, and saves."""
     os.makedirs(output_dir, exist_ok=True)
     check_free_disk()
-    manifest_mgr = ManifestManager()
+    if manifest_mgr is None:
+        manifest_mgr = ManifestManager()
 
     g_title = granule_info["title"]
     url = granule_info["url"]
     t_start = granule_info["time_start"][:10]
     
-    chunk_key = manifest_mgr.get_chunk_key("OSCAR", "UV", t_start, t_start)
+    chunk_key = manifest_mgr.get_chunk_key("OSCAR", "u_v", t_start, t_start)
     out_file = os.path.join(output_dir, f"oscar_{t_start}.nc")
 
-    if manifest_mgr.is_chunk_complete(chunk_key):
+    if manifest_mgr.is_chunk_complete(chunk_key) and os.path.exists(out_file) and os.path.getsize(out_file) > 0:
         print(f"[SKIP] OSCAR {t_start} already downloaded and validated.")
         return out_file
 
     manifest_mgr.record_chunk(
         dataset="OSCAR",
         dataset_id=COLLECTION_SHORTNAME,
-        variable="u,v",
+        variable="u_v",
         start_datetime=t_start,
         end_datetime=t_start,
         bbox=bbox,
@@ -212,13 +213,13 @@ def download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), outpu
         manifest_mgr.update_status(chunk_key, "FAILED", error=str(e))
         raise
 
-def download_oscar_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0)):
+def download_oscar_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0), output_dir="data/raw/oscar", manifest_mgr=None):
     print(f"Querying OSCAR granules for {start_date} to {end_date}...")
     granules = query_oscar_granules(start_date, end_date)
     print(f"Found {len(granules)} OSCAR granules.")
     results = []
     for g in granules:
-        f = download_and_subset_oscar(g, bbox=bbox)
+        f = download_and_subset_oscar(g, bbox=bbox, output_dir=output_dir, manifest_mgr=manifest_mgr)
         results.append(f)
     return results
 

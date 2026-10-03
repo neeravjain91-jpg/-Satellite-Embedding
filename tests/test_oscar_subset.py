@@ -12,6 +12,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from scripts.download_oscar import subset_oscar_dataset, download_and_subset_oscar
+from scripts.manifest_manager import ManifestManager
 
 def create_synthetic_oscar_v2_dataset():
     """
@@ -111,6 +112,12 @@ class TestOscarSubsetting(unittest.TestCase):
             out_dir = os.path.join(tmp_dir, "raw", "oscar")
             os.makedirs(out_dir, exist_ok=True)
 
+            test_manifest = ManifestManager(
+                json_path=os.path.join(tmp_dir, "manifest.json"),
+                csv_path=os.path.join(tmp_dir, "manifest.csv"),
+                checksums_path=os.path.join(tmp_dir, "checksums.csv")
+            )
+
             ds_full = create_synthetic_oscar_v2_dataset()
             granule_info = {
                 "title": "oscar_currents_final_20200101",
@@ -128,7 +135,12 @@ class TestOscarSubsetting(unittest.TestCase):
             with patch("scripts.download_oscar.retry_with_backoff", side_effect=fake_fetch_side_effect), \
                  patch("scripts.download_oscar.check_free_disk"):
 
-                out_file = download_and_subset_oscar(granule_info, bbox=(5.0, 30.0, 45.0, 105.0), output_dir=out_dir)
+                out_file = download_and_subset_oscar(
+                    granule_info,
+                    bbox=(5.0, 30.0, 45.0, 105.0),
+                    output_dir=out_dir,
+                    manifest_mgr=test_manifest
+                )
 
             self.assertTrue(os.path.exists(out_file))
             self.assertFalse(os.path.exists(out_file + ".tmp.nc"), "tmp file must be cleaned up")

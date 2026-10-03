@@ -70,7 +70,26 @@ class ManifestManager:
 
     def get_chunk_key(self, dataset, variable, start_datetime, end_datetime):
         """Constructs unique chunk identifier."""
-        return f"{dataset.upper()}_{variable.upper()}_{start_datetime}_{end_datetime}".replace(":", "-")
+        return f"{dataset.upper()}_{variable.upper()}_{start_datetime}_{end_datetime}".replace(":", "-").replace(",", "_")
+
+    def _normalize_output_path(self, output_file):
+        if not output_file:
+            return output_file
+        norm = str(output_file).replace("\\", "/")
+        norm_repo = repo_root.replace("\\", "/")
+        if norm.startswith(norm_repo):
+            norm = os.path.relpath(output_file, repo_root).replace("\\", "/")
+
+        # Check if attempting to write temporary test path to production manifest
+        prod_json = os.path.abspath(os.path.join(repo_root, MANIFEST_JSON_PATH))
+        if os.path.abspath(self.json_path) == prod_json:
+            lower = norm.lower()
+            if any(t in lower for t in ["appdata/local/temp", "/temp/", "\\temp\\", "pytest"]):
+                raise ValueError(
+                    f"Temporary test path rejected from persistent manifest: {output_file}. "
+                    "Unit and integration tests must supply an isolated ManifestManager."
+                )
+        return norm
 
     def is_chunk_complete(self, chunk_key):
         """Checks if a chunk was already successfully downloaded and validated."""
@@ -92,6 +111,7 @@ class ManifestManager:
         
         file_size = os.path.getsize(output_file) if output_file and os.path.exists(output_file) else 0
         checksum = compute_sha256(output_file) if output_file and os.path.exists(output_file) and file_size > 0 else None
+        norm_file = self._normalize_output_path(output_file)
 
         record = {
             "chunk_key": chunk_key,
@@ -102,7 +122,7 @@ class ManifestManager:
             "end_datetime": str(end_datetime),
             "bbox": str(bbox),
             "depth_range": str(depth_range),
-            "output_file": output_file,
+            "output_file": norm_file,
             "size": file_size,
             "checksum": checksum,
             "status": status,
@@ -117,7 +137,7 @@ class ManifestManager:
         # If complete, log to checksums.csv
         if status == "COMPLETE" and checksum:
             with open(self.checksums_path, "a") as f:
-                f.write(f"{record['timestamp']},{output_file},{checksum},{file_size}\n")
+                f.write(f"{record['timestamp']},{norm_file},{checksum},{file_size}\n")
 
         return record
 
@@ -130,12 +150,13 @@ class ManifestManager:
                 rec["error"] = str(error)
                 rec["retry_count"] = rec.get("retry_count", 0) + 1
             if output_file and os.path.exists(output_file):
-                rec["output_file"] = output_file
+                norm_file = self._normalize_output_path(output_file)
+                rec["output_file"] = norm_file
                 rec["size"] = os.path.getsize(output_file)
                 rec["checksum"] = compute_sha256(output_file)
                 if status == "COMPLETE" and rec["checksum"]:
                     with open(self.checksums_path, "a") as f:
-                        f.write(f"{rec['timestamp']},{output_file},{rec['checksum']},{rec['size']}\n")
+                        f.write(f"{rec['timestamp']},{norm_file},{rec['checksum']},{rec['size']}\n")
             self._save_manifest()
 
 def retry_with_backoff(operation_fn, max_retries=3, initial_delay=2.0, backoff_factor=2.0):

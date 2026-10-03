@@ -21,7 +21,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from scripts.estimate_sizes import check_free_disk, estimate_request_size, get_free_disk_gb
-from scripts.manifest_manager import ManifestManager
+from scripts.manifest_manager import ManifestManager, compute_sha256
 from scripts.download_glorys import download_glorys_period
 from scripts.download_ostia import download_ostia_period
 from scripts.download_sss import download_sss_period
@@ -45,8 +45,95 @@ def load_config():
     with open("config/data_config.yaml", "r") as f:
         return yaml.safe_load(f)
 
+def is_provenance_verified(filepath, repo_root_dir=None, checksums_file=None, manifest_mgr=None,
+                           checksums_map=None, manifest_map=None, hash_cache=None):
+    """
+    Validates provenance integrity for a given dataset file:
+    - Verifies file exists on disk and has non-zero size.
+    - Recomputes the SHA-256 hash directly from file bytes.
+    - Locates the recorded SHA-256 in data/checksums.csv and/or download_manifest.json.
+    - Requires manifest status == 'COMPLETE' when a manifest record exists.
+    - Returns True only when the recomputed SHA-256 matches the recorded SHA-256 exactly.
+    - Returns False on checksum mismatch, non-COMPLETE manifest status, missing records, or missing files.
+    """
+    if not filepath:
+        return False
+
+    root = repo_root_dir if repo_root_dir is not None else repo_root
+    abs_fp = os.path.abspath(os.path.join(root, filepath) if not os.path.isabs(filepath) else filepath)
+
+    if not os.path.exists(abs_fp) or os.path.getsize(abs_fp) == 0:
+        return False
+
+    norm_fp = os.path.normpath(abs_fp).replace("\\", "/").lower()
+    rel_fp = os.path.relpath(abs_fp, root).replace("\\", "/").lower()
+
+    if hash_cache is not None and norm_fp in hash_cache:
+        actual_hash = hash_cache[norm_fp]
+    else:
+        actual_hash = compute_sha256(abs_fp)
+        if not actual_hash:
+            return False
+        actual_hash = actual_hash.strip().lower()
+        if hash_cache is not None:
+            hash_cache[norm_fp] = actual_hash
+
+    if manifest_map is None:
+        manifest_map = {}
+        try:
+            mgr = manifest_mgr if manifest_mgr is not None else ManifestManager()
+            chunks = mgr.manifest.get("chunks", mgr.manifest) if isinstance(mgr.manifest.get("chunks"), dict) else mgr.manifest
+            for row in chunks.values():
+                if isinstance(row, dict):
+                    out_f = row.get("output_file", "")
+                    if out_f:
+                        row_abs = os.path.abspath(os.path.join(root, out_f) if not os.path.isabs(out_f) else out_f)
+                        manifest_map[os.path.normpath(row_abs).replace("\\", "/").lower()] = row
+                        manifest_map[str(out_f).replace("\\", "/").lower()] = row
+        except Exception:
+            pass
+
+    if checksums_map is None:
+        checksums_map = {}
+        ck_path = checksums_file if checksums_file is not None else os.path.join(root, "data", "checksums.csv")
+        if os.path.exists(ck_path):
+            try:
+                df_c = pd.read_csv(ck_path)
+                for _, r in df_c.iterrows():
+                    p = r.get("filepath")
+                    sha = r.get("sha256")
+                    if pd.notna(p) and pd.notna(sha):
+                        p_abs = os.path.abspath(os.path.join(root, str(p)) if not os.path.isabs(str(p)) else str(p))
+                        sha_val = str(sha).strip().lower()
+                        checksums_map[os.path.normpath(p_abs).replace("\\", "/").lower()] = sha_val
+                        checksums_map[str(p).replace("\\", "/").lower()] = sha_val
+            except Exception:
+                pass
+
+    man_record = manifest_map.get(norm_fp) or manifest_map.get(rel_fp)
+    if man_record is not None:
+        # Require manifest status == 'COMPLETE'
+        if man_record.get("status") != "COMPLETE":
+            return False
+        m_sha = man_record.get("checksum")
+        if m_sha and str(m_sha).strip().lower() != actual_hash:
+            return False
+
+    # Locate recorded checksum in checksums_map or manifest
+    expected_sha = checksums_map.get(norm_fp) or checksums_map.get(rel_fp)
+    if not expected_sha and man_record:
+        expected_sha = str(man_record.get("checksum", "")).strip().lower()
+
+    if not expected_sha or expected_sha != actual_hash:
+        return False
+
+    return True
+
+_is_provenance_verified = is_provenance_verified
+
 def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
-                             acquisition_results=None, data_dir=None):
+                             acquisition_results=None, data_dir=None,
+                             manifest_mgr=None, checksums_file=None):
     """
     Explicit final gate: verifies whether every required source is present,
     non-empty, provenance-verified, and covers the complete pilot date range.
@@ -60,34 +147,47 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
     source_status = {}
     missing_or_failed = []
 
-    # Load manifest & checksum records for provenance verification
-    checksums_file = os.path.join(repo_root, "data", "checksums.csv")
-    verified_paths = set()
-    if os.path.exists(checksums_file):
+    # Pre-build lookup maps once for performance
+    manifest_map = {}
+    try:
+        mgr = manifest_mgr if manifest_mgr is not None else ManifestManager()
+        chunks = mgr.manifest.get("chunks", mgr.manifest) if isinstance(mgr.manifest.get("chunks"), dict) else mgr.manifest
+        for row in chunks.values():
+            if isinstance(row, dict):
+                out_f = row.get("output_file", "")
+                if out_f:
+                    row_abs = os.path.abspath(os.path.join(repo_root, out_f) if not os.path.isabs(out_f) else out_f)
+                    manifest_map[os.path.normpath(row_abs).replace("\\", "/").lower()] = row
+                    manifest_map[str(out_f).replace("\\", "/").lower()] = row
+    except Exception:
+        pass
+
+    checksums_map = {}
+    ck_file = checksums_file if checksums_file is not None else os.path.join(repo_root, "data", "checksums.csv")
+    if os.path.exists(ck_file):
         try:
-            df_c = pd.read_csv(checksums_file)
-            for p in df_c["filepath"].dropna():
-                norm_p = os.path.normpath(os.path.join(repo_root, p) if not os.path.isabs(p) else p)
-                verified_paths.add(norm_p)
+            df_c = pd.read_csv(ck_file)
+            for _, r in df_c.iterrows():
+                p = r.get("filepath")
+                sha = r.get("sha256")
+                if pd.notna(p) and pd.notna(sha):
+                    p_abs = os.path.abspath(os.path.join(repo_root, str(p)) if not os.path.isabs(str(p)) else str(p))
+                    sha_val = str(sha).strip().lower()
+                    checksums_map[os.path.normpath(p_abs).replace("\\", "/").lower()] = sha_val
+                    checksums_map[str(p).replace("\\", "/").lower()] = sha_val
         except Exception:
             pass
 
+    hash_cache = {}
+
     def _is_provenance_verified(filepath):
-        """Checks if file exists, is non-empty, and is recorded in checksums or manifest."""
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            return False
-        norm_fp = os.path.normpath(os.path.join(repo_root, filepath) if not os.path.isabs(filepath) else filepath)
-        if norm_fp in verified_paths:
-            return True
-        try:
-            mgr = ManifestManager()
-            for row in mgr.manifest.get("chunks", {}).values():
-                out_f = row.get("output_file", "")
-                if out_f and os.path.normpath(os.path.join(repo_root, out_f) if not os.path.isabs(out_f) else out_f) == norm_fp and row.get("status") == "COMPLETE":
-                    return True
-        except Exception:
-            pass
-        return False
+        return is_provenance_verified(
+            filepath,
+            repo_root_dir=repo_root,
+            checksums_map=checksums_map,
+            manifest_map=manifest_map,
+            hash_cache=hash_cache
+        )
 
     # 1. ARGO Validation Profiles
     argo_path = os.path.join(data_dir, "argo", f"argo_profiles_{start_date}_{end_date}.csv")
@@ -100,12 +200,13 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     # 2. GLORYS Subsurface Temperature (thetao)
     glorys_chunk = os.path.join(data_dir, "glorys", f"glorys_thetao_{start_date}_{end_date}.nc")
-    glorys_chunk_ok = _is_provenance_verified(glorys_chunk)
-    glorys_daily_ok = len(dates) > 0 and all(
-        any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "glorys", f"*{d}*.nc")))
-        for d in dates
-    )
-    glorys_ok = glorys_chunk_ok or glorys_daily_ok
+    glorys_ok = _is_provenance_verified(glorys_chunk)
+    if not glorys_ok:
+        glorys_daily_ok = len(dates) > 0 and all(
+            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "glorys", f"*{d}*.nc")))
+            for d in dates
+        )
+        glorys_ok = glorys_daily_ok
     if acquisition_results and str(acquisition_results.get("glorys", "")).startswith("FAILED"):
         glorys_ok = False
     source_status["glorys"] = glorys_ok
@@ -114,12 +215,13 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     # 3. OSTIA Sea Surface Temperature (SST)
     ostia_chunk = os.path.join(data_dir, "ostia", f"ostia_sst_{start_date}_{end_date}.nc")
-    ostia_chunk_ok = _is_provenance_verified(ostia_chunk)
-    ostia_daily_ok = len(dates) > 0 and all(
-        any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "ostia", f"*{d}*.nc")))
-        for d in dates
-    )
-    ostia_ok = ostia_chunk_ok or ostia_daily_ok
+    ostia_ok = _is_provenance_verified(ostia_chunk)
+    if not ostia_ok:
+        ostia_daily_ok = len(dates) > 0 and all(
+            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "ostia", f"*{d}*.nc")))
+            for d in dates
+        )
+        ostia_ok = ostia_daily_ok
     if acquisition_results and str(acquisition_results.get("ostia", "")).startswith("FAILED"):
         ostia_ok = False
     source_status["ostia"] = ostia_ok
@@ -128,12 +230,13 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     # 4. Copernicus Multi-Obs Sea Surface Salinity (SSS)
     sss_chunk = os.path.join(data_dir, "sss", f"sss_multi_{start_date}_{end_date}.nc")
-    sss_chunk_ok = _is_provenance_verified(sss_chunk)
-    sss_daily_ok = len(dates) > 0 and all(
-        any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "sss", f"*{d}*.nc")))
-        for d in dates
-    )
-    sss_ok = sss_chunk_ok or sss_daily_ok
+    sss_ok = _is_provenance_verified(sss_chunk)
+    if not sss_ok:
+        sss_daily_ok = len(dates) > 0 and all(
+            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "sss", f"*{d}*.nc")))
+            for d in dates
+        )
+        sss_ok = sss_daily_ok
     if acquisition_results and str(acquisition_results.get("sss", "")).startswith("FAILED"):
         sss_ok = False
     source_status["sss"] = sss_ok
@@ -142,12 +245,13 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     # 5. DUACS Sea Level Anomaly (SSH/SLA)
     duacs_chunk = os.path.join(data_dir, "duacs", f"duacs_sla_{start_date}_{end_date}.nc")
-    duacs_chunk_ok = _is_provenance_verified(duacs_chunk)
-    duacs_daily_ok = len(dates) > 0 and all(
-        any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "duacs", f"*{d}*.nc")))
-        for d in dates
-    )
-    duacs_ok = duacs_chunk_ok or duacs_daily_ok
+    duacs_ok = _is_provenance_verified(duacs_chunk)
+    if not duacs_ok:
+        duacs_daily_ok = len(dates) > 0 and all(
+            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "duacs", f"*{d}*.nc")))
+            for d in dates
+        )
+        duacs_ok = duacs_daily_ok
     if acquisition_results and str(acquisition_results.get("duacs", "")).startswith("FAILED"):
         duacs_ok = False
     source_status["duacs"] = duacs_ok
@@ -156,12 +260,13 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     # 6. OSCAR Surface Currents (U, V)
     oscar_chunk = os.path.join(data_dir, "oscar", f"oscar_{start_date}_{end_date}.nc")
-    oscar_chunk_ok = _is_provenance_verified(oscar_chunk)
-    oscar_daily_ok = len(dates) > 0 and all(
-        any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "oscar", f"*{d}*.nc")))
-        for d in dates
-    )
-    oscar_ok = oscar_chunk_ok or oscar_daily_ok
+    oscar_ok = _is_provenance_verified(oscar_chunk)
+    if not oscar_ok:
+        oscar_daily_ok = len(dates) > 0 and all(
+            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "oscar", f"*{d}*.nc")))
+            for d in dates
+        )
+        oscar_ok = oscar_daily_ok
     if acquisition_results and str(acquisition_results.get("oscar", "")).startswith("FAILED"):
         oscar_ok = False
     source_status["oscar"] = oscar_ok
@@ -170,12 +275,13 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     # 7. CCMP Surface Winds (U, V)
     ccmp_chunk = os.path.join(data_dir, "ccmp", f"ccmp_{start_date}_{end_date}.nc")
-    ccmp_chunk_ok = _is_provenance_verified(ccmp_chunk)
-    ccmp_daily_ok = len(dates) > 0 and all(
-        any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "ccmp", f"*{d}*.nc")))
-        for d in dates
-    )
-    ccmp_ok = ccmp_chunk_ok or ccmp_daily_ok
+    ccmp_ok = _is_provenance_verified(ccmp_chunk)
+    if not ccmp_ok:
+        ccmp_daily_ok = len(dates) > 0 and all(
+            any(_is_provenance_verified(f) for f in glob.glob(os.path.join(data_dir, "ccmp", f"*{d}*.nc")))
+            for d in dates
+        )
+        ccmp_ok = ccmp_daily_ok
     if acquisition_results and str(acquisition_results.get("ccmp", "")).startswith("FAILED"):
         ccmp_ok = False
     source_status["ccmp"] = ccmp_ok
