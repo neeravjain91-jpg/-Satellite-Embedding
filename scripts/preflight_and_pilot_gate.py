@@ -106,24 +106,44 @@ def run_copernicus_dry_run(ds_info, test_date="2020-01-01"):
     except Exception as e:
         return False, str(e)
 
-def check_earthdata_credentials():
+class PreflightStatus(str):
+    """
+    Status string ('PASS', 'WARN', 'BLOCKED', etc.) that evaluates
+    to True only when representing a successful passing state ('PASS').
+    """
+    def __bool__(self):
+        return self.upper() == "PASS"
+
+def check_earthdata_credentials(downloader_supports_token=False):
     """
     Checks for NASA Earthdata credentials for OSCAR currents access.
+    Reports PASS only for credentials actually usable by the current OSCAR downloader
+    (podaac-data-downloader via ~/.netrc, ~/_netrc, or EARTHDATA_USERNAME/EARTHDATA_PASSWORD).
+    If EARTHDATA_TOKEN is present without usable netrc or username/password:
+        Reports [WARN] unless downloader_supports_token is True.
     """
+    downloader_supports_token = downloader_supports_token or (
+        os.environ.get("EARTHDATA_TOKEN_DOWNLOADER_SUPPORTED", "").lower() in ("1", "true", "yes")
+    )
     token = os.environ.get("EARTHDATA_TOKEN")
-    user = os.environ.get("EARTHDATA_USERNAME")
-    pwd = os.environ.get("EARTHDATA_PASSWORD")
-    netrc_files = [os.path.expanduser("~/.netrc"), os.path.expanduser("~/_netrc")]
-    has_netrc = any(os.path.exists(p) for p in netrc_files)
+
+    try:
+        from scripts.download_oscar import ensure_earthdata_netrc
+        netrc_ok, netrc_detail = ensure_earthdata_netrc()
+    except Exception as e:
+        netrc_ok = False
+        netrc_detail = str(e)
+
+    if netrc_ok:
+        return PreflightStatus("PASS"), "Earthdata credentials (.netrc or username/password) verified and usable by PO.DAAC downloader."
 
     if token:
-        return True, "EARTHDATA_TOKEN environment variable found."
-    elif user and pwd:
-        return True, "EARTHDATA_USERNAME and EARTHDATA_PASSWORD environment variables found."
-    elif has_netrc:
-        return True, "Netrc credentials file found in user home directory."
-    else:
-        return False, "No NASA Earthdata credentials found (set EARTHDATA_TOKEN or EARTHDATA_USERNAME/EARTHDATA_PASSWORD)."
+        if downloader_supports_token:
+            return PreflightStatus("PASS"), "EARTHDATA_TOKEN environment variable found and usable by token-capable downloader."
+        else:
+            return PreflightStatus("WARN"), "Token detected, but current PO.DAAC downloader path requires Earthdata username/password or .netrc."
+
+    return PreflightStatus("BLOCKED"), "No NASA Earthdata credentials found (set EARTHDATA_TOKEN or EARTHDATA_USERNAME/EARTHDATA_PASSWORD)."
 
 def check_public_sources(session=None, argo_url=None):
     """
@@ -193,8 +213,12 @@ def run_preflight_checks():
     # 3. NASA Earthdata Authentication Check
     print("\n[3/4] Checking NASA Earthdata Authentication (for OSCAR currents)...")
     ed_valid, ed_msg = check_earthdata_credentials()
-    results["earthdata_auth"] = {"valid": ed_valid, "detail": ed_msg}
-    status_tag = "[PASS]" if ed_valid else "[BLOCKED]"
+    results["earthdata_auth"] = {
+        "valid": bool(ed_valid),
+        "status": str(ed_valid),
+        "detail": ed_msg
+    }
+    status_tag = f"[{ed_valid}]"
     print(f"  {status_tag} {ed_msg}")
 
     # 4. Public Endpoints Check
