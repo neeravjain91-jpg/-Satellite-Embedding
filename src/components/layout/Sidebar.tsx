@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, locat
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span className="text-slate-300 font-semibold tracking-wide">PROTOTYPE</span>
             </div>
-            <span className="text-cyan-400 font-mono text-[10px] font-bold">LOCAL MODE</span>
+            <span className="text-cyan-400 font-mono text-[10px] font-bold">LOCAL SIMULATION</span>
           </div>
         </div>
 

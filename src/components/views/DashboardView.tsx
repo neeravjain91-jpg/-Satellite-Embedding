@@ -76,11 +76,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ oceanState }) => {
 
         {/* Overall RMSE */}
         <div className="p-4 rounded-2xl bg-[#070d18] border border-slate-800 space-y-1 relative overflow-hidden">
-          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Overall RMSE</div>
+          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Column-Avg RMSE</div>
           <div className="text-2xl font-extrabold text-white font-mono flex items-baseline gap-1">
             0.9800 <span className="text-xs font-normal text-slate-400">°C</span>
           </div>
-          <div className="text-[11px] text-emerald-400 font-medium">Unweighted Column Mean</div>
+          <div className="text-[11px] text-emerald-400 font-medium">Unweighted 15-Depth Mean</div>
         </div>
 
         {/* Surface Variables */}

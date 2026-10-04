@@ -101,7 +101,7 @@ export const RECONSTRUCTION_STAGES: PipelineStage[] = [
     status: 'idle',
     details: {
       'Depth Range': '0 m to 1000 m (15 canonical levels)',
-      'Overall Test RMSE': '0.9800 °C (-22.11% vs Climatology)',
+      'Column-Averaged Test RMSE': '0.9800 °C (-22.11% vs Climatology)',
       'Status': 'Valid Ocean Reconstruction'
     }
   }

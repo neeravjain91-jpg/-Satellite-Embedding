@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Scientific Prototype Badge */}
-        <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-[11px] text-cyan-300">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-[11px] text-cyan-300 font-semibold">
           <Activity className="w-3.5 h-3.5 text-cyan-400" />
           <span>PROTOTYPE • LOCAL SIMULATION</span>
         </div>

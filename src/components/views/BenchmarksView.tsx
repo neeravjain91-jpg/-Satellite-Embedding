@@ -256,7 +256,7 @@ export const BenchmarksView: React.FC = () => {
             <p className="text-slate-300 text-[11px] leading-relaxed">
               Integrates 5-day causal temporal dynamics with local 3×3 spatial convolutions into a 128-dimensional latent bottleneck. Outperforms all pointwise models by recovering the sharp thermocline boundary.
             </p>
-            <div className="pt-2 text-cyan-300 font-mono font-bold text-[11px]">Test RMSE: 0.9800 °C • Params: 203,791</div>
+            <div className="pt-2 text-cyan-300 font-mono font-bold text-[11px]">Column-Avg Test RMSE: 0.9800 °C • Params: 203,791</div>
           </div>
         </div>
       </div>

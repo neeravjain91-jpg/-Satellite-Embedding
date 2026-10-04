@@ -31,11 +31,17 @@ export const DepthProfileView: React.FC<DepthProfileViewProps> = ({ oceanState }
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
             <span className="text-slate-500 font-mono">Date:</span> {location.date}
           </div>
+          <div className="px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-[11px] text-cyan-300 font-mono font-semibold">
+            PROTOTYPE • LOCAL SIMULATION
+          </div>
         </div>
+      </div>
+      <div className="px-4 py-2 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400">
+        <span className="font-semibold text-slate-300">Prototype Disclosure:</span> Displayed vertical profile temperatures at selected coordinates are produced via deterministic local simulation to demonstrate interactive visualization; no live backend inference is active.
       </div>
 
       {/* Main Profile Chart */}

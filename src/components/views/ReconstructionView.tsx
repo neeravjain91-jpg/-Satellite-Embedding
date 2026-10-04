@@ -111,17 +111,17 @@ export const ReconstructionView: React.FC<ReconstructionViewProps> = ({ oceanSta
               </div>
               <div>
                 <div className="font-bold text-white uppercase tracking-wider text-[11px]">
-                  RECONSTRUCTION COMPLETE
+                  RECONSTRUCTION SIMULATION COMPLETE
                 </div>
                 <div className="text-slate-300 text-xs">
-                  Model: <span className="text-cyan-300 font-bold">B8 Spatiotemporal Embedding</span> • Inference Mode: <span className="font-mono text-slate-400">Prototype Simulation</span>
+                  Model: <span className="text-cyan-300 font-bold">B8 Spatiotemporal Embedding</span> • Mode: <span className="font-mono text-cyan-300 font-bold">PROTOTYPE • LOCAL SIMULATION</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded bg-slate-900 text-slate-300 font-mono text-[11px] border border-slate-800">
-                Overall RMSE: 0.9800 °C
+                Column-Avg Test RMSE: 0.9800 °C
               </span>
               <span className="px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-400 font-mono text-[11px] border border-emerald-800/50">
                 +22.11% vs Clim

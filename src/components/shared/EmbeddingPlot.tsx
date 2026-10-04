@@ -54,10 +54,15 @@ export const EmbeddingPlot: React.FC<EmbeddingPlotProps> = ({
           </p>
         </div>
 
-        {/* Strict Scientific Honesty Badge Required by User */}
-        <div className="px-3 py-1.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-300 flex items-center gap-2">
-          <Info className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>PROTOTYPE EMBEDDING VISUALIZATION</span>
+        {/* Strict Scientific Honesty Badge */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <div className="px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-[11px] text-cyan-300 flex items-center gap-2 font-mono font-semibold">
+            <span>PROTOTYPE • LOCAL SIMULATION</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-300 flex items-center gap-2">
+            <Info className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>MOCK EMBEDDING PROJECTION</span>
+          </div>
         </div>
       </div>
 

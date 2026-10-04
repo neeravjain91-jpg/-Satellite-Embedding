@@ -3,7 +3,7 @@ import { BenchmarkModel } from '../types';
 export const BENCHMARK_MODELS: BenchmarkModel[] = [
   {
     id: 'B0',
-    name: 'Day 0 Persistence',
+    name: 'Day-0 Persistence',
     architecture: 'Frozen initial observation state t=0',
     context: 'Initial temporal boundary state',
     family: 'Persistence',
@@ -14,8 +14,8 @@ export const BENCHMARK_MODELS: BenchmarkModel[] = [
   },
   {
     id: 'B0b',
-    name: 'Day 252 Persistence',
-    architecture: 'Frozen train boundary observation state',
+    name: 'Day-252 Persistence',
+    architecture: 'Frozen train boundary observation state (Day 252)',
     context: 'Train-split terminal state',
     family: 'Persistence',
     rmse: 1.7287,
@@ -115,15 +115,14 @@ export const BENCHMARK_MODELS: BenchmarkModel[] = [
 ];
 
 export const REGIONAL_METRICS = [
-  { region: 'Full Domain', rmse: 0.9642, sampleCount: 601550, description: '5°N–30°N, 45°E–105°E complete test partition' },
+  { region: 'Full Domain', rmse: 0.9642, sampleCount: 601550, description: '5°N–30°N, 45°E–105°E cosine-latitude weighted test partition' },
   { region: 'Arabian Sea', rmse: 1.0907, sampleCount: 284120, description: 'Western high-salinity evaporation basin' },
-  { region: 'Bay of Bengal', rmse: 0.6775, sampleCount: 221840, description: 'Stratified freshwater river plume regime' },
-  { region: 'Equatorial Indian Ocean', rmse: 0.9812, sampleCount: 95590, description: 'Cross-equatorial jet & warm pool' }
+  { region: 'Bay of Bengal', rmse: 0.6775, sampleCount: 221840, description: 'Stratified freshwater river plume regime' }
 ];
 
 export const SEASONAL_METRICS = [
-  { period: 'Late Fall', dateRange: 'Nov 09 – Nov 30, 2020', rmse: 1.0059, description: 'Transition monsoon wind reversal' },
-  { period: 'Early Winter', dateRange: 'Dec 01 – Dec 31, 2020', rmse: 0.9060, description: 'North-east winter cooling & stratification' }
+  { period: 'Late Fall', dateRange: 'Nov 09 – Nov 30, 2020', rmse: 1.0059, description: 'Test partition transition window (Days 313–334)' },
+  { period: 'Early Winter', dateRange: 'Dec 01 – Dec 31, 2020', rmse: 0.9060, description: 'Test partition winter cooling window (Days 335–365)' }
 ];
 
 export const B8_EXACT_DEPTH_TABLE = [

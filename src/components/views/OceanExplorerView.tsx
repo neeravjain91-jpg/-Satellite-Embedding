@@ -55,9 +55,15 @@ export const OceanExplorerView: React.FC<OceanExplorerViewProps> = ({ oceanState
             </p>
           </div>
 
-          <div className="text-[11px] font-mono text-cyan-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
-            Deterministic Local Engine
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-3 py-1 rounded-lg font-semibold">
+              PROTOTYPE • LOCAL SIMULATION
+            </span>
           </div>
+        </div>
+
+        <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800/80 text-[11px] text-slate-400">
+          <span className="font-semibold text-slate-300">Observation Disclosure:</span> Displayed 7-channel surface values and sparklines are generated via deterministic local simulation for prototype interface navigation; not connected to live external satellite pipelines.
         </div>
 
         {/* Sliders and Selectors Grid */}

@@ -176,8 +176,8 @@ export const ValidationView: React.FC = () => {
             ))}
 
             <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800/60 text-xs text-slate-400">
-              <div className="font-bold text-slate-300 mb-1">Consistency Check:</div>
-              Both seasonal windows show stable reconstruction fidelity with errors below 1.01 °C, confirming the model does not overfit to specific monsoon phases.
+              <div className="font-bold text-slate-300 mb-1">Partition Protocol Note:</div>
+              Certified seasonal benchmark metrics strictly evaluate the frozen 2020 Test partition windows (Late Fall: Nov 09–30 and Early Winter: Dec 01–31). Annual monsoonal cycles (Pre-Monsoon, Southwest Monsoon) represent climatological regimes across the earlier partitions and are not presented with fabricated performance values.
             </div>
           </div>
         </div>
