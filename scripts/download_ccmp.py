@@ -64,14 +64,15 @@ def download_and_process_ccmp_day(date_str, bbox=(5.0, 30.0, 45.0, 105.0), outpu
     print(f"[DOWNLOADING] Fetching real CCMP observation for {date_str} from {url}...")
     
     def _fetch():
-        with requests.get(url, stream=True, timeout=60) as r:
+        with requests.get(url, stream=True, timeout=(15, 120)) as r:
             r.raise_for_status()
             with open(tmp_raw, "wb") as f:
-                for chunk in r.iter_content(chunk_size=1024*1024):
-                    f.write(chunk)
+                for chunk in r.iter_content(chunk_size=512*1024):
+                    if chunk:
+                        f.write(chunk)
 
     try:
-        retry_with_backoff(_fetch, max_retries=3, initial_delay=2.0)
+        retry_with_backoff(_fetch, max_retries=5, initial_delay=3.0, backoff_factor=1.5)
         
         # Spatial subsetting & 6-hourly to daily aggregation
         lat_min, lat_max, lon_min, lon_max = bbox
@@ -110,10 +111,28 @@ def download_ccmp_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0)):
     date_range = pd.date_range(start_date, end_date, freq="D").strftime("%Y-%m-%d")
     print(f"Downloading real CCMP wind observations for {len(date_range)} days ({start_date} to {end_date})...")
     results = []
+    failed_dates = []
     for d_str in date_range:
-        f = download_and_process_ccmp_day(d_str, bbox=bbox)
-        results.append(f)
-    return results
+        try:
+            f = download_and_process_ccmp_day(d_str, bbox=bbox)
+            results.append(f)
+        except Exception as e:
+            print(f"[RETRY QUEUE] Deferring {d_str} due to error: {e}")
+            failed_dates.append(d_str)
+
+    if failed_dates:
+        print(f"\n--- Retrying {len(failed_dates)} deferred CCMP dates ---")
+        still_failed = []
+        for d_str in failed_dates:
+            try:
+                f = download_and_process_ccmp_day(d_str, bbox=bbox)
+                results.append(f)
+            except Exception as e:
+                still_failed.append((d_str, str(e)))
+        if still_failed:
+            raise RuntimeError(f"Failed to acquire CCMP observations for {len(still_failed)} dates: {still_failed[:5]}")
+
+    return sorted(list(set(results)))
 
 if __name__ == "__main__":
     download_ccmp_period("2020-01-01", "2020-01-07")

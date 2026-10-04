@@ -94,11 +94,16 @@ To prevent any conflation of coastlines, bathymetry, sensor dropouts, and subsur
 
 ---
 
-## 6. Target Variable Specification
+## 6. Target Variable Specification & Scientific Scope
 
 | Variable | Name | Source Product | Native Res | Interpolation & Regridding | Units | Valid Physical Range |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `thetao` | Sea Water Potential Temperature | GLORYS12V1 (`cmems_mod_glo_phy_my_0.083deg_P1D-m`) | 0.0833° horizontal, 50 native vertical levels, daily | 1. Vertical 1D linear interpolation to 15 canonical depths with seafloor cutoff.<br>2. Horizontal bilinear interpolation to canonical 0.25° grid. | °C | `[-2.0, 35.0]` |
+
+### 6.1. Scientific Target Semantics & Learning Task
+- **Reanalysis / Reference Target Distinction**: GLORYS $\theta_o$ is a numerical ocean reanalysis reference field, combining dynamical ocean physics (NEMO) with multi-sensor satellite and in-situ data assimilation. It is **explicitly distinguished from direct observational truth**.
+- **ML Task Definition**: The ML framework is learning a surface-to-subsurface mapping with GLORYS $\theta_o$ as the training/reference field.
+- **Evaluation Requirements**: Final observational validation requires an evaluation set whose relationship to GLORYS assimilation is explicitly established (differentiating between reanalysis-assimilated profiles and genuinely withheld observations).
 
 ---
 

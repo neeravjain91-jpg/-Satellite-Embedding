@@ -55,9 +55,9 @@ class TestHarmonizationChunkResolution(unittest.TestCase):
     def test_date_missing_from_multiday_file_fails(self):
         """3. Date missing from multi-day file raises FileNotFoundError."""
         with self.assertRaises(FileNotFoundError) as cm:
-            resolve_source_file_for_date("OSTIA", "2020-01-25")
+            resolve_source_file_for_date("OSTIA", "2025-01-25")
         self.assertIn("Missing authentic NetCDF file", str(cm.exception))
-        self.assertIn("2020-01-25", str(cm.exception))
+        self.assertIn("2025-01-25", str(cm.exception))
 
     def test_multiday_ostia_selects_correct_time_index(self):
         """4. Multi-day OSTIA selects the exact time coordinate for all pilot days."""

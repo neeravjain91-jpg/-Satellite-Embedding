@@ -15,8 +15,10 @@ Reconstructing depth-resolved subsurface ocean temperature ($\theta_o$) from dai
 3. **Sea Level Anomaly (SSH/SLA)**: DUACS Two-Satellite Gridded SLA/ADT (DOI: [10.48670/moi-00145](https://doi.org/10.48670/moi-00145))
 4. **Surface Currents ($u, v$)**: OSCAR L4 OC Final 0.25° (DOI: [10.5067/OSCAR-25F20](https://doi.org/10.5067/OSCAR-25F20))
 5. **Surface Winds ($u, v$)**: RSS CCMP 6-Hourly 10m Wind Analysis V3.1 (DOI: [10.5067/CCMP3-6H431](https://doi.org/10.5067/CCMP3-6H431))
-6. **Subsurface Target ($\theta_o$)**: GLORYS Global Ocean Physics Reanalysis 1/12° (DOI: [10.48670/moi-00021](https://doi.org/10.48670/moi-00021))
-7. **Independent In-Situ Validation**: Global ARGO / INCOIS profiling floats
+6. **Subsurface Reference / Training Target ($\theta_o$)**: GLORYS Global Ocean Physics Reanalysis 1/12° (DOI: [10.48670/moi-00021](https://doi.org/10.48670/moi-00021))
+   - **Scientific Scope**: GLORYS $\theta_o$ is a reanalysis/reference target, explicitly distinguished from direct observational ground truth. The ML system is learning a surface-to-subsurface mapping with GLORYS as the training/reference field.
+7. **In-Situ Observational Assessment**: Global ARGO / INCOIS profiling floats
+   - **Relationship to GLORYS Assimilation**: Operational ARGO profiles are routinely assimilated into GLORYS via Coriolis/CORA. Final observational validation requires an evaluation set whose relationship to GLORYS assimilation is explicitly established (e.g. withheld floats or independent cruises).
 
 ---
 

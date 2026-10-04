@@ -20,7 +20,9 @@ For every matched observation record:
     - temporal_distance (hours)
     - quality_flag
 
-STRICT RULE: Do not train on ARGO. ARGO is reserved for independent evaluation.
+STRICT RULE: Do not train on ARGO. ARGO is reserved for reference consistency assessment.
+Note: Because operational ARGO is assimilated into GLORYS, true observational independence
+requires an evaluation set whose relationship to GLORYS assimilation is explicitly established.
 """
 
 import os

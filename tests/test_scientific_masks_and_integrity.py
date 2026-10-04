@@ -307,5 +307,127 @@ class TestScientificMasksAndIntegrity(unittest.TestCase):
                 self.assertGreater(max_d, 1000.0, f"GLORYS pilot chunk max depth {max_d}m must exceed 1000m")
                 self.assertAlmostEqual(max_d, 1062.44, delta=1.0)
 
+    def test_12_normalization_strict_training_partition_isolation(self):
+        """
+        12. Normalization Isolation: Training partition statistics (mean, std, scaler JSON)
+        must remain strictly invariant to arbitrary perturbations, distribution shifts,
+        or extreme values injected into validation or test partitions (Zero Data Leakage).
+        """
+        import json
+        from preprocessing.tabular_dataset import load_tabular_dataset
+        from preprocessing.build_dataset import assemble_ml_dataset
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # 10 time steps: 6 train, 2 val, 2 test
+            n_t = 10
+            n_train, n_val, n_test = 6, 2, 2
+            dates = pd.date_range("2020-01-01", periods=n_t, freq="D").strftime("%Y-%m-%d").tolist()
+
+            # Baseline data
+            rng = np.random.RandomState(42)
+            surf_dict = {
+                feat: rng.randn(n_t, 101, 241).astype(np.float32) + 20.0
+                for feat in CANONICAL_FEATURES
+            }
+            targ_arr = rng.randn(n_t, 15, 101, 241).astype(np.float32) + 15.0
+
+            zarr_prefix = os.path.join(tmp_dir, "norm_test")
+            assemble_ml_dataset(surf_dict, targ_arr, dates, zarr_out_prefix=zarr_prefix)
+
+            scaler_baseline = os.path.join(tmp_dir, "scaler_baseline.json")
+            res_base = load_tabular_dataset(
+                surf_zarr=f"{zarr_prefix}_surface.zarr",
+                targ_zarr=f"{zarr_prefix}_target.zarr",
+                n_train_days=n_train,
+                n_val_days=n_val,
+                n_test_days=n_test,
+                scaler_path=scaler_baseline
+            )
+
+            base_mean = np.array(res_base["scaler"]["mean"])
+            base_std = np.array(res_base["scaler"]["std"])
+            base_x_train_norm = res_base["train"]["X_norm"].copy()
+            base_y_train = res_base["train"]["Y"].copy()
+
+            # Perturbation 1: Validation partition is corrupted with massive outliers
+            zarr_prefix_val_corrupt = os.path.join(tmp_dir, "norm_test_val_corrupt")
+            surf_dict_val_corrupt = {k: v.copy() for k, v in surf_dict.items()}
+            targ_arr_val_corrupt = targ_arr.copy()
+            for k in surf_dict_val_corrupt:
+                surf_dict_val_corrupt[k][n_train:n_train + n_val] += 1e7  # 10,000,000 outlier
+            targ_arr_val_corrupt[n_train:n_train + n_val] = 999.0
+
+            assemble_ml_dataset(surf_dict_val_corrupt, targ_arr_val_corrupt, dates, zarr_out_prefix=zarr_prefix_val_corrupt)
+
+            scaler_val_corrupt = os.path.join(tmp_dir, "scaler_val_corrupt.json")
+            res_val_corrupt = load_tabular_dataset(
+                surf_zarr=f"{zarr_prefix_val_corrupt}_surface.zarr",
+                targ_zarr=f"{zarr_prefix_val_corrupt}_target.zarr",
+                n_train_days=n_train,
+                n_val_days=n_val,
+                n_test_days=n_test,
+                scaler_path=scaler_val_corrupt
+            )
+
+            val_corrupt_mean = np.array(res_val_corrupt["scaler"]["mean"])
+            val_corrupt_std = np.array(res_val_corrupt["scaler"]["std"])
+
+            np.testing.assert_array_equal(
+                base_mean, val_corrupt_mean,
+                err_msg="Training mean must not change when validation set is corrupted"
+            )
+            np.testing.assert_array_equal(
+                base_std, val_corrupt_std,
+                err_msg="Training std must not change when validation set is corrupted"
+            )
+            np.testing.assert_array_equal(
+                base_x_train_norm, res_val_corrupt["train"]["X_norm"],
+                err_msg="Normalized training features must remain identical when validation set is corrupted"
+            )
+            np.testing.assert_array_equal(
+                base_y_train, res_val_corrupt["train"]["Y"],
+                err_msg="Target training values must remain identical when validation targets are corrupted"
+            )
+
+            # Perturbation 2: Test partition is corrupted with massive outliers
+            zarr_prefix_test_corrupt = os.path.join(tmp_dir, "norm_test_test_corrupt")
+            surf_dict_test_corrupt = {k: v.copy() for k, v in surf_dict.items()}
+            targ_arr_test_corrupt = targ_arr.copy()
+            for k in surf_dict_test_corrupt:
+                surf_dict_test_corrupt[k][n_train + n_val:] = -1e8
+            targ_arr_test_corrupt[n_train + n_val:] = -500.0
+
+            assemble_ml_dataset(surf_dict_test_corrupt, targ_arr_test_corrupt, dates, zarr_out_prefix=zarr_prefix_test_corrupt)
+
+            scaler_test_corrupt = os.path.join(tmp_dir, "scaler_test_corrupt.json")
+            res_test_corrupt = load_tabular_dataset(
+                surf_zarr=f"{zarr_prefix_test_corrupt}_surface.zarr",
+                targ_zarr=f"{zarr_prefix_test_corrupt}_target.zarr",
+                n_train_days=n_train,
+                n_val_days=n_val,
+                n_test_days=n_test,
+                scaler_path=scaler_test_corrupt
+            )
+
+            test_corrupt_mean = np.array(res_test_corrupt["scaler"]["mean"])
+            test_corrupt_std = np.array(res_test_corrupt["scaler"]["std"])
+
+            np.testing.assert_array_equal(
+                base_mean, test_corrupt_mean,
+                err_msg="Training mean must not change when test set is corrupted"
+            )
+            np.testing.assert_array_equal(
+                base_std, test_corrupt_std,
+                err_msg="Training std must not change when test set is corrupted"
+            )
+            np.testing.assert_array_equal(
+                base_x_train_norm, res_test_corrupt["train"]["X_norm"],
+                err_msg="Normalized training features must remain identical when test set is corrupted"
+            )
+            np.testing.assert_array_equal(
+                base_y_train, res_test_corrupt["train"]["Y"],
+                err_msg="Target training values must remain identical when test targets are corrupted"
+            )
+
 if __name__ == "__main__":
     unittest.main()
