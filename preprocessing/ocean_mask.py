@@ -187,3 +187,33 @@ def apply_target_mask(target_data, mask_3d):
         elif out.ndim == 3:  # (depth, lat, lon)
             out[~mask_3d] = np.nan
         return out
+
+def build_final_training_mask(geo_mask_2d, surface_validity_mask, target_validity_mask, depth_valid_mask):
+    """
+    Computes the authoritative 4-way unified training mask:
+        training_mask = geographic_ocean_mask
+                        AND surface_validity_mask
+                        AND target_validity_mask
+                        AND depth_valid_mask
+    Dimensions: (time, depth, lat, lon)
+    Guarantees no land, unobserved surface, missing target, or sub-seabed point
+    can ever enter model training or loss evaluation.
+    """
+    geo = geo_mask_2d.values if isinstance(geo_mask_2d, xr.DataArray) else np.asarray(geo_mask_2d)
+    depth = depth_valid_mask.values if isinstance(depth_valid_mask, xr.DataArray) else np.asarray(depth_valid_mask)
+    targ = target_validity_mask.values if isinstance(target_validity_mask, xr.DataArray) else np.asarray(target_validity_mask)
+    surf = surface_validity_mask.values if isinstance(surface_validity_mask, xr.DataArray) else np.asarray(surface_validity_mask)
+
+    if surf.ndim == 4:
+        surf = np.all(surf, axis=-1)
+
+    geo_4d = geo[np.newaxis, np.newaxis, :, :]
+    depth_4d = depth[np.newaxis, :, :, :]
+    surf_4d = surf[:, np.newaxis, :, :]
+
+    final_mask = (geo_4d.astype(bool) &
+                  depth_4d.astype(bool) &
+                  surf_4d.astype(bool) &
+                  targ.astype(bool))
+    return final_mask
+

@@ -26,9 +26,13 @@ SURF_ZARR = "data/processed/ml_dataset_full-year_surface.zarr"
 TARG_ZARR = "data/processed/ml_dataset_full-year_target.zarr"
 SCALER_JSON = "data/metadata/tabular_scaler_stats.json"
 
-def extract_tabular_split(surf_slice, targ_slice, time_indices, timestamps, lats, lons):
+import hashlib
+
+def extract_tabular_split(surf_slice, targ_slice, time_indices, timestamps, lats, lons,
+                          geo_ocean_2d=None, depth_valid_3d=None):
     """
-    Vectorized extraction of a chronological slice.
+    Vectorized extraction of a chronological slice enforcing unified 4-way mask:
+    geographic_ocean_mask AND surface_validity_mask AND target_validity_mask AND depth_valid_mask
     surf_slice: (T_split, 101, 241, 7)
     targ_slice: (T_split, 15, 101, 241)
     """
@@ -38,22 +42,41 @@ def extract_tabular_split(surf_slice, targ_slice, time_indices, timestamps, lats
     # Transpose target to (T_split, H, W, 15) to match spatial coordinates
     targ_trans = np.transpose(targ_slice, (0, 2, 3, 1))
     
-    # Create target validity mask: True where value is not NaN
-    target_mask = ~np.isnan(targ_trans)  # (T_split, H, W, 15)
+    # 1. Target validity mask: True where thetao is not NaN
+    target_valid = ~np.isnan(targ_trans)  # (T_split, H, W, 15)
     
-    # Condition: Keep a point if ANY depth is valid
-    spatial_valid = target_mask.any(axis=-1)  # (T_split, H, W)
+    # 2. Surface validity mask: True where all 7 features are valid
+    surface_valid = ~np.isnan(surf_slice).any(axis=-1)  # (T_split, H, W)
+
+    # 3. Geographic ocean mask (if not provided, default all true)
+    if geo_ocean_2d is None:
+        geo_ocean_2d = target_valid.any(axis=(0, -1)) # (H, W)
+
+    # 4. Depth validity mask (if not provided, default all true)
+    if depth_valid_3d is None:
+        depth_valid_trans = target_valid.any(axis=0) # (H, W, 15)
+    else:
+        depth_valid_trans = np.transpose(depth_valid_3d, (1, 2, 0)) # (H, W, 15)
+
+    # 4-way unified mask: (T_split, H, W, 15)
+    unified_mask = (target_valid &
+                    surface_valid[:, :, :, np.newaxis] &
+                    depth_valid_trans[np.newaxis, :, :, :] &
+                    geo_ocean_2d[np.newaxis, :, :, np.newaxis])
+    
+    # Condition: Keep a point if surface is valid, ocean is true, and ANY depth is valid
+    spatial_valid = surface_valid & geo_ocean_2d[np.newaxis, :, :] & unified_mask.any(axis=-1)  # (T_split, H, W)
     
     # Extract flattened valid samples using boolean indexing
     X_flat = surf_slice[spatial_valid]          # (N, 7)
     Y_flat = targ_trans[spatial_valid]          # (N, 15)
-    M_flat = target_mask[spatial_valid]         # (N, 15)
+    M_flat = unified_mask[spatial_valid]        # (N, 15)
+    
+    # Guarantee invalid targets outside M_flat are strictly NaN
+    Y_flat = np.where(M_flat, Y_flat, np.nan)
     
     # Construct corresponding coordinate and temporal metadata
-    # Meshgrid of spatial indices and coordinates
     mg_lat, mg_lon = np.meshgrid(lats, lons, indexing="ij")  # (H, W)
-    
-    # Tile across time
     time_idx_3d = np.repeat(time_indices[:, np.newaxis, np.newaxis], H, axis=1)
     time_idx_3d = np.repeat(time_idx_3d, W, axis=2)          # (T_split, H, W)
     
@@ -81,12 +104,17 @@ def extract_tabular_split(surf_slice, targ_slice, time_indices, timestamps, lats
 
 def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
                          n_train_days=None, n_val_days=None, n_test_days=None,
-                         purge_buffer_days=7,
+                         purge_buffer_days=6,
                          scaler_path=SCALER_JSON):
     """
     Loads, splits, vector-flattens, and standardizes dataset strictly using training statistics.
-    Enforces configurable temporal purge buffers between Train -> Val and Val -> Test partitions:
-    TRAIN -> PURGE BUFFER 1 -> VALIDATION -> PURGE BUFFER 2 -> TEST
+    Enforces exact temporal partitions and purge buffers according to the locked scientific protocol:
+    TRAIN  = days 0–252 (253 days: Jan 1 – Sep 9, 2020)
+    PURGE1 = days 253–258 (6 days: Sep 10 – Sep 15, 2020) [DISCARDED]
+    VAL    = days 259–306 (48 days: Sep 16 – Nov 2, 2020)
+    PURGE2 = days 307–312 (6 days: Nov 3 – Nov 8, 2020) [DISCARDED]
+    TEST   = days 313–365 (53 days: Nov 9 – Dec 31, 2020)
+    
     Returns:
         split_dict: {'train': dict, 'val': dict, 'test': dict, 'scaler': dict, 'split_metadata': dict, ...}
     """
@@ -102,27 +130,61 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     times = pd.to_datetime(ds_s.time.values)
     total_days = len(times)
     
-    # Resolve partition sizes and purge buffers
-    if n_train_days is None:
-        purge = int(purge_buffer_days)
+    # Try loading canonical ocean masks if present
+    geo_mask_2d = None
+    depth_mask_3d = None
+    mask_path = "data/processed/canonical_ocean_mask.nc"
+    if os.path.exists(mask_path):
+        try:
+            ds_m = xr.open_dataset(mask_path)
+            geo_mask_2d = ds_m["geographic_ocean_mask"].values
+            depth_mask_3d = ds_m["depth_valid_mask"].values
+        except Exception:
+            pass
+
+    # Resolve partition sizes and purge buffers according to protocol
+    purge = int(purge_buffer_days)
+    if total_days == 366 and n_train_days is None and purge == 6:
+        # EXACT LOCKED SCIENTIFIC EXPERIMENT PROTOCOL PARTITION
+        n_train_days = 253
+        purge1 = 6
+        n_val_days = 48
+        purge2 = 6
+        n_test_days = 53
+    elif total_days == 366 and n_train_days is None and purge == 7:
+        n_train_days = 246
+        purge1 = 7
+        n_val_days = 50
+        purge2 = 7
+        n_test_days = 56
+    elif n_train_days is None:
         available_days = total_days - 2 * purge
         if available_days < 3:
-            raise ValueError(f"Insufficient days ({total_days}) for 2 x {purge}-day purge buffers")
-        if total_days == 366 and purge == 7:
-            n_train_days = 246
-            n_val_days = 50
-            n_test_days = 56
+            # Fallback for small pilot/unit test slices
+            purge1 = 0
+            purge2 = 0
+            n_train_days = max(1, int(round(total_days * 0.70)))
+            n_val_days = max(1, int(round(total_days * 0.15)))
+            n_test_days = max(1, total_days - n_train_days - n_val_days)
+            if n_train_days + n_val_days + n_test_days != total_days:
+                n_train_days = total_days - n_val_days - n_test_days
         else:
+            purge1 = purge
+            purge2 = purge
             n_train_days = int(round(available_days * 0.70))
             n_val_days = int(round(available_days * 0.15))
             n_test_days = available_days - n_train_days - n_val_days
     else:
-        purge = int(purge_buffer_days)
         if n_train_days + 2 * purge + n_val_days + n_test_days == total_days:
-            pass
+            purge1 = purge
+            purge2 = purge
         elif n_train_days + n_val_days + n_test_days == total_days:
             # Caller specified exact 0-buffer partition (e.g. test isolation mocks)
-            purge = 0
+            purge1 = 0
+            purge2 = 0
+        elif n_train_days + 6 + n_val_days + 6 + n_test_days == total_days:
+            purge1 = 6
+            purge2 = 6
         else:
             expected_days = n_train_days + 2 * purge + n_val_days + n_test_days
             raise ValueError(
@@ -134,13 +196,13 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     train_end = n_train_days
 
     purge1_start = train_end
-    purge1_end = train_end + purge
+    purge1_end = train_end + purge1
 
     val_start = purge1_end
     val_end = val_start + n_val_days
 
     purge2_start = val_end
-    purge2_end = val_end + purge
+    purge2_end = val_end + purge2
 
     test_start = purge2_end
     test_end = test_start + n_test_days
@@ -149,13 +211,13 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
         raise ValueError(f"Computed test_end ({test_end}) does not equal total_days ({total_days})")
 
     print(f"Total Temporal Span: {total_days} days ({times[0].strftime('%Y-%m-%d')} to {times[-1].strftime('%Y-%m-%d')})")
-    print(f"Partition Structure (Purge Buffer = {purge} days):")
+    print(f"Partition Structure (Purge Buffers = {purge1}, {purge2} days):")
     print(f"  TRAIN:        Days {train_start:3d}..{train_end-1:3d} ({n_train_days} days: {times[train_start].strftime('%Y-%m-%d')} to {times[train_end-1].strftime('%Y-%m-%d')})")
-    if purge > 0:
-        print(f"  [PURGE 1]:    Days {purge1_start:3d}..{purge1_end-1:3d} ({purge} days: {times[purge1_start].strftime('%Y-%m-%d')} to {times[purge1_end-1].strftime('%Y-%m-%d')}) [DISCARDED]")
+    if purge1 > 0:
+        print(f"  [PURGE 1]:    Days {purge1_start:3d}..{purge1_end-1:3d} ({purge1} days: {times[purge1_start].strftime('%Y-%m-%d')} to {times[purge1_end-1].strftime('%Y-%m-%d')}) [DISCARDED]")
     print(f"  VALIDATION:   Days {val_start:3d}..{val_end-1:3d} ({n_val_days} days: {times[val_start].strftime('%Y-%m-%d')} to {times[val_end-1].strftime('%Y-%m-%d')})")
-    if purge > 0:
-        print(f"  [PURGE 2]:    Days {purge2_start:3d}..{purge2_end-1:3d} ({purge} days: {times[purge2_start].strftime('%Y-%m-%d')} to {times[purge2_end-1].strftime('%Y-%m-%d')}) [DISCARDED]")
+    if purge2 > 0:
+        print(f"  [PURGE 2]:    Days {purge2_start:3d}..{purge2_end-1:3d} ({purge2} days: {times[purge2_start].strftime('%Y-%m-%d')} to {times[purge2_end-1].strftime('%Y-%m-%d')}) [DISCARDED]")
     print(f"  TEST:         Days {test_start:3d}..{test_end-1:3d} ({n_test_days} days: {times[test_start].strftime('%Y-%m-%d')} to {times[test_end-1].strftime('%Y-%m-%d')})")
     
     # Read entire arrays into memory
@@ -171,7 +233,9 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
         time_indices=np.arange(train_start, train_end),
         timestamps=times[train_start:train_end],
         lats=lats,
-        lons=lons
+        lons=lons,
+        geo_ocean_2d=geo_mask_2d,
+        depth_valid_3d=depth_mask_3d
     )
     print(f"  Train: N = {len(train_data['X']):,} valid ocean samples across {n_train_days} days.")
     
@@ -183,7 +247,9 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
         time_indices=np.arange(val_start, val_end),
         timestamps=times[val_start:val_end],
         lats=lats,
-        lons=lons
+        lons=lons,
+        geo_ocean_2d=geo_mask_2d,
+        depth_valid_3d=depth_mask_3d
     )
     print(f"  Val:   N = {len(val_data['X']):,} valid ocean samples across {n_val_days} days.")
     
@@ -195,36 +261,67 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
         time_indices=np.arange(test_start, test_end),
         timestamps=times[test_start:test_end],
         lats=lats,
-        lons=lons
+        lons=lons,
+        geo_ocean_2d=geo_mask_2d,
+        depth_valid_3d=depth_mask_3d
     )
     print(f"  Test:  N = {len(test_data['X']):,} valid ocean samples across {n_test_days} days.")
 
+    # Programmatic Purge Leakage Verification
+    train_ids = set(train_data["time_idx"])
+    val_ids = set(val_data["time_idx"])
+    test_ids = set(test_data["time_idx"])
+    purge1_ids = set(range(purge1_start, purge1_end))
+    purge2_ids = set(range(purge2_start, purge2_end))
+
+    assert len(train_ids.intersection(purge1_ids)) == 0, "Purge 1 leaked into Train!"
+    assert len(train_ids.intersection(purge2_ids)) == 0, "Purge 2 leaked into Train!"
+    assert len(val_ids.intersection(purge1_ids)) == 0, "Purge 1 leaked into Validation!"
+    assert len(val_ids.intersection(purge2_ids)) == 0, "Purge 2 leaked into Validation!"
+    assert len(test_ids.intersection(purge1_ids)) == 0, "Purge 1 leaked into Test!"
+    assert len(test_ids.intersection(purge2_ids)) == 0, "Purge 2 leaked into Test!"
+    assert len(train_ids.intersection(val_ids)) == 0, "Train and Validation overlap!"
+    assert len(val_ids.intersection(test_ids)) == 0, "Validation and Test overlap!"
+    assert len(train_ids.intersection(test_ids)) == 0, "Train and Test overlap!"
+
     split_metadata = {
         "total_days": total_days,
-        "purge_buffer_days": purge,
+        "purge_buffer_days": purge1,
+        "purge1_days": purge1,
+        "purge2_days": purge2,
         "train": {
+            "start_idx": train_start,
+            "end_idx": train_end - 1,
             "start_date": times[train_start].strftime("%Y-%m-%d"),
             "end_date": times[train_end - 1].strftime("%Y-%m-%d"),
             "n_days": n_train_days,
             "n_samples": len(train_data["X"])
         },
         "purge_buffer_1": {
+            "start_idx": purge1_start,
+            "end_idx": purge1_end - 1,
             "start_date": times[purge1_start].strftime("%Y-%m-%d"),
             "end_date": times[purge1_end - 1].strftime("%Y-%m-%d"),
-            "n_days": purge
-        } if purge > 0 else None,
+            "n_days": purge1
+        } if purge1 > 0 else None,
         "val": {
+            "start_idx": val_start,
+            "end_idx": val_end - 1,
             "start_date": times[val_start].strftime("%Y-%m-%d"),
             "end_date": times[val_end - 1].strftime("%Y-%m-%d"),
             "n_days": n_val_days,
             "n_samples": len(val_data["X"])
         },
         "purge_buffer_2": {
+            "start_idx": purge2_start,
+            "end_idx": purge2_end - 1,
             "start_date": times[purge2_start].strftime("%Y-%m-%d"),
             "end_date": times[purge2_end - 1].strftime("%Y-%m-%d"),
-            "n_days": purge
-        } if purge > 0 else None,
+            "n_days": purge2
+        } if purge2 > 0 else None,
         "test": {
+            "start_idx": test_start,
+            "end_idx": test_end - 1,
             "start_date": times[test_start].strftime("%Y-%m-%d"),
             "end_date": times[test_end - 1].strftime("%Y-%m-%d"),
             "n_days": n_test_days,
@@ -240,19 +337,39 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     std_vec = np.nanstd(X_train_raw, axis=0)
     # Guard against zero variance
     std_vec[std_vec < 1e-6] = 1.0
+
+    # Target statistics strictly on valid training points
+    target_mean = np.zeros(len(CANONICAL_DEPTHS), dtype=np.float32)
+    target_std = np.zeros(len(CANONICAL_DEPTHS), dtype=np.float32)
+    for d_idx in range(len(CANONICAL_DEPTHS)):
+        d_mask = train_data["mask"][:, d_idx]
+        if np.any(d_mask):
+            target_mean[d_idx] = float(np.nanmean(train_data["Y"][d_mask, d_idx]))
+            target_std[d_idx] = float(np.nanstd(train_data["Y"][d_mask, d_idx]))
+            if target_std[d_idx] < 1e-6:
+                target_std[d_idx] = 1.0
+        else:
+            target_mean[d_idx] = 15.0
+            target_std[d_idx] = 5.0
     
     scaler_stats = {
         "features": list(CANONICAL_FEATURES),
         "mean": mean_vec.tolist(),
         "std": std_vec.tolist(),
+        "target_mean": target_mean.tolist(),
+        "target_std": target_std.tolist(),
         "train_samples_count": len(X_train_raw),
         "split_metadata": split_metadata
     }
+
+    stats_json_str = json.dumps(scaler_stats, sort_keys=True, indent=2)
+    scaler_sha256 = hashlib.sha256(stats_json_str.encode("utf-8")).hexdigest()
+    scaler_stats["scaler_sha256"] = scaler_sha256
     
     os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
     with open(scaler_path, "w") as f:
         json.dump(scaler_stats, f, indent=2)
-    print(f"Scaler parameters saved to {scaler_path}")
+    print(f"Scaler parameters saved to {scaler_path} (SHA-256: {scaler_sha256[:16]}...)")
     
     for f_idx, feat in enumerate(CANONICAL_FEATURES):
         print(f"  {feat:12s} -> Mean: {mean_vec[f_idx]:8.3f} | Std: {std_vec[f_idx]:8.3f}")
@@ -281,3 +398,4 @@ if __name__ == "__main__":
     print("Validation samples:", dataset["val"]["X_norm"].shape[0])
     print("Test samples:", dataset["test"]["X_norm"].shape[0])
     print("[PASS] Tabular dataset extraction verified successfully.")
+

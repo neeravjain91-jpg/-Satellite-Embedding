@@ -68,6 +68,8 @@ def masked_mse_loss(y_pred, y_true, mask):
     valid_true = y_true[mask]
     if valid_true.numel() == 0:
         return torch.tensor(0.0, requires_grad=True, device=y_pred.device)
+    assert not torch.isnan(valid_true).any(), "Invalid NaN target entered masked_mse_loss!"
+    assert not torch.isinf(valid_true).any(), "Invalid Inf target entered masked_mse_loss!"
     return torch.mean((valid_pred - valid_true) ** 2)
 
 def evaluate_torch_model(model, dataloader, device="cpu"):

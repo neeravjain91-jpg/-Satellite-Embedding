@@ -17,6 +17,7 @@ data/raw/sss/*.nc
 data/raw/duacs/*.nc
 data/raw/oscar/*.nc
 data/raw/ccmp/*.nc
+data/raw/argo/*.csv
 data/interim/*
 data/processed/*.zarr/
 data/processed/*.nc
