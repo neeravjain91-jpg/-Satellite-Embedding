@@ -49,51 +49,61 @@ def interpolate_depths_1d(profile, native_depths, target_depths=CANONICAL_DEPTHS
 
 def interpolate_glorys_to_canonical_depths(da_thetao, target_depths=CANONICAL_DEPTHS):
     """
-    Takes an xarray DataArray of GLORYS thetao (dims: [time, depth, lat, lon])
-    and interpolates along the depth coordinate to target_depths.
+    Takes an xarray DataArray of GLORYS thetao (dims: [time, depth, lat, lon] or [depth, lat, lon])
+    and interpolates along the depth coordinate to target_depths in a fast, vectorized manner.
+    Preserves NaNs where ocean is shallower than target depth (no extrapolation below max valid depth).
     Returns DataArray with dimension 'depth' matching target_depths.
     """
-    native_depths = da_thetao.depth.values
+    native_depths = np.asarray(da_thetao.depth.values, dtype=np.float32)
+    target_depths = np.asarray(target_depths, dtype=np.float32)
     
     # If already exact canonical depths
     if np.array_equal(native_depths, target_depths):
         return da_thetao
         
-    def _interp_along_axis(arr, axis=1):
-        # arr shape: (time, depth, lat, lon) or (depth, lat, lon)
-        return np.apply_along_axis(
-            interpolate_depths_1d,
-            axis=axis,
-            arr=arr,
-            native_depths=native_depths,
-            target_depths=target_depths
-        )
-
-    # Determine axis of depth
     depth_axis = da_thetao.dims.index("depth")
+    vals = da_thetao.values
     
-    # Apply ufunc over core dimensions
-    result_data = xr.apply_ufunc(
-        interpolate_depths_1d,
-        da_thetao,
-        input_core_dims=[["depth"]],
-        output_core_dims=[["target_depth"]],
-        vectorize=True,
-        dask="parallelized",
-        output_dtypes=[np.float32],
-        kwargs={"native_depths": native_depths, "target_depths": target_depths}
+    # Move depth to axis 0 for vectorization
+    vals_trans = np.moveaxis(vals, depth_axis, 0)
+    
+    n_targ = len(target_depths)
+    out_shape = (n_targ,) + vals_trans.shape[1:]
+    out = np.full(out_shape, np.nan, dtype=np.float32)
+    
+    indices = np.searchsorted(native_depths, target_depths)
+    
+    for k, z in enumerate(target_depths):
+        if z == 0.0:
+            if native_depths[0] <= 2.0:
+                out[k] = vals_trans[0]
+        else:
+            idx = indices[k]
+            if idx == 0:
+                out[k] = vals_trans[0]
+            elif idx >= len(native_depths):
+                pass  # deeper than maximum native depth -> strictly NaN
+            else:
+                z0 = native_depths[idx - 1]
+                z1 = native_depths[idx]
+                w1 = (z - z0) / (z1 - z0)
+                w0 = 1.0 - w1
+                out[k] = w0 * vals_trans[idx - 1] + w1 * vals_trans[idx]
+                
+    # Move depth back to original axis
+    out = np.moveaxis(out, 0, depth_axis)
+    
+    new_dims = list(da_thetao.dims)
+    new_coords = dict(da_thetao.coords)
+    new_coords["depth"] = target_depths
+    
+    result_data = xr.DataArray(
+        out,
+        dims=new_dims,
+        coords=new_coords,
+        attrs=da_thetao.attrs,
+        name=da_thetao.name or "thetao"
     )
-    
-    # Rename target_depth back to depth and assign coordinate values
-    result_data = result_data.rename({"target_depth": "depth"})
-    result_data = result_data.assign_coords(depth=target_depths)
-    result_data.attrs = da_thetao.attrs
-    result_data.name = "thetao"
-
-    # Ensure canonical dimension ordering: (time, depth, latitude, longitude) or (depth, latitude, longitude)
-    dim_order = [d for d in ["time", "depth", "latitude", "longitude"] if d in result_data.dims]
-    remaining_dims = [d for d in result_data.dims if d not in dim_order]
-    result_data = result_data.transpose(*(dim_order + remaining_dims))
     return result_data
 
 if __name__ == "__main__":

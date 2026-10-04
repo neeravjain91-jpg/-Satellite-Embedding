@@ -159,11 +159,12 @@ def assemble_ml_dataset(surface_features_dict, target_thetao, times, ocean_mask_
     ds_surface.to_zarr(surface_zarr, mode="w", consolidated=True)
     ds_target.to_zarr(target_zarr, mode="w", consolidated=True)
     
-    # Also save NetCDF backup for portability
-    surface_nc = f"{zarr_out_prefix}_surface.nc"
-    target_nc = f"{zarr_out_prefix}_target.nc"
-    ds_surface.to_netcdf(surface_nc)
-    ds_target.to_netcdf(target_nc)
+    # Also save NetCDF backup for portability if short run (<= 14 days)
+    if n_times <= 14:
+        surface_nc = f"{zarr_out_prefix}_surface.nc"
+        target_nc = f"{zarr_out_prefix}_target.nc"
+        ds_surface.to_netcdf(surface_nc)
+        ds_target.to_netcdf(target_nc)
     
     print(f"Final ML datasets assembled:")
     print(f"  Surface Zarr: {surface_zarr} (shape: {ds_surface.surface_features.shape})")

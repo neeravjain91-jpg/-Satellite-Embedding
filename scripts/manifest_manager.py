@@ -15,6 +15,7 @@ import sys
 import json
 import time
 import hashlib
+import threading
 import pandas as pd
 from datetime import datetime, timezone
 
@@ -37,12 +38,15 @@ def compute_sha256(filepath):
     return sha256_hash.hexdigest()
 
 class ManifestManager:
+    _lock = threading.RLock()
+
     def __init__(self, json_path=MANIFEST_JSON_PATH, csv_path=MANIFEST_CSV_PATH, checksums_path=CHECKSUMS_CSV_PATH):
         self.json_path = json_path
         self.csv_path = csv_path
         self.checksums_path = checksums_path
-        self.manifest = self._load_manifest()
-        self._ensure_checksums_file()
+        with self._lock:
+            self.manifest = self._load_manifest()
+            self._ensure_checksums_file()
 
     def _ensure_checksums_file(self):
         os.makedirs(os.path.dirname(self.checksums_path), exist_ok=True)
@@ -61,12 +65,17 @@ class ManifestManager:
         return {}
 
     def _save_manifest(self):
-        with open(self.json_path, "w") as f:
-            json.dump(self.manifest, f, indent=2)
-        # Also export to CSV
-        if self.manifest:
-            df = pd.DataFrame(list(self.manifest.values()))
-            df.to_csv(self.csv_path, index=False)
+        with self._lock:
+            # Re-read existing file if it exists to merge changes from other instances/threads
+            on_disk = self._load_manifest()
+            on_disk.update(self.manifest)
+            self.manifest = on_disk
+            with open(self.json_path, "w") as f:
+                json.dump(self.manifest, f, indent=2)
+            # Also export to CSV
+            if self.manifest:
+                df = pd.DataFrame(list(self.manifest.values()))
+                df.to_csv(self.csv_path, index=False)
 
     def get_chunk_key(self, dataset, variable, start_datetime, end_datetime):
         """Constructs unique chunk identifier."""
@@ -93,71 +102,74 @@ class ManifestManager:
 
     def is_chunk_complete(self, chunk_key):
         """Checks if a chunk was already successfully downloaded and validated."""
-        if chunk_key in self.manifest:
-            rec = self.manifest[chunk_key]
-            out_file = rec.get("output_file")
-            if rec.get("status") == "COMPLETE" and out_file and os.path.exists(out_file):
-                # Verify file size > 0
-                if os.path.getsize(out_file) > 0:
-                    return True
-        return False
+        with self._lock:
+            if chunk_key in self.manifest:
+                rec = self.manifest[chunk_key]
+                out_file = rec.get("output_file")
+                if rec.get("status") == "COMPLETE" and out_file and os.path.exists(out_file):
+                    # Verify file size > 0
+                    if os.path.getsize(out_file) > 0:
+                        return True
+            return False
 
     def record_chunk(self, dataset, dataset_id, variable, start_datetime, end_datetime,
                      bbox, depth_range, output_file, status="PLANNED", error=None):
-        chunk_key = self.get_chunk_key(dataset, variable, start_datetime, end_datetime)
-        
-        existing = self.manifest.get(chunk_key, {})
-        retry_count = existing.get("retry_count", 0)
-        
-        file_size = os.path.getsize(output_file) if output_file and os.path.exists(output_file) else 0
-        checksum = compute_sha256(output_file) if output_file and os.path.exists(output_file) and file_size > 0 else None
-        norm_file = self._normalize_output_path(output_file)
+        with self._lock:
+            chunk_key = self.get_chunk_key(dataset, variable, start_datetime, end_datetime)
+            
+            existing = self.manifest.get(chunk_key, {})
+            retry_count = existing.get("retry_count", 0)
+            
+            file_size = os.path.getsize(output_file) if output_file and os.path.exists(output_file) else 0
+            checksum = compute_sha256(output_file) if output_file and os.path.exists(output_file) and file_size > 0 else None
+            norm_file = self._normalize_output_path(output_file)
 
-        record = {
-            "chunk_key": chunk_key,
-            "dataset": dataset,
-            "dataset_id": dataset_id,
-            "variable": variable,
-            "start_datetime": str(start_datetime),
-            "end_datetime": str(end_datetime),
-            "bbox": str(bbox),
-            "depth_range": str(depth_range),
-            "output_file": norm_file,
-            "size": file_size,
-            "checksum": checksum,
-            "status": status,
-            "retry_count": retry_count,
-            "error": str(error) if error else None,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+            record = {
+                "chunk_key": chunk_key,
+                "dataset": dataset,
+                "dataset_id": dataset_id,
+                "variable": variable,
+                "start_datetime": str(start_datetime),
+                "end_datetime": str(end_datetime),
+                "bbox": str(bbox),
+                "depth_range": str(depth_range),
+                "output_file": norm_file,
+                "size": file_size,
+                "checksum": checksum,
+                "status": status,
+                "retry_count": retry_count,
+                "error": str(error) if error else None,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
 
-        self.manifest[chunk_key] = record
-        self._save_manifest()
+            self.manifest[chunk_key] = record
+            self._save_manifest()
 
-        # If complete, log to checksums.csv
-        if status == "COMPLETE" and checksum:
-            with open(self.checksums_path, "a") as f:
-                f.write(f"{record['timestamp']},{norm_file},{checksum},{file_size}\n")
+            # If complete, log to checksums.csv
+            if status == "COMPLETE" and checksum:
+                with open(self.checksums_path, "a") as f:
+                    f.write(f"{record['timestamp']},{norm_file},{checksum},{file_size}\n")
 
-        return record
+            return record
 
     def update_status(self, chunk_key, status, error=None, output_file=None):
-        if chunk_key in self.manifest:
-            rec = self.manifest[chunk_key]
-            rec["status"] = status
-            rec["timestamp"] = datetime.now(timezone.utc).isoformat()
-            if error:
-                rec["error"] = str(error)
-                rec["retry_count"] = rec.get("retry_count", 0) + 1
-            if output_file and os.path.exists(output_file):
-                norm_file = self._normalize_output_path(output_file)
-                rec["output_file"] = norm_file
-                rec["size"] = os.path.getsize(output_file)
-                rec["checksum"] = compute_sha256(output_file)
-                if status == "COMPLETE" and rec["checksum"]:
-                    with open(self.checksums_path, "a") as f:
-                        f.write(f"{rec['timestamp']},{norm_file},{rec['checksum']},{rec['size']}\n")
-            self._save_manifest()
+        with self._lock:
+            if chunk_key in self.manifest:
+                rec = self.manifest[chunk_key]
+                rec["status"] = status
+                rec["timestamp"] = datetime.now(timezone.utc).isoformat()
+                if error:
+                    rec["error"] = str(error)
+                    rec["retry_count"] = rec.get("retry_count", 0) + 1
+                if output_file and os.path.exists(output_file):
+                    norm_file = self._normalize_output_path(output_file)
+                    rec["output_file"] = norm_file
+                    rec["size"] = os.path.getsize(output_file)
+                    rec["checksum"] = compute_sha256(output_file)
+                    if status == "COMPLETE" and rec["checksum"]:
+                        with open(self.checksums_path, "a") as f:
+                            f.write(f"{rec['timestamp']},{norm_file},{rec['checksum']},{rec['size']}\n")
+                self._save_manifest()
 
 def retry_with_backoff(operation_fn, max_retries=3, initial_delay=2.0, backoff_factor=2.0):
     """

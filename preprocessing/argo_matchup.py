@@ -55,82 +55,117 @@ def match_argo_profiles_with_model(df_argo, ds_model_target, max_spatial_dist_km
     ds_model_target: xarray Dataset containing:
         'thetao' with dims (time, depth, latitude, longitude)
     """
-    matched_records = []
-    
-    # Pre-build spatial-depth interpolators per time step
-    model_times = pd.to_datetime(ds_model_target.time.values).normalize()
-    
-    for idx, row in df_argo.iterrows():
-        argo_t = pd.to_datetime(row['time']).tz_localize(None)
-        argo_lat = float(row['latitude'])
-        argo_lon = float(row['longitude'])
-        argo_depth = float(row['depth'])
-        obs_temp = float(row['observed_temperature'])
-        q_flag = int(row.get('quality_flag', 1))
-        argo_id = str(row.get('argo_id', row.get('platform_number', 'UNKNOWN')))
-        
-        # Spatial bounding check
-        if not (CANONICAL_LATS[0] <= argo_lat <= CANONICAL_LATS[-1] and
-                CANONICAL_LONS[0] <= argo_lon <= CANONICAL_LONS[-1] and
-                CANONICAL_DEPTHS[0] <= argo_depth <= CANONICAL_DEPTHS[-1]):
-            continue
+    if len(df_argo) == 0:
+        return pd.DataFrame()
 
-        # Find closest model time
-        time_diffs_h = np.abs((model_times - argo_t.normalize()).total_seconds()) / 3600.0
-        min_t_idx = np.argmin(time_diffs_h)
-        t_dist_h = float(time_diffs_h[min_t_idx])
+    model_times = pd.to_datetime(ds_model_target.time.values).normalize()
+    thetao_vals = ds_model_target["thetao"].values  # (time, depth, lat, lon)
+    
+    argo_lats = df_argo['latitude'].to_numpy(dtype=np.float64)
+    argo_lons = df_argo['longitude'].to_numpy(dtype=np.float64)
+    argo_depths = df_argo['depth'].to_numpy(dtype=np.float64)
+    obs_temps = df_argo['observed_temperature'].to_numpy(dtype=np.float64)
+    
+    id_col = 'argo_id' if 'argo_id' in df_argo.columns else ('platform_number' if 'platform_number' in df_argo.columns else None)
+    if id_col:
+        argo_ids = df_argo[id_col].astype(str).to_numpy()
+    else:
+        argo_ids = np.array(['UNKNOWN'] * len(df_argo))
         
-        if t_dist_h > max_temporal_dist_hours:
-            continue
-            
-        # Nearest canonical grid point distance
-        nearest_lat_idx = np.argmin(np.abs(CANONICAL_LATS - argo_lat))
-        nearest_lon_idx = np.argmin(np.abs(CANONICAL_LONS - argo_lon))
-        nearest_lat = CANONICAL_LATS[nearest_lat_idx]
-        nearest_lon = CANONICAL_LONS[nearest_lon_idx]
-        
-        spat_dist_km = haversine_distance_km(argo_lat, argo_lon, nearest_lat, nearest_lon)
-        if spat_dist_km > max_spatial_dist_km:
-            continue
-            
-        # Interpolate model temperature at (depth, lat, lon)
-        try:
-            slice_t = ds_model_target["thetao"].isel(time=min_t_idx)
-            # 1D depth interpolation at nearest (lat, lon)
-            prof_temps = slice_t.isel(latitude=nearest_lat_idx, longitude=nearest_lon_idx).values
-            valid_d_mask = ~np.isnan(prof_temps)
-            
-            if not np.any(valid_d_mask):
-                continue
-                
-            model_t_interp = np.interp(
-                argo_depth,
-                CANONICAL_DEPTHS[valid_d_mask],
-                prof_temps[valid_d_mask],
-                left=np.nan,
-                right=np.nan
-            )
-            
-            if np.isnan(model_t_interp):
-                continue
-                
-            matched_records.append({
-                "argo_id": argo_id,
-                "time": str(argo_t),
-                "latitude": round(argo_lat, 4),
-                "longitude": round(argo_lon, 4),
-                "depth": round(argo_depth, 2),
-                "observed_temperature": round(obs_temp, 3),
-                "model_temperature": round(float(model_t_interp), 3),
-                "spatial_distance": round(spat_dist_km, 2),
-                "temporal_distance": round(t_dist_h, 2),
-                "quality_flag": q_flag
-            })
-        except Exception as e:
-            continue
-            
+    q_flags = df_argo['quality_flag'].to_numpy(dtype=np.int32) if 'quality_flag' in df_argo.columns else np.ones(len(df_argo), dtype=np.int32)
+    raw_times_series = pd.to_datetime(df_argo['time'], utc=True).dt.tz_localize(None)
+
+    # 1. Spatial & depth bounding check
+    valid_box = (
+        (argo_lats >= CANONICAL_LATS[0]) & (argo_lats <= CANONICAL_LATS[-1]) &
+        (argo_lons >= CANONICAL_LONS[0]) & (argo_lons <= CANONICAL_LONS[-1]) &
+        (argo_depths >= CANONICAL_DEPTHS[0]) & (argo_depths <= CANONICAL_DEPTHS[-1])
+    )
+    if not np.any(valid_box):
+        return pd.DataFrame()
+
+    # 2. Nearest grid indices and spatial distance
+    nearest_lat_idx = np.clip(np.round((argo_lats - CANONICAL_LATS[0]) / 0.25).astype(np.int32), 0, len(CANONICAL_LATS) - 1)
+    nearest_lon_idx = np.clip(np.round((argo_lons - CANONICAL_LONS[0]) / 0.25).astype(np.int32), 0, len(CANONICAL_LONS) - 1)
+    nearest_lats = CANONICAL_LATS[nearest_lat_idx]
+    nearest_lons = CANONICAL_LONS[nearest_lon_idx]
+    spat_dist_km = haversine_distance_km(argo_lats, argo_lons, nearest_lats, nearest_lons)
+    valid_spat = spat_dist_km <= max_spatial_dist_km
+
+    # 3. Time matching
+    norm_times = raw_times_series.dt.floor('D')
+    start_model_t = model_times[0]
+    time_diff_days = (norm_times - start_model_t).dt.days.to_numpy()
+    valid_t_range = (time_diff_days >= 0) & (time_diff_days < len(model_times))
+    
+    # Combined pre-filter
+    valid_candidates = valid_box & valid_spat & valid_t_range
+    if not np.any(valid_candidates):
+        return pd.DataFrame()
+
+    # Compute temporal distance in hours for valid candidates
+    cand_indices = np.where(valid_candidates)[0]
+    cand_t_idx = time_diff_days[cand_indices]
+    cand_raw_dt = raw_times_series.iloc[cand_indices].to_numpy()
+    cand_model_dt = model_times[cand_t_idx].to_numpy()
+    cand_t_dist_h = np.abs((cand_raw_dt - cand_model_dt) / np.timedelta64(1, 'h'))
+    
+    valid_temporal = cand_t_dist_h <= max_temporal_dist_hours
+    final_indices = cand_indices[valid_temporal]
+    if len(final_indices) == 0:
+        return pd.DataFrame()
+
+    # Extract filtered arrays
+    f_argo_id = argo_ids[final_indices]
+    f_raw_time = raw_times_series.iloc[final_indices].dt.strftime('%Y-%m-%d %H:%M:%S').to_numpy()
+    f_lats = argo_lats[final_indices]
+    f_lons = argo_lons[final_indices]
+    f_depths = argo_depths[final_indices]
+    f_obs_temp = obs_temps[final_indices]
+    f_q_flags = q_flags[final_indices]
+    f_spat_dist = spat_dist_km[final_indices]
+    f_t_dist = cand_t_dist_h[valid_temporal]
+    
+    f_t_idx = time_diff_days[final_indices]
+    f_lat_idx = nearest_lat_idx[final_indices]
+    f_lon_idx = nearest_lon_idx[final_indices]
+
+    # Vectorized 1D Depth Interpolation across CANONICAL_DEPTHS:
+    z_idx = np.searchsorted(CANONICAL_DEPTHS, f_depths)
+    z_idx = np.clip(z_idx, 1, len(CANONICAL_DEPTHS) - 1)
+    z0 = CANONICAL_DEPTHS[z_idx - 1]
+    z1 = CANONICAL_DEPTHS[z_idx]
+    denom = np.where((z1 - z0) == 0, 1.0, (z1 - z0))
+    w = (f_depths - z0) / denom
+
+    # Gather model thetao values
+    v0 = thetao_vals[f_t_idx, z_idx - 1, f_lat_idx, f_lon_idx]
+    v1 = thetao_vals[f_t_idx, z_idx, f_lat_idx, f_lon_idx]
+    model_t = v0 + w * (v1 - v0)
+
+    # Handle exact match at z=0 (depth 0)
+    exact_zero = (f_depths == CANONICAL_DEPTHS[0])
+    model_t[exact_zero] = thetao_vals[f_t_idx[exact_zero], 0, f_lat_idx[exact_zero], f_lon_idx[exact_zero]]
+
+    # Filter out NaNs (e.g. seafloor bathymetry cutoffs)
+    finite_mask = ~np.isnan(model_t) & ~np.isnan(f_obs_temp)
+    if not np.any(finite_mask):
+        return pd.DataFrame()
+
+    matched_records = {
+        "argo_id": f_argo_id[finite_mask],
+        "time": f_raw_time[finite_mask],
+        "latitude": np.round(f_lats[finite_mask], 4),
+        "longitude": np.round(f_lons[finite_mask], 4),
+        "depth": np.round(f_depths[finite_mask], 2),
+        "observed_temperature": np.round(f_obs_temp[finite_mask], 3),
+        "model_temperature": np.round(model_t[finite_mask], 3),
+        "spatial_distance": np.round(f_spat_dist[finite_mask], 2),
+        "temporal_distance": np.round(f_t_dist[finite_mask], 2),
+        "quality_flag": f_q_flags[finite_mask]
+    }
     df_matched = pd.DataFrame(matched_records)
-    print(f"Matched {len(df_matched)} ARGO observation points with model grid.")
+    print(f"Matched {len(df_matched):,} ARGO observation points with model grid.")
     return df_matched
 
 def evaluate_argo_matchups(df_matched, out_csv="data/processed/argo_matchup_evaluation.csv"):

@@ -27,6 +27,7 @@ Fixed Components (Locked Scientific Protocol):
 
 import os
 import sys
+import warnings
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
@@ -706,13 +707,27 @@ class B6_SpatialCNN(BaseBaselineModel):
         ).to(self.device)
 
     def _prepare_patches(self, data):
-        """Converts input dictionary or array to [N, C, P, P] patch tensor."""
+        """Converts input dictionary or array to [N, C, P, P] patch tensor.
+        
+        Priority order:
+        1. Pre-computed X_patches from spatial_temporal_context.augment_split_with_spatial_patches()
+        2. Already-shaped 4D arrays [N, C, P, P]
+        3. FALLBACK: replicate [N, C] -> [N, C, P, P] (degenerate — warns)
+        """
         if isinstance(data, torch.Tensor):
             return data
         if isinstance(data, np.ndarray):
             if data.ndim == 4: # (N, C, P, P)
                 return torch.tensor(data, dtype=torch.float32)
-            elif data.ndim == 2: # (N, C) -> expand to (N, C, P, P)
+            elif data.ndim == 2: # (N, C) -> expand to (N, C, P, P) -- DEGENERATE
+                warnings.warn(
+                    "B6_SpatialCNN: Falling back to DEGENERATE spatial context (replicating pointwise "
+                    "features across P×P patch). Conv2D will see spatially constant input and cannot "
+                    "learn spatial patterns. Call augment_split_with_spatial_patches() first to provide "
+                    "genuine spatial context via the 'X_patches' key.",
+                    UserWarning,
+                    stacklevel=2
+                )
                 expanded = np.repeat(np.repeat(data[:, :, np.newaxis, np.newaxis], self.patch_size, axis=2), self.patch_size, axis=3)
                 return torch.tensor(expanded, dtype=torch.float32)
         if isinstance(data, dict):
@@ -723,6 +738,14 @@ class B6_SpatialCNN(BaseBaselineModel):
                 if X.ndim == 4:
                     return torch.tensor(X, dtype=torch.float32)
                 elif X.ndim == 2:
+                    warnings.warn(
+                        "B6_SpatialCNN: Falling back to DEGENERATE spatial context (replicating pointwise "
+                        "features across P×P patch). Conv2D will see spatially constant input and cannot "
+                        "learn spatial patterns. Call augment_split_with_spatial_patches() first to provide "
+                        "genuine spatial context via the 'X_patches' key.",
+                        UserWarning,
+                        stacklevel=2
+                    )
                     expanded = np.repeat(np.repeat(X[:, :, np.newaxis, np.newaxis], self.patch_size, axis=2), self.patch_size, axis=3)
                     return torch.tensor(expanded, dtype=torch.float32)
         raise ValueError("Unsupported input format for B6_SpatialCNN")
@@ -879,13 +902,27 @@ class B7_TemporalModel(BaseBaselineModel):
         ).to(self.device)
 
     def _prepare_sequences(self, data):
-        """Converts input dictionary or array to [N, T, C] sequence tensor."""
+        """Converts input dictionary or array to [N, T, C] sequence tensor.
+        
+        Priority order:
+        1. Pre-computed X_seq from spatial_temporal_context.augment_split_with_temporal_sequences()
+        2. Already-shaped 3D arrays [N, T, C]
+        3. FALLBACK: replicate [N, C] -> [N, T, C] (degenerate — warns)
+        """
         if isinstance(data, torch.Tensor):
             return data
         if isinstance(data, np.ndarray):
             if data.ndim == 3: # (N, T, C)
                 return torch.tensor(data, dtype=torch.float32)
-            elif data.ndim == 2: # (N, C) -> expand to (N, T, C)
+            elif data.ndim == 2: # (N, C) -> expand to (N, T, C) -- DEGENERATE
+                warnings.warn(
+                    "B7_TemporalModel: Falling back to DEGENERATE temporal context (replicating "
+                    "pointwise features across T time steps). GRU will see temporally constant input "
+                    "and cannot learn temporal dynamics. Call augment_split_with_temporal_sequences() "
+                    "first to provide genuine temporal context via the 'X_seq' key.",
+                    UserWarning,
+                    stacklevel=2
+                )
                 expanded = np.repeat(data[:, np.newaxis, :], self.window_size, axis=1)
                 return torch.tensor(expanded, dtype=torch.float32)
         if isinstance(data, dict):
@@ -896,6 +933,14 @@ class B7_TemporalModel(BaseBaselineModel):
                 if X.ndim == 3:
                     return torch.tensor(X, dtype=torch.float32)
                 elif X.ndim == 2:
+                    warnings.warn(
+                        "B7_TemporalModel: Falling back to DEGENERATE temporal context (replicating "
+                        "pointwise features across T time steps). GRU will see temporally constant input "
+                        "and cannot learn temporal dynamics. Call augment_split_with_temporal_sequences() "
+                        "first to provide genuine temporal context via the 'X_seq' key.",
+                        UserWarning,
+                        stacklevel=2
+                    )
                     expanded = np.repeat(X[:, np.newaxis, :], self.window_size, axis=1)
                     return torch.tensor(expanded, dtype=torch.float32)
         raise ValueError("Unsupported input format for B7_TemporalModel")
@@ -1051,13 +1096,27 @@ class B8_EmbeddingModel(BaseBaselineModel):
         ).to(self.device)
 
     def _prepare_cubes(self, data):
-        """Converts input to [N, T, C, P, P] spatiotemporal cubes."""
+        """Converts input to [N, T, C, P, P] spatiotemporal cubes.
+        
+        Priority order:
+        1. Pre-computed X_cubes from spatial_temporal_context.augment_split_with_spatiotemporal_cubes()
+        2. Already-shaped 5D arrays [N, T, C, P, P]
+        3. FALLBACK: replicate [N, C] -> [N, T, C, P, P] (degenerate — warns)
+        """
         if isinstance(data, torch.Tensor):
             return data
         if isinstance(data, np.ndarray):
             if data.ndim == 5: # (N, T, C, P, P)
                 return torch.tensor(data, dtype=torch.float32)
-            elif data.ndim == 2: # (N, C) -> expand to (N, T, C, P, P)
+            elif data.ndim == 2: # (N, C) -> expand to (N, T, C, P, P) -- DEGENERATE
+                warnings.warn(
+                    "B8_EmbeddingModel: Falling back to DEGENERATE spatiotemporal context (replicating "
+                    "pointwise features across T×P×P cube). Both Conv2D spatial encoder and GRU temporal "
+                    "encoder see constant input. Call augment_split_with_spatiotemporal_cubes() first "
+                    "to provide genuine spatiotemporal context via the 'X_cubes' key.",
+                    UserWarning,
+                    stacklevel=2
+                )
                 expanded = np.repeat(np.repeat(data[:, np.newaxis, :, np.newaxis, np.newaxis], self.patch_size, axis=3), self.patch_size, axis=4)
                 expanded = np.repeat(expanded, self.window_size, axis=1)
                 return torch.tensor(expanded, dtype=torch.float32)
@@ -1069,6 +1128,14 @@ class B8_EmbeddingModel(BaseBaselineModel):
                 if X.ndim == 5:
                     return torch.tensor(X, dtype=torch.float32)
                 elif X.ndim == 2:
+                    warnings.warn(
+                        "B8_EmbeddingModel: Falling back to DEGENERATE spatiotemporal context (replicating "
+                        "pointwise features across T×P×P cube). Both Conv2D spatial encoder and GRU temporal "
+                        "encoder see constant input. Call augment_split_with_spatiotemporal_cubes() first "
+                        "to provide genuine spatiotemporal context via the 'X_cubes' key.",
+                        UserWarning,
+                        stacklevel=2
+                    )
                     expanded = np.repeat(np.repeat(X[:, np.newaxis, :, np.newaxis, np.newaxis], self.patch_size, axis=3), self.patch_size, axis=4)
                     expanded = np.repeat(expanded, self.window_size, axis=1)
                     return torch.tensor(expanded, dtype=torch.float32)

@@ -107,21 +107,46 @@ def download_and_process_ccmp_day(date_str, bbox=(5.0, 30.0, 45.0, 105.0), outpu
         manifest_mgr.update_status(chunk_key, "FAILED", error=str(e))
         raise
 
-def download_ccmp_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0)):
+import concurrent.futures
+
+def download_ccmp_period(start_date, end_date, bbox=(5.0, 30.0, 45.0, 105.0), max_workers=6):
     date_range = pd.date_range(start_date, end_date, freq="D").strftime("%Y-%m-%d")
-    print(f"Downloading real CCMP wind observations for {len(date_range)} days ({start_date} to {end_date})...")
+    print(f"Downloading real CCMP wind observations for {len(date_range)} days ({start_date} to {end_date}) using {max_workers} workers...")
+    
+    manifest_mgr = ManifestManager()
+    missing_dates = []
     results = []
-    failed_dates = []
     for d_str in date_range:
-        try:
-            f = download_and_process_ccmp_day(d_str, bbox=bbox)
-            results.append(f)
-        except Exception as e:
-            print(f"[RETRY QUEUE] Deferring {d_str} due to error: {e}")
-            failed_dates.append(d_str)
+        chk_key = manifest_mgr.get_chunk_key("CCMP", "uwnd_vwnd", d_str, d_str)
+        out_f = os.path.join("data/raw/ccmp", f"ccmp_daily_{d_str}.nc")
+        if manifest_mgr.is_chunk_complete(chk_key) and os.path.exists(out_f) and os.path.getsize(out_f) > 0:
+            results.append(out_f)
+        else:
+            missing_dates.append(d_str)
+
+    if not missing_dates:
+        print(f"[SKIP] All {len(date_range)} CCMP dates already complete.")
+        return sorted(list(set(results)))
+
+    print(f"Acquiring {len(missing_dates)} missing CCMP days...")
+    failed_dates = []
+    
+    def _worker(d_str):
+        return download_and_process_ccmp_day(d_str, bbox=bbox)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_date = {executor.submit(_worker, d): d for d in missing_dates}
+        for future in concurrent.futures.as_completed(future_to_date):
+            d = future_to_date[future]
+            try:
+                out_path = future.result()
+                results.append(out_path)
+            except Exception as e:
+                print(f"[RETRY QUEUE] Deferring {d} due to error: {e}")
+                failed_dates.append(d)
 
     if failed_dates:
-        print(f"\n--- Retrying {len(failed_dates)} deferred CCMP dates ---")
+        print(f"\n--- Retrying {len(failed_dates)} deferred CCMP dates sequentially ---")
         still_failed = []
         for d_str in failed_dates:
             try:

@@ -158,6 +158,7 @@ def compute_comprehensive_metrics(y_true, y_pred, mask, y_clim,
     if compute_regions and lats is not None and lons is not None:
         result["regions"] = {}
         regions = {
+            "full_domain": (lats >= 5.0) & (lats <= 30.0) & (lons >= 45.0) & (lons <= 105.0),
             "arabian_sea": (lats >= 5.0) & (lats <= 25.0) & (lons >= 45.0) & (lons <= 77.0),
             "bay_of_bengal": (lats >= 5.0) & (lats <= 25.0) & (lons >= 77.0) & (lons <= 100.0)
         }
@@ -221,7 +222,8 @@ def compute_comprehensive_metrics(y_true, y_pred, mask, y_clim,
 # ---------------------------------------------------------------------------
 def compute_block_bootstrap_ci(y_true, y_pred, mask, time_indices,
                                block_length_days=7, n_bootstraps=200,
-                               depth_levels=CANONICAL_DEPTHS, random_seed=42):
+                               depth_levels=CANONICAL_DEPTHS, random_seed=42,
+                               return_overall=False):
     """
     Computes 95% block-bootstrap confidence intervals over temporal blocks:
     Accounting for temporal ocean memory decorrelation timescales.
@@ -229,9 +231,9 @@ def compute_block_bootstrap_ci(y_true, y_pred, mask, time_indices,
     np.random.seed(random_seed)
     unique_times = np.sort(np.unique(time_indices))
     n_days = len(unique_times)
+    n_depths = len(depth_levels)
     
     if n_days < block_length_days:
-        # Fallback to single-day blocks if temporal span is small
         blocks = [[t] for t in unique_times]
     else:
         blocks = []
@@ -239,23 +241,65 @@ def compute_block_bootstrap_ci(y_true, y_pred, mask, time_indices,
             blocks.append(list(unique_times[i:i + block_length_days]))
             
     n_blocks = len(blocks)
-    boot_rmse_per_depth = [[] for _ in range(len(depth_levels))]
+
+    # Pre-aggregate statistics per day and depth for vectorization
+    day_sse = np.zeros((n_days, n_depths), dtype=np.float64)
+    day_cnt = np.zeros((n_days, n_depths), dtype=np.int64)
+    day_abs = np.zeros((n_days, n_depths), dtype=np.float64)
+    day_sum = np.zeros((n_days, n_depths), dtype=np.float64)
+
+    for t_idx, t_val in enumerate(unique_times):
+        day_m = (time_indices == t_val)
+        for d in range(n_depths):
+            comb = mask[:, d] & day_m
+            if np.any(comb):
+                diff = y_pred[comb, d] - y_true[comb, d]
+                day_sse[t_idx, d] = np.sum(diff ** 2)
+                day_abs[t_idx, d] = np.sum(np.abs(diff))
+                day_sum[t_idx, d] = np.sum(diff)
+                day_cnt[t_idx, d] = int(np.sum(comb))
+
+    boot_rmse_per_depth = [[] for _ in range(n_depths)]
+    boot_overall_unweighted = []
+    boot_overall_weighted = []
+    boot_overall_mae = []
+    boot_overall_bias = []
     
     for _ in range(n_bootstraps):
         sampled_block_indices = np.random.choice(n_blocks, size=n_blocks, replace=True)
-        sampled_days = set()
+        sampled_day_vals = []
         for b_idx in sampled_block_indices:
-            sampled_days.update(blocks[b_idx])
-            
-        sample_mask = np.isin(time_indices, list(sampled_days))
-        for d in range(len(depth_levels)):
-            comb = mask[:, d] & sample_mask
-            if np.any(comb):
-                diff = y_pred[comb, d] - y_true[comb, d]
-                rmse = float(np.sqrt(np.mean(diff ** 2)))
-                boot_rmse_per_depth[d].append(rmse)
+            sampled_day_vals.extend(blocks[b_idx])
+        
+        # Map day vals to t_idx
+        sampled_t_indices = np.searchsorted(unique_times, sampled_day_vals)
+        
+        tot_sse = np.sum(day_sse[sampled_t_indices], axis=0) # (15,)
+        tot_cnt = np.sum(day_cnt[sampled_t_indices], axis=0) # (15,)
+        tot_abs = np.sum(day_abs[sampled_t_indices], axis=0) # (15,)
+        tot_sum = np.sum(day_sum[sampled_t_indices], axis=0) # (15,)
+
+        d_rmse = np.zeros(n_depths, dtype=np.float64)
+        for d in range(n_depths):
+            if tot_cnt[d] > 0:
+                rmse_d = float(np.sqrt(tot_sse[d] / tot_cnt[d]))
+                boot_rmse_per_depth[d].append(rmse_d)
+                d_rmse[d] = rmse_d
             else:
                 boot_rmse_per_depth[d].append(np.nan)
+                d_rmse[d] = np.nan
+
+        # Overall bootstrap metrics
+        valid_d = ~np.isnan(d_rmse)
+        if np.any(valid_d):
+            boot_overall_unweighted.append(float(np.mean(d_rmse[valid_d])))
+            total_valid_cnt = np.sum(tot_cnt[valid_d])
+            if total_valid_cnt > 0:
+                boot_overall_weighted.append(float(np.sum(tot_cnt[valid_d] * d_rmse[valid_d]) / total_valid_cnt))
+            d_mae = np.where(tot_cnt > 0, tot_abs / np.maximum(tot_cnt, 1), np.nan)
+            d_bias = np.where(tot_cnt > 0, tot_sum / np.maximum(tot_cnt, 1), np.nan)
+            boot_overall_mae.append(float(np.mean(d_mae[valid_d])))
+            boot_overall_bias.append(float(np.mean(d_bias[valid_d])))
                 
     ci_records = []
     for d, d_val in enumerate(depth_levels):
@@ -270,5 +314,27 @@ def compute_block_bootstrap_ci(y_true, y_pred, mask, time_indices,
             "ci_95_low": round(ci_low, 4),
             "ci_95_high": round(ci_high, 4)
         })
-        
-    return ci_records
+
+    if not return_overall:
+        return ci_records
+
+    overall_ci = {
+        "unweighted_rmse": {
+            "ci_95_low": round(float(np.percentile(boot_overall_unweighted, 2.5)), 4) if boot_overall_unweighted else np.nan,
+            "ci_95_high": round(float(np.percentile(boot_overall_unweighted, 97.5)), 4) if boot_overall_unweighted else np.nan
+        },
+        "weighted_rmse": {
+            "ci_95_low": round(float(np.percentile(boot_overall_weighted, 2.5)), 4) if boot_overall_weighted else np.nan,
+            "ci_95_high": round(float(np.percentile(boot_overall_weighted, 97.5)), 4) if boot_overall_weighted else np.nan
+        },
+        "mae": {
+            "ci_95_low": round(float(np.percentile(boot_overall_mae, 2.5)), 4) if boot_overall_mae else np.nan,
+            "ci_95_high": round(float(np.percentile(boot_overall_mae, 97.5)), 4) if boot_overall_mae else np.nan
+        },
+        "bias": {
+            "ci_95_low": round(float(np.percentile(boot_overall_bias, 2.5)), 4) if boot_overall_bias else np.nan,
+            "ci_95_high": round(float(np.percentile(boot_overall_bias, 97.5)), 4) if boot_overall_bias else np.nan
+        }
+    }
+    return ci_records, overall_ci
+

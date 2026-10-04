@@ -105,7 +105,8 @@ def extract_tabular_split(surf_slice, targ_slice, time_indices, timestamps, lats
 def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
                          n_train_days=None, n_val_days=None, n_test_days=None,
                          purge_buffer_days=6,
-                         scaler_path=SCALER_JSON):
+                         scaler_path=SCALER_JSON,
+                         build_context=True):
     """
     Loads, splits, vector-flattens, and standardizes dataset strictly using training statistics.
     Enforces exact temporal partitions and purge buffers according to the locked scientific protocol:
@@ -122,6 +123,17 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     print("LOADING AND FLATTENING DATASET FOR POINTWISE TABULAR MODELS")
     print("=" * 70)
     
+    if not os.path.exists(surf_zarr):
+        for candidate in ["data/processed/real_ml_dataset_full_year_surface.zarr", "data/processed/ml_dataset_full-year_surface.zarr"]:
+            if os.path.exists(candidate):
+                surf_zarr = candidate
+                break
+    if not os.path.exists(targ_zarr):
+        for candidate in ["data/processed/real_ml_dataset_full_year_target.zarr", "data/processed/ml_dataset_full-year_target.zarr"]:
+            if os.path.exists(candidate):
+                targ_zarr = candidate
+                break
+
     ds_s = xr.open_zarr(surf_zarr, consolidated=True)
     ds_t = xr.open_zarr(targ_zarr, consolidated=True)
     
@@ -378,6 +390,31 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     train_data["X_norm"] = (train_data["X"] - mean_vec) / std_vec
     val_data["X_norm"] = (val_data["X"] - mean_vec) / std_vec
     test_data["X_norm"] = (test_data["X"] - mean_vec) / std_vec
+
+    # 5. Automatically Construct Required Context Tensors (B6, B7, B8)
+    if build_context:
+        print("\n" + "=" * 70)
+        print("CONSTRUCTING SPATIAL-TEMPORAL CONTEXT TENSORS (B6, B7, B8)")
+        print("=" * 70)
+        from preprocessing.spatial_temporal_context import (
+            augment_split_with_spatial_patches,
+            augment_split_with_temporal_sequences,
+            augment_split_with_spatiotemporal_cubes,
+        )
+        p_intervals = []
+        if purge1 > 0:
+            p_intervals.append((purge1_start, purge1_end - 1))
+        if purge2 > 0:
+            p_intervals.append((purge2_start, purge2_end - 1))
+        p_intervals = tuple(p_intervals)
+
+        for sname, sdata in [("train", train_data), ("val", val_data), ("test", test_data)]:
+            print(f"  Building spatial patches (3x3) for {sname} split...")
+            augment_split_with_spatial_patches(sdata, surf_all, scaler_stats, patch_size=3)
+            print(f"  Building temporal sequences (window=5) for {sname} split...")
+            augment_split_with_temporal_sequences(sdata, surf_all, scaler_stats, window_size=5, purge_intervals=p_intervals)
+            print(f"  Building spatiotemporal cubes (5x7x3x3) for {sname} split...")
+            augment_split_with_spatiotemporal_cubes(sdata, surf_all, scaler_stats, patch_size=3, window_size=5, purge_intervals=p_intervals)
 
     return {
         "train": train_data,
