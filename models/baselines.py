@@ -531,6 +531,87 @@ class PointwiseMLPNet(nn.Module):
         return self.net(x)
 
 
+class B3_PointwiseMLP(BaseBaselineModel):
+    """
+    B3: Pointwise Multi-Layer Perceptron (PyTorch)
+    Pure 1D pointwise network (Linear -> ReLU -> ... -> Linear(15)).
+    Trained strictly with masked MSE loss; no target NaNs are converted to physical 0 °C.
+    """
+    def __init__(self, in_features=7, hidden_dims=[128, 128, 64], lr=1e-3, weight_decay=1e-5, **kwargs):
+        super().__init__("B3", "Pointwise MLP", **kwargs)
+        self.in_features = in_features
+        self.hidden_dims = hidden_dims
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.net = None
+        self.device = "cuda" if (torch and torch.cuda.is_available()) else "cpu"
+
+    def fit(self, train_data, val_data=None, epochs=5, batch_size=4096):
+        if torch is None:
+            raise ImportError("PyTorch is required for B3 Pointwise MLP")
+            
+        self.net = PointwiseMLPNet(
+            in_features=self.in_features,
+            hidden_dims=self.hidden_dims,
+            out_features=len(self.depth_levels)
+        ).to(self.device)
+        
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        
+        X_t = torch.tensor(train_data["X_norm"], dtype=torch.float32)
+        # Preserve genuine target NaNs outside mask: masked MSE loss excludes them completely
+        Y_t = torch.tensor(train_data["Y"], dtype=torch.float32)
+        M_t = torch.tensor(train_data["mask"], dtype=torch.bool)
+        
+        dataset = TensorDataset(X_t, Y_t, M_t)
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        
+        self.net.train()
+        for ep in range(epochs):
+            for bx, by, bm in loader:
+                bx, by, bm = bx.to(self.device), by.to(self.device), bm.to(self.device)
+                optimizer.zero_grad()
+                pred = self.net(bx)
+                loss = masked_mse_loss(pred, by, bm)
+                loss.backward()
+                optimizer.step()
+                
+        self.is_fitted = True
+        return self
+
+    def predict(self, eval_data):
+        if torch is None or self.net is None:
+            raise RuntimeError("Model is not fitted or PyTorch is unavailable")
+        self.net.eval()
+        X_t = torch.tensor(eval_data["X_norm"], dtype=torch.float32)
+        loader = DataLoader(TensorDataset(X_t), batch_size=4096, shuffle=False)
+        preds = []
+        with torch.no_grad():
+            for (bx,) in loader:
+                bx = bx.to(self.device)
+                p = self.net(bx).cpu().numpy()
+                preds.append(p)
+        return np.vstack(preds)
+
+    def parameter_count(self) -> int:
+        if self.net is None:
+            temp_net = PointwiseMLPNet(self.in_features, self.hidden_dims, len(self.depth_levels))
+            return sum(p.numel() for p in temp_net.parameters() if p.requires_grad)
+        return sum(p.numel() for p in self.net.parameters() if p.requires_grad)
+
+    def metadata(self) -> dict:
+        meta = super().metadata()
+        meta.update({
+            "backend": "torch",
+            "hidden_dims": self.hidden_dims,
+            "learning_rate": self.lr,
+            "weight_decay": self.weight_decay,
+            "device": self.device,
+            "no_zero_nan_target_encoding": True
+        })
+        return meta
+
+
 class B5_PointwiseMLP(BaseBaselineModel):
     """
     B5: Pointwise Multi-Layer Perceptron (PyTorch)
@@ -1222,7 +1303,9 @@ BASELINE_REGISTRY = {
     "B1_climatology": B1_Climatology,
     "B2": B2_Ridge,
     "B2_ridge": B2_Ridge,
-    "B3": B3_RandomForest,
+    "B3": B3_PointwiseMLP,
+    "B3_mlp": B3_PointwiseMLP,
+    "B3_pointwise_mlp": B3_PointwiseMLP,
     "B3_rf": B3_RandomForest,
     "B3_random_forest": B3_RandomForest,
     "B4": B4_GradientBoosting,

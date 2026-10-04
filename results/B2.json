@@ -1,8 +1,10 @@
 {
   "model_id": "B2",
   "model_name": "Multi-Output Ridge Regression",
+  "benchmark_status": "OFFICIALLY_CLOSED_AND_ACCEPTED",
   "parameter_count": 120,
   "selected_alpha": 100000.0,
+  "trajectory_status": "INTERIOR_MINIMUM_RESOLVED (Convex interior minimum confirmed; curve increases on both flanks)",
   "alpha_tuning_records": [
     {
       "alpha": 0.001,
@@ -189,6 +191,29 @@
       ]
     },
     {
+      "alpha": 30000.0,
+      "val_sample_weighted_rmse": 1.193,
+      "val_unweighted_rmse": 1.1033,
+      "val_mae": 0.8249,
+      "per_depth_val_rmse": [
+        0.4471,
+        0.4657,
+        0.5103,
+        0.7535,
+        1.0644,
+        1.5867,
+        2.006,
+        1.8059,
+        1.515,
+        1.4543,
+        1.415,
+        1.178,
+        0.8652,
+        0.7948,
+        0.6871
+      ]
+    },
+    {
       "alpha": 100000.0,
       "val_sample_weighted_rmse": 1.1924,
       "val_unweighted_rmse": 1.1015,
@@ -210,6 +235,144 @@
         0.7819,
         0.6777
       ]
+    },
+    {
+      "alpha": 300000.0,
+      "val_sample_weighted_rmse": 1.199,
+      "val_unweighted_rmse": 1.1061,
+      "val_mae": 0.8274,
+      "per_depth_val_rmse": [
+        0.4618,
+        0.4814,
+        0.5282,
+        0.766,
+        1.0665,
+        1.6067,
+        2.023,
+        1.8149,
+        1.546,
+        1.4976,
+        1.4147,
+        1.1247,
+        0.8308,
+        0.7636,
+        0.6659
+      ]
+    },
+    {
+      "alpha": 1000000.0,
+      "val_sample_weighted_rmse": 1.2528,
+      "val_unweighted_rmse": 1.1592,
+      "val_mae": 0.8651,
+      "per_depth_val_rmse": [
+        0.5313,
+        0.5487,
+        0.5937,
+        0.8071,
+        1.0902,
+        1.6734,
+        2.0837,
+        1.8789,
+        1.6573,
+        1.6225,
+        1.4733,
+        1.1118,
+        0.8457,
+        0.7825,
+        0.688
+      ]
+    },
+    {
+      "alpha": 3000000.0,
+      "val_sample_weighted_rmse": 1.3871,
+      "val_unweighted_rmse": 1.2963,
+      "val_mae": 0.9736,
+      "per_depth_val_rmse": [
+        0.6711,
+        0.686,
+        0.7256,
+        0.9062,
+        1.1738,
+        1.8111,
+        2.2065,
+        2.0402,
+        1.8931,
+        1.8628,
+        1.6325,
+        1.2004,
+        0.9556,
+        0.8952,
+        0.7838
+      ]
+    },
+    {
+      "alpha": 10000000.0,
+      "val_sample_weighted_rmse": 1.5603,
+      "val_unweighted_rmse": 1.474,
+      "val_mae": 1.1265,
+      "per_depth_val_rmse": [
+        0.8547,
+        0.871,
+        0.9059,
+        1.069,
+        1.3284,
+        1.9885,
+        2.3586,
+        2.2488,
+        2.1654,
+        2.1259,
+        1.8235,
+        1.3396,
+        1.0967,
+        1.0362,
+        0.8979
+      ]
+    },
+    {
+      "alpha": 30000000.0,
+      "val_sample_weighted_rmse": 1.6583,
+      "val_unweighted_rmse": 1.575,
+      "val_mae": 1.2139,
+      "per_depth_val_rmse": [
+        0.9749,
+        0.993,
+        1.0239,
+        1.181,
+        1.4344,
+        2.0906,
+        2.4435,
+        2.3629,
+        2.3049,
+        2.2573,
+        1.9203,
+        1.4133,
+        1.1668,
+        1.1055,
+        0.9531
+      ]
+    },
+    {
+      "alpha": 100000000.0,
+      "val_sample_weighted_rmse": 1.7034,
+      "val_unweighted_rmse": 1.6216,
+      "val_mae": 1.2543,
+      "per_depth_val_rmse": [
+        1.0354,
+        1.0543,
+        1.0827,
+        1.2369,
+        1.4867,
+        2.1377,
+        2.4822,
+        2.414,
+        2.3659,
+        2.3142,
+        1.9621,
+        1.4453,
+        1.1964,
+        1.1346,
+        0.9762
+      ]
     }
   ],
   "feature_names": [
@@ -221,7 +384,15 @@
     "wind_u",
     "wind_v"
   ],
-  "git_commit_sha": "0e3a9e024d82efab13904f63a7f6b5f69d9fc280",
+  "git_commit_sha": "fbfaa9acc0b24fa0c25bdb7ab86086a2530d9707",
+  "provisional_metrics_note": "Provisional evaluation conducted during initial [1e-3..1e5] screening where alpha=1e5 was on boundary. Ratified as final following expanded logarithmic grid [1e-3..1e8] confirming an interior minimum at alpha*=1e5.",
+  "provisional_test_overall": {
+    "rmse": 1.0295,
+    "sample_weighted_rmse": 1.0131,
+    "mae": 0.8029,
+    "bias": 0.0256,
+    "r2": -0.5404
+  },
   "coefficients": {
     "0.0": {
       "intercept": 28.837087631225586,
@@ -1950,6 +2121,112 @@
         "depth_m": 1000.0,
         "ci_95_low": 0.6445,
         "ci_95_high": 0.6636
+      }
+    ]
+  },
+  "paired_bootstrap_delta_b2_minus_b1": {
+    "overall": {
+      "unweighted_delta_rmse": {
+        "mean": -0.2283,
+        "ci_95_low": -0.3208,
+        "ci_95_high": -0.1479
+      },
+      "sample_weighted_delta_rmse": {
+        "mean": -0.246,
+        "ci_95_low": -0.3456,
+        "ci_95_high": -0.159
+      }
+    },
+    "depth_breakdown": [
+      {
+        "depth_m": 0.0,
+        "delta_rmse_mean": -0.6823,
+        "ci_95_low": -0.9654,
+        "ci_95_high": -0.3953
+      },
+      {
+        "depth_m": 5.0,
+        "delta_rmse_mean": -0.59,
+        "ci_95_low": -0.8628,
+        "ci_95_high": -0.3203
+      },
+      {
+        "depth_m": 10.0,
+        "delta_rmse_mean": -0.4825,
+        "ci_95_low": -0.723,
+        "ci_95_high": -0.2593
+      },
+      {
+        "depth_m": 20.0,
+        "delta_rmse_mean": -0.2296,
+        "ci_95_low": -0.3953,
+        "ci_95_high": -0.083
+      },
+      {
+        "depth_m": 30.0,
+        "delta_rmse_mean": 0.0204,
+        "ci_95_low": -0.0593,
+        "ci_95_high": 0.0899
+      },
+      {
+        "depth_m": 50.0,
+        "delta_rmse_mean": -0.1325,
+        "ci_95_low": -0.1702,
+        "ci_95_high": -0.0966
+      },
+      {
+        "depth_m": 75.0,
+        "delta_rmse_mean": -0.5615,
+        "ci_95_low": -0.6807,
+        "ci_95_high": -0.459
+      },
+      {
+        "depth_m": 100.0,
+        "delta_rmse_mean": -0.8783,
+        "ci_95_low": -0.9948,
+        "ci_95_high": -0.7811
+      },
+      {
+        "depth_m": 125.0,
+        "delta_rmse_mean": -0.9621,
+        "ci_95_low": -1.0655,
+        "ci_95_high": -0.8737
+      },
+      {
+        "depth_m": 150.0,
+        "delta_rmse_mean": -0.6942,
+        "ci_95_low": -0.7887,
+        "ci_95_high": -0.6147
+      },
+      {
+        "depth_m": 200.0,
+        "delta_rmse_mean": 0.0452,
+        "ci_95_low": 0.0129,
+        "ci_95_high": 0.0722
+      },
+      {
+        "depth_m": 300.0,
+        "delta_rmse_mean": 0.5424,
+        "ci_95_low": 0.5208,
+        "ci_95_high": 0.5636
+      },
+      {
+        "depth_m": 500.0,
+        "delta_rmse_mean": 0.4872,
+        "ci_95_low": 0.46,
+        "ci_95_high": 0.5143
+      },
+      {
+        "depth_m": 700.0,
+        "delta_rmse_mean": 0.4092,
+        "ci_95_low": 0.3924,
+        "ci_95_high": 0.426
+      },
+      {
+        "depth_m": 1000.0,
+        "delta_rmse_mean": 0.2833,
+        "ci_95_low": 0.2699,
+        "ci_95_high": 0.2962
       }
     ]
   },
