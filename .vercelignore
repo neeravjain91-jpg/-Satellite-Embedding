@@ -1,0 +1,26 @@
+# Ignore all python code and heavy data directories
+data/
+models/
+preprocessing/
+scripts/
+tests/
+reports/
+results/
+logs/
+checkpoints/
+
+# Virtual environments & cache
+venv/
+.venv/
+env/
+__pycache__/
+*.py
+*.nc
+*.zarr
+*.pt
+*.csv
+
+# Build and dependencies
+node_modules/
+dist/
+.git/
