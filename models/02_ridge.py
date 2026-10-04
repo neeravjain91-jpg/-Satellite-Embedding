@@ -3,10 +3,10 @@ models/02_ridge.py
 Model 2: Multi-Output Ridge Regression
 
 Protocol:
-1. Trains multi-output Ridge regression on Training Split (Days 0-255).
-2. Tunes alpha regularizer across candidate values on Validation Split (Days 256-309).
+1. Trains multi-output Ridge regression on Training Split (Days 0-252).
+2. Tunes alpha regularizer across candidate values on Validation Split (Days 259-306).
 3. Freezes optimal alpha* based strictly on validation performance.
-4. Evaluates frozen model on Final Test Split (Days 310-365).
+4. Evaluates frozen model on Final Test Split (Days 313-365).
 Zero Test Leakage: Test set is never touched during hyperparameter tuning.
 """
 
@@ -100,7 +100,7 @@ def train_and_tune_ridge(dataset, alpha_candidates=[0.01, 0.1, 1.0, 10.0, 100.0,
     save_model_evaluation(val_summary, df_val_depths)
 
     # 2. Final Test evaluation (Strictly frozen model, no tuning)
-    print("\n--- Evaluating Frozen Ridge on Final Test Split (Days 310-365) ---")
+    print("\n--- Evaluating Frozen Ridge on Final Test Split (Days 313-365) ---")
     test_pred = np.zeros_like(Y_test)
     for d in range(15):
         test_pred[:, d] = best_models_dict[d].predict(X_test)

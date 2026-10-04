@@ -4,7 +4,7 @@ Vectorized extraction and tabular flattening for Phase 1 pointwise models:
 - Preserves [N, 15] target validity masks
 - Keeps any point where ANY depth is valid (ocean points)
 - Does not discard points because deep levels are invalid
-- Strict chronological split: 256 train / 54 validation / 56 test
+- Strict chronological split: 253 train (days 0–252) / 6 purge1 (days 253–258) / 48 validation (days 259–306) / 6 purge2 (days 307–312) / 53 test (days 313–365)
 - Normalizes features strictly using training-split statistics (Zero Data Leakage)
 - Preserves timestamp, time_idx, latitude, longitude, and target-validity mask
 """

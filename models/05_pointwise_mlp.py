@@ -10,11 +10,12 @@ Negative Constraints & Architecture Rules:
 - NO hybrid model structures
 
 Protocol:
-1. Trains on normalized training split features strictly using masked MSE loss.
-2. Evaluates after each epoch on the full Validation Split (Days 256-309, N=1,003,374).
+1. Trains on normalized training split features (Days 0–252) strictly using masked MSE loss.
+   Target NaNs outside mask are preserved; masked loss operates strictly on valid targets without fake 0 °C targets.
+2. Evaluates after each epoch on the full Validation Split (Days 259–306).
 3. Early stops and saves the best model checkpoint based strictly on Validation masked RMSE.
 4. Freezes optimal checkpoint.
-5. Final evaluation on the held-out Test Split (Days 310-365, N=1,040,536).
+5. Final evaluation on the held-out Test Split (Days 313–365).
 Zero Test Leakage: Test split is never used for training, hyperparameter tuning, or early stopping.
 """
 
@@ -108,7 +109,7 @@ def train_and_evaluate_mlp(dataset, batch_size=4096, max_epochs=20, patience=4, 
     sub_indices = np.random.choice(N_train, size=min(sample_train_size, N_train), replace=False)
     
     X_train_sub = X_train_full[sub_indices]
-    Y_train_sub = np.nan_to_num(Y_train_full[sub_indices], nan=0.0)
+    Y_train_sub = Y_train_full[sub_indices]
     M_train_sub = M_train_full[sub_indices]
     
     print(f"Training on {len(X_train_sub):,} representative samples with batch size {batch_size}.")
@@ -202,7 +203,7 @@ def train_and_evaluate_mlp(dataset, batch_size=4096, max_epochs=20, patience=4, 
     model.eval()
     
     # 1. Full Validation Split Evaluation
-    print("\n--- Evaluating Frozen Pointwise MLP on Validation Split (Days 256-309, N=1,003,374) ---")
+    print("\n--- Evaluating Frozen Pointwise MLP on Validation Split (Days 259–306) ---")
     val_preds_best = evaluate_torch_model(model, val_loader, device=device)
     val_summary, df_val_depths = compute_masked_metrics(
         y_true=Y_val,
@@ -215,7 +216,7 @@ def train_and_evaluate_mlp(dataset, batch_size=4096, max_epochs=20, patience=4, 
     save_model_evaluation(val_summary, df_val_depths)
     
     # 2. Final Test Split Evaluation (Held-out, Zero Leakage)
-    print(f"\n--- Evaluating Frozen Pointwise MLP on Final Test Split (Days 310-365, N={len(X_test):,}) ---")
+    print(f"\n--- Evaluating Frozen Pointwise MLP on Final Test Split (Days 313–365, N={len(X_test):,}) ---")
     test_preds = evaluate_torch_model(model, test_loader, device=device)
     test_summary, df_test_depths = compute_masked_metrics(
         y_true=Y_test,

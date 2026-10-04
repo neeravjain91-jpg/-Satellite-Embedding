@@ -112,7 +112,7 @@ def generate_benchmark_summary():
     md_content.append("- **Domain**: North Indian Ocean (5°N–30°N, 45°E–105°E) on canonical 0.25° × 0.25° grid (101 × 241).")
     md_content.append("- **Depths**: 15 vertical levels (0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000 m).")
     md_content.append("- **Surface Features (7)**: `sst`, `sss`, `ssh`, `current_u`, `current_v`, `wind_u`, `wind_v`.")
-    md_content.append("- **Strict Chronological Split**: 256 Train (Days 0-255) | 54 Validation (Days 256-309) | 56 Test (Days 310-365).")
+    md_content.append("- **Strict Chronological Split with Purge Buffers**: Train: Days 0–252 (253 days) | Purge 1: Days 253–258 (6 days, discarded) | Validation: Days 259–306 (48 days) | Purge 2: Days 307–312 (6 days, discarded) | Test: Days 313–365 (53 days).")
     md_content.append("- **Zero Test Leakage Protocol**: All preprocessing and scalers fitted strictly on Train split. Hyperparameters tuned strictly on Validation split. Test set evaluated once on frozen models.")
     md_content.append("- **Masking Protocol**: Evaluated over all valid ocean depth points (preserving [N, 15] bathymetric masks). Points are retained if any depth is valid; invalid bathymetric seabed depths are masked out.\n")
 

@@ -5,9 +5,9 @@ Model 1: Training-Only Climatology Baseline
 Methodology:
 - Computes spatial-depth mean climatological profile:
     T_clim(lat, lon, depth) = mean_{t in Train} [ thetao(t, lat, lon, depth) ]
-  computed strictly on the 256-day Training split (Zero Data Leakage).
-- Evaluates on Validation split (54 days).
-- Evaluates on Test split (56 days) without retraining or threshold adjustment.
+  computed strictly on the 253-day Training split (days 0–252, Zero Data Leakage).
+- Evaluates on Validation split (days 259–306, 48 days).
+- Evaluates on Test split (days 313–365, 53 days) without retraining or threshold adjustment.
 - Preserves [N, 15] target masks.
 """
 
@@ -36,7 +36,7 @@ class SpatialDepthClimatology:
         self.depth_levels = CANONICAL_DEPTHS
 
     def fit(self, train_data):
-        print("Fitting Spatial-Depth Climatology on Training Split (Days 0-255)...")
+        print("Fitting Spatial-Depth Climatology on Training Split (Days 0–252)...")
         Y_train = train_data["Y"]       # (N_train, 15)
         M_train = train_data["mask"]    # (N_train, 15)
         lats = train_data["lat"]
@@ -111,7 +111,7 @@ def run_climatology_benchmark():
     model.fit(dataset["train"])
     
     # 2. Evaluate on Validation Split
-    print("\n--- Evaluating Climatology on Validation Split (Days 256-309) ---")
+    print("\n--- Evaluating Climatology on Validation Split (Days 259-306) ---")
     val_pred = model.predict(dataset["val"])
     val_summary, df_val_depths = compute_masked_metrics(
         y_true=dataset["val"]["Y"],
@@ -124,7 +124,7 @@ def run_climatology_benchmark():
     save_model_evaluation(val_summary, df_val_depths)
     
     # 3. Evaluate on Final Test Split
-    print("\n--- Evaluating Climatology on Final Test Split (Days 310-365) ---")
+    print("\n--- Evaluating Climatology on Final Test Split (Days 313-365) ---")
     test_pred = model.predict(dataset["test"])
     test_summary, df_test_depths = compute_masked_metrics(
         y_true=dataset["test"]["Y"],
