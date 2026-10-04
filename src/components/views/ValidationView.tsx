@@ -117,9 +117,9 @@ export const ValidationView: React.FC = () => {
           })}
         </div>
 
-        <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+        <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <span>🟡 High error in 50–200m reflects rapid vertical temperature gradients across the thermocline.</span>
-          <span className="font-mono text-slate-300 font-bold">Surface: ~0.44°C • Deep: ~0.59°C</span>
+          <span className="font-mono text-slate-300 font-bold">Surface: 0.4369°C • Peak: 1.8110°C (75m) • 1000m: 0.5959°C</span>
         </div>
       </div>
 

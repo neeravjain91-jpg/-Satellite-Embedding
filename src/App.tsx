@@ -78,7 +78,7 @@ export function App() {
 
           <div className="flex items-center gap-4 font-mono text-[10px]">
             <span className="text-slate-500">Domain: 5°N–30°N, 45°E–105°E</span>
-            <span className="text-cyan-400">B8 Model Active (0.9800 °C)</span>
+            <span className="text-cyan-400">B8 Active (0.9800 °C Column-Avg RMSE)</span>
           </div>
         </footer>
       </div>
