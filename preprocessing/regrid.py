@@ -74,29 +74,39 @@ def regrid_2d_field(data, src_lats, src_lons, dst_lats=CANONICAL_LATS, dst_lons=
     mg_dst_lat, mg_dst_lon = np.meshgrid(dst_lats, dst_lons, indexing='ij')
     query_pts = np.column_stack([mg_dst_lat.ravel(), mg_dst_lon.ravel()])
 
-    # Interpolate valid mask to determine land/ocean boundary on destination grid
-    mask_interp = RegularGridInterpolator(
-        (src_lats, src_lons),
-        valid_mask.astype(float),
-        method="linear",
-        bounds_error=False,
-        fill_value=0.0
-    )
-    dst_mask = mask_interp(query_pts).reshape((len(dst_lats), len(dst_lons))) >= 0.5
-
-    # Interpolate data with nearest fill for edges, then apply destination mask
-    # Replace NaNs with nearest valid or 0 for interpolation
-    clean_data = np.nan_to_num(data, nan=0.0)
-    data_interp = RegularGridInterpolator(
+    # Normalized bilinear interpolation:
+    # numerator = interpolate(valid_data)
+    # denominator = interpolate(valid_mask)
+    # output = numerator / denominator wherever denominator > 0
+    # Guarantees that land cells (NaN) never pull coastal ocean values toward 0.
+    clean_data = np.where(valid_mask, data, 0.0)
+    
+    num_interp = RegularGridInterpolator(
         (src_lats, src_lons),
         clean_data,
         method=method,
         bounds_error=False,
-        fill_value=np.nan
+        fill_value=0.0
+    )
+    den_interp = RegularGridInterpolator(
+        (src_lats, src_lons),
+        valid_mask.astype(float),
+        method=method,
+        bounds_error=False,
+        fill_value=0.0
     )
     
-    out = data_interp(query_pts).reshape((len(dst_lats), len(dst_lons))).astype(np.float32)
-    # Strictly re-apply mask so no fake numbers appear over land or out of bounds
+    denom = den_interp(query_pts).reshape((len(dst_lats), len(dst_lons)))
+    numer = num_interp(query_pts).reshape((len(dst_lats), len(dst_lons)))
+    
+    # Destination ocean mask: at least 50% of the bilinear footprint is valid ocean
+    dst_mask = denom >= 0.5
+    
+    # Safe normalized division avoiding zero division
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out = np.where(denom > 0.0, numer / denom, np.nan).astype(np.float32)
+        
+    # Strictly apply destination mask so land cells remain NaN
     out[~dst_mask] = np.nan
     return out
 

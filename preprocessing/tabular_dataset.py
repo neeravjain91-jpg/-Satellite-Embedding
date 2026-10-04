@@ -80,12 +80,15 @@ def extract_tabular_split(surf_slice, targ_slice, time_indices, timestamps, lats
     }
 
 def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
-                         n_train_days=256, n_val_days=54, n_test_days=56,
+                         n_train_days=None, n_val_days=None, n_test_days=None,
+                         purge_buffer_days=7,
                          scaler_path=SCALER_JSON):
     """
     Loads, splits, vector-flattens, and standardizes dataset strictly using training statistics.
+    Enforces configurable temporal purge buffers between Train -> Val and Val -> Test partitions:
+    TRAIN -> PURGE BUFFER 1 -> VALIDATION -> PURGE BUFFER 2 -> TEST
     Returns:
-        split_dict: {'train': dict, 'val': dict, 'test': dict, 'scaler': dict, ...}
+        split_dict: {'train': dict, 'val': dict, 'test': dict, 'scaler': dict, 'split_metadata': dict, ...}
     """
     print("=" * 70)
     print("LOADING AND FLATTENING DATASET FOR POINTWISE TABULAR MODELS")
@@ -99,29 +102,74 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     times = pd.to_datetime(ds_s.time.values)
     total_days = len(times)
     
-    expected_days = n_train_days + n_val_days + n_test_days
-    if total_days != expected_days:
-        raise ValueError(f"Total days in dataset ({total_days}) does not match expected splits ({expected_days})")
+    # Resolve partition sizes and purge buffers
+    if n_train_days is None:
+        purge = int(purge_buffer_days)
+        available_days = total_days - 2 * purge
+        if available_days < 3:
+            raise ValueError(f"Insufficient days ({total_days}) for 2 x {purge}-day purge buffers")
+        if total_days == 366 and purge == 7:
+            n_train_days = 246
+            n_val_days = 50
+            n_test_days = 56
+        else:
+            n_train_days = int(round(available_days * 0.70))
+            n_val_days = int(round(available_days * 0.15))
+            n_test_days = available_days - n_train_days - n_val_days
+    else:
+        purge = int(purge_buffer_days)
+        if n_train_days + 2 * purge + n_val_days + n_test_days == total_days:
+            pass
+        elif n_train_days + n_val_days + n_test_days == total_days:
+            # Caller specified exact 0-buffer partition (e.g. test isolation mocks)
+            purge = 0
+        else:
+            expected_days = n_train_days + 2 * purge + n_val_days + n_test_days
+            raise ValueError(
+                f"Total days in dataset ({total_days}) does not match expected splits ({expected_days} "
+                f"= {n_train_days} Train + {purge} Purge + {n_val_days} Val + {purge} Purge + {n_test_days} Test)"
+            )
         
+    train_start = 0
+    train_end = n_train_days
+
+    purge1_start = train_end
+    purge1_end = train_end + purge
+
+    val_start = purge1_end
+    val_end = val_start + n_val_days
+
+    purge2_start = val_end
+    purge2_end = val_end + purge
+
+    test_start = purge2_end
+    test_end = test_start + n_test_days
+
+    if test_end != total_days:
+        raise ValueError(f"Computed test_end ({test_end}) does not equal total_days ({total_days})")
+
     print(f"Total Temporal Span: {total_days} days ({times[0].strftime('%Y-%m-%d')} to {times[-1].strftime('%Y-%m-%d')})")
-    print(f"Chronological Split: {n_train_days} Train | {n_val_days} Validation | {n_test_days} Test")
+    print(f"Partition Structure (Purge Buffer = {purge} days):")
+    print(f"  TRAIN:        Days {train_start:3d}..{train_end-1:3d} ({n_train_days} days: {times[train_start].strftime('%Y-%m-%d')} to {times[train_end-1].strftime('%Y-%m-%d')})")
+    if purge > 0:
+        print(f"  [PURGE 1]:    Days {purge1_start:3d}..{purge1_end-1:3d} ({purge} days: {times[purge1_start].strftime('%Y-%m-%d')} to {times[purge1_end-1].strftime('%Y-%m-%d')}) [DISCARDED]")
+    print(f"  VALIDATION:   Days {val_start:3d}..{val_end-1:3d} ({n_val_days} days: {times[val_start].strftime('%Y-%m-%d')} to {times[val_end-1].strftime('%Y-%m-%d')})")
+    if purge > 0:
+        print(f"  [PURGE 2]:    Days {purge2_start:3d}..{purge2_end-1:3d} ({purge} days: {times[purge2_start].strftime('%Y-%m-%d')} to {times[purge2_end-1].strftime('%Y-%m-%d')}) [DISCARDED]")
+    print(f"  TEST:         Days {test_start:3d}..{test_end-1:3d} ({n_test_days} days: {times[test_start].strftime('%Y-%m-%d')} to {times[test_end-1].strftime('%Y-%m-%d')})")
     
     # Read entire arrays into memory
-    print("Extracting full-year surface and target arrays...")
-    surf_all = ds_s["surface_features"].values   # (366, 101, 241, 7)
-    targ_all = ds_t["thetao"].values             # (366, 15, 101, 241)
-    
-    # Define slice bounds
-    train_end = n_train_days
-    val_end = n_train_days + n_val_days
+    print("Extracting surface and target arrays...")
+    surf_all = ds_s["surface_features"].values
+    targ_all = ds_t["thetao"].values
     
     # 1. Train Split
     print("\nExtracting Training Split...")
     train_data = extract_tabular_split(
-        surf_slice=surf_all[:train_end],
-        targ_slice=targ_all[:train_end],
-        time_indices=np.arange(0, train_end),
-        timestamps=times[:train_end],
+        surf_slice=surf_all[train_start:train_end],
+        targ_slice=targ_all[train_start:train_end],
+        time_indices=np.arange(train_start, train_end),
+        timestamps=times[train_start:train_end],
         lats=lats,
         lons=lons
     )
@@ -130,10 +178,10 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     # 2. Validation Split
     print("Extracting Validation Split...")
     val_data = extract_tabular_split(
-        surf_slice=surf_all[train_end:val_end],
-        targ_slice=targ_all[train_end:val_end],
-        time_indices=np.arange(train_end, val_end),
-        timestamps=times[train_end:val_end],
+        surf_slice=surf_all[val_start:val_end],
+        targ_slice=targ_all[val_start:val_end],
+        time_indices=np.arange(val_start, val_end),
+        timestamps=times[val_start:val_end],
         lats=lats,
         lons=lons
     )
@@ -142,14 +190,47 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
     # 3. Test Split
     print("Extracting Test Split...")
     test_data = extract_tabular_split(
-        surf_slice=surf_all[val_end:],
-        targ_slice=targ_all[val_end:],
-        time_indices=np.arange(val_end, total_days),
-        timestamps=times[val_end:],
+        surf_slice=surf_all[test_start:test_end],
+        targ_slice=targ_all[test_start:test_end],
+        time_indices=np.arange(test_start, test_end),
+        timestamps=times[test_start:test_end],
         lats=lats,
         lons=lons
     )
     print(f"  Test:  N = {len(test_data['X']):,} valid ocean samples across {n_test_days} days.")
+
+    split_metadata = {
+        "total_days": total_days,
+        "purge_buffer_days": purge,
+        "train": {
+            "start_date": times[train_start].strftime("%Y-%m-%d"),
+            "end_date": times[train_end - 1].strftime("%Y-%m-%d"),
+            "n_days": n_train_days,
+            "n_samples": len(train_data["X"])
+        },
+        "purge_buffer_1": {
+            "start_date": times[purge1_start].strftime("%Y-%m-%d"),
+            "end_date": times[purge1_end - 1].strftime("%Y-%m-%d"),
+            "n_days": purge
+        } if purge > 0 else None,
+        "val": {
+            "start_date": times[val_start].strftime("%Y-%m-%d"),
+            "end_date": times[val_end - 1].strftime("%Y-%m-%d"),
+            "n_days": n_val_days,
+            "n_samples": len(val_data["X"])
+        },
+        "purge_buffer_2": {
+            "start_date": times[purge2_start].strftime("%Y-%m-%d"),
+            "end_date": times[purge2_end - 1].strftime("%Y-%m-%d"),
+            "n_days": purge
+        } if purge > 0 else None,
+        "test": {
+            "start_date": times[test_start].strftime("%Y-%m-%d"),
+            "end_date": times[test_end - 1].strftime("%Y-%m-%d"),
+            "n_days": n_test_days,
+            "n_samples": len(test_data["X"])
+        }
+    }
 
     # 4. Strict Training-Only Normalization
     print("\nComputing Standard Scaler strictly on Training Split (Zero Leakage)...")
@@ -164,7 +245,8 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
         "features": list(CANONICAL_FEATURES),
         "mean": mean_vec.tolist(),
         "std": std_vec.tolist(),
-        "train_samples_count": len(X_train_raw)
+        "train_samples_count": len(X_train_raw),
+        "split_metadata": split_metadata
     }
     
     os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
@@ -185,6 +267,7 @@ def load_tabular_dataset(surf_zarr=SURF_ZARR, targ_zarr=TARG_ZARR,
         "val": val_data,
         "test": test_data,
         "scaler": scaler_stats,
+        "split_metadata": split_metadata,
         "feature_names": list(CANONICAL_FEATURES),
         "depth_levels": list(CANONICAL_DEPTHS)
     }

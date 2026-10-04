@@ -1,7 +1,7 @@
 {
   "pilot_certified": true,
-  "certification_timestamp": "2026-10-03T06:37:01.974436+00:00",
-  "git_commit_sha": "662fbb164c30dac542d0974d419fdbd57d8ab4b3",
+  "certification_timestamp": "2026-10-04T05:42:11.677163+00:00",
+  "git_commit_sha": "ca27bc616f5fdcae4d492d3a68c8a4740ba7afa6",
   "environment": {
     "python_version": "3.11.9",
     "platform": "Windows-10-10.0.26300-SP0",
@@ -438,22 +438,22 @@
         },
         "sst": {
           "max_diff": 1.1275005340576172,
-          "mean_diff": 0.0987323671579361,
-          "frac_diff": 0.9248909029875797,
+          "mean_diff": 0.09927462041378021,
+          "frac_diff": 0.9255622692178583,
           "required_min_frac": 0.05,
           "required_min_max": 0.05
         },
         "ssh": {
-          "max_diff": 0.037949997931718826,
-          "mean_diff": 0.004209279548376799,
-          "frac_diff": 0.8264953833801686,
+          "max_diff": 0.04654999077320099,
+          "mean_diff": 0.004304902628064156,
+          "frac_diff": 0.8334805299076676,
           "required_min_frac": 0.03,
           "required_min_max": 0.005
         },
         "sss": {
           "max_diff": 1.1999549865722656,
-          "mean_diff": 0.08510152250528336,
-          "frac_diff": 0.9889252454064938,
+          "mean_diff": 0.08705615252256393,
+          "frac_diff": 0.9891769443745281,
           "required_min_frac": 0.01,
           "required_min_max": 0.005
         }
@@ -473,7 +473,7 @@
     "physical_sanity_ranges": {
       "surface": {
         "sst": {
-          "min": 10.217496871948242,
+          "min": 16.232494354248047,
           "max": 30.322492599487305,
           "permitted": [
             10.0,
@@ -481,7 +481,7 @@
           ]
         },
         "sss": {
-          "min": 14.180217742919922,
+          "min": 28.22543716430664,
           "max": 40.008304595947266,
           "permitted": [
             12.0,
@@ -540,7 +540,7 @@
         }
       },
       "anti_synthetic": {
-        "sst_vs_thetao_100m_r": 0.29034906521680637
+        "sst_vs_thetao_100m_r": 0.2977451507035627
       }
     },
     "argo_glorys_reference_consistency": {

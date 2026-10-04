@@ -1,23 +1,28 @@
 """
 preprocessing/ocean_mask.py
-Defines and enforces explicit mask separation for the North Indian Ocean research domain:
+Defines and enforces explicit mask separation for the North Indian Ocean research domain.
+
+SCIENTIFIC MASK SEMANTICS (GLORYS/ORCA12 MODEL-BATHYMETRY):
+This codebase uses GLORYS/ORCA12 numerical model bathymetry as the authoritative validity boundary
+because GLORYS thetao is the training/reference target. This represents MODEL-BATHYMETRY validity,
+explicitly distinguished from an independent bathymetric survey (e.g. GEBCO or ETOPO).
 
 1. geographic_ocean_mask: (latitude: 101, longitude: 241)
-   Meaning: Whether the grid cell is geographically ocean vs permanent land.
-   Independent of observational dropouts or single-depth missing values.
+   Meaning: GLORYS/ORCA12 model-domain ocean mask (True for model ocean, False for permanent land).
+   Independent of single-depth missing values or temporal dropouts.
 
 2. depth_valid_mask: (depth: 15, latitude: 101, longitude: 241)
-   Meaning: Whether the location has valid ocean water column at that canonical depth,
-   strictly preserving shallow-water bathymetric cutoffs (no extrapolation into seafloor).
+   Meaning: Whether canonical depth lies within valid GLORYS/ORCA12 model bathymetry (water column).
+   Strictly enforces shallow-water bathymetric cutoffs (no extrapolation into seafloor/sub-seabed).
 
 3. deepest_valid_depth_m: (latitude: 101, longitude: 241)
-   Meaning: Maximum canonical depth (in meters) where the water column is valid.
+   Meaning: Maximum canonical depth (in meters) supported by GLORYS/ORCA12 model bathymetry.
 
 4. target_validity_mask: (time: T, depth: 15, latitude: 101, longitude: 241)
-   Meaning: Exact temporal-depth validity of GLORYS thetao ground truth.
+   Meaning: Whether thetao is actually valid/observed at that specific time, depth, and location.
 
 5. surface_validity_mask: (time: T, latitude: 101, longitude: 241, feature: 7)
-   Meaning: Exact temporal-spatial validity of each satellite surface predictor.
+   Meaning: Whether satellite surface predictors are available and valid.
 """
 
 import os
@@ -80,17 +85,17 @@ def build_canonical_masks(target_array_or_ds):
             "geographic_ocean_mask": (
                 ["latitude", "longitude"],
                 geo_ocean_2d.astype(bool),
-                {"description": "True for geographic ocean, False for permanent land"}
+                {"description": "GLORYS/ORCA12 model-domain ocean mask (True for ocean, False for permanent land)"}
             ),
             "depth_valid_mask": (
                 ["depth", "latitude", "longitude"],
                 depth_valid_3d.astype(bool),
-                {"description": "True where ocean depth >= canonical level, False for land or below seabed"}
+                {"description": "True where canonical depth lies within valid GLORYS/ORCA12 model bathymetry, False for land or below model seafloor"}
             ),
             "deepest_valid_depth_m": (
                 ["latitude", "longitude"],
                 deepest_depth_2d.astype(np.float32),
-                {"description": "Maximum canonical depth (m) with valid ocean water column", "units": "m"}
+                {"description": "Maximum canonical depth (m) supported by GLORYS/ORCA12 model bathymetry", "units": "m"}
             ),
             # Backward-compatibility aliases
             "ocean_mask_2d": (
@@ -106,7 +111,8 @@ def build_canonical_masks(target_array_or_ds):
         },
         coords=coords,
         attrs={
-            "title": "Canonical Land/Ocean, Bathymetry, and Depth Validity Masks for North Indian Ocean",
+            "title": "Canonical Land/Ocean and GLORYS/ORCA12 Model Bathymetry Validity Masks for North Indian Ocean",
+            "bathymetry_authority": "GLORYS12V1 (NEMO ORCA12 dynamical model seafloor)",
             "resolution": "0.25 degree x 0.25 degree",
             "domain": "5-30N, 45-105E",
             "canonical_depths_count": len(CANONICAL_DEPTHS)
