@@ -15,7 +15,7 @@
 | **B0** | Day-0 Persistence | Persistence | Initial state (Day 0) | 0 | 1.5220 | 1.1371 | -0.4966 | +0.2638 | -20.97% | N/A |
 | **B0b** | Day-252 Persistence | Persistence | Train boundary (Day 252) | 0 | 1.7287 | 1.2447 | -1.2358 | +0.4705 | -37.39% | N/A |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean profile | 0 | 1.2582 | 0.9641 | 0.0000 | 0.0000 | 0.00% | Reference Anchor |
-| **B2** | Multi-Output Ridge | Linear Regularized | Pointwise 7-surface vector | 120 | 1.0295 | 0.8029 | -0.5404 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
+| **B2** | Multi-Output Ridge ($\alpha = 100{,}000$) | Linear Regularized | Pointwise 7-surface vector | 120 | 1.0295 | 0.8029 | -0.5404 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
 | **B3** | Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 10,255 | 1.0452 | 0.7461 | -0.1528 | -0.2130 | +16.93% | N/A |
 | **B4** | Gradient Boosting (LightGBM) | Boosting Ensemble | Pointwise 7-surface vector | 750 | 1.0288 | 0.7615 | -0.2210 | -0.2294 | +18.23% | [-0.3617, -0.1195] |
 | **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | **26,767** | 1.5524 | 1.2030 | -2.8076 | +0.2942 | -23.38% | [0.2148, 0.3772] |

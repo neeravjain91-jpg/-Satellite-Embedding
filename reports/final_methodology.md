@@ -95,7 +95,7 @@ Input Tensor: [Batch, T=5, C=7, P=3, P=3]
   │      Output: Latent Vector z ∈ [Batch, 128]
   │
   └──► [Depth-Wise Decoder MLP]
-         Linear(128 -> 64) + ReLU + Dropout(0.1)
+         Linear(128 -> 64) + ReLU
          Linear(64 -> 15)
          Output: Reconstructed Profile Ŷ ∈ [Batch, 15]
 ```

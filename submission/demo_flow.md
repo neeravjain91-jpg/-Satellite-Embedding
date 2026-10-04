@@ -59,11 +59,11 @@
 - **Visual Action**: Scroll to the **Experimental Protocol & Data Split** diagram/timeline.
 - **On-Screen Elements**:
   - Full-Year 2020 timeline.
-  - Train: Days 1–245 (Jan 1 – Sep 1).
-  - Purge Buffer 1: Days 246–251 (6 days).
-  - Validation: Days 252–304 (Sep 8 – Oct 30).
-  - Purge Buffer 2: Days 305–310 (6 days).
-  - Test: Days 311–366 (Nov 6 – Dec 31).
+  - Train: Days 0–252 (Jan 1 – Sep 9, 253 days).
+  - Purge Buffer 1: Days 253–258 (Sep 10 – Sep 15, 6 days).
+  - Validation: Days 259–306 (Sep 16 – Nov 2, 48 days).
+  - Purge Buffer 2: Days 307–312 (Nov 3 – Nov 8, 6 days).
+  - Test: Days 313–365 (Nov 9 – Dec 31, 53 days).
 - **Narration Script**:
   > *"A critical priority in this work is scientific rigor and zero data leakage. We enforce a strict chronological partition of the 2020 calendar year. Crucially, we insert 6-day temporal purge buffers between splits. Because our B8 model uses a 5-day causal receptive field, a 6-day buffer mathematically guarantees that no test prediction can access historical or future information from the training or validation sets. Furthermore, all z-score normalizations were fitted exclusively on training days."*
 
@@ -73,13 +73,13 @@
 - **Visual Action**: Click on the **Model Benchmarks** tab or scroll to the Leaderboard Table.
 - **On-Screen Elements**:
   - Complete 10-model benchmark hierarchy:
-    - B0: 1.5220 °C | B0b: 1.7287 °C | B1: 1.2582 °C
-    - B2: 1.0295 °C | B3: 1.0452 °C | B4: 1.0288 °C
+    - B0 (Day-0 Persistence): 1.5220 °C | B0b (Day-252 Persistence): 1.7287 °C | B1 (Climatology): 1.2582 °C
+    - B2 (Ridge, alpha=100,000): 1.0295 °C | B3: 1.0452 °C | B4: 1.0288 °C
     - B5: 1.5524 °C | B6: 1.2702 °C | B7: 1.5320 °C
     - **B8**: **0.9800 °C** (Highlighted in emerald green)
   - Label: `"B8 — Best-performing architecture among evaluated internal benchmarks"`.
 - **Narration Script**:
-  > *"Here is our master benchmark table evaluated strictly on the 56-day test partition. Our proposed B8 Spatiotemporal Embedding Network achieves an overall column-averaged test RMSE of 0.9800 °C. This represents a 22.11% improvement over daily climatology (B1) and a 4.74% improvement over the best tabular machine learning baseline, LightGBM (B4). A 1000-resample 7-day block bootstrap confirms this improvement is statistically significant with p < 0.001."*
+  > *"Here is our master benchmark table evaluated strictly on the 53-day test partition. Our proposed B8 Spatiotemporal Embedding Network achieves an overall column-averaged test RMSE of 0.9800 °C. This represents a 22.11% improvement over daily climatology (B1) and a 4.74% improvement over the best tabular machine learning baseline, LightGBM (B4). A 1000-resample 7-day block bootstrap confirms this improvement is statistically significant with p < 0.001."*
 
 ---
 
@@ -88,13 +88,13 @@
 - **On-Screen Elements**:
   - Diagram showing:
     - Input: $5\text{-day} \times 3 \times 3$ patch $\times 7$ channels.
-    - Spatial 2D CNN Encoder ($7 \to 32 \to 64$).
+    - Spatial 2D CNN Encoder ($7 \to 32 \to 64$, BatchNorm, ReLU, AdaptiveAvgPool2d, Flatten).
     - 2-Layer Temporal GRU (hidden dimension = 128).
-    - 128-D Ocean Latent Embedding.
-    - 3-Layer Column Decoder ($128 \to 128 \to 64 \to 15$ depths).
+    - Latent Bottleneck: LayerNorm(128) $\to$ 128-D Ocean Latent Embedding.
+    - Column Decoder: Linear(128→64) + ReLU $\to$ Linear(64→15) depths.
   - Total parameter count: **203,791 parameters** (~0.81 MB).
 - **Narration Script**:
-  > *"The B8 architecture consists of three modular components: First, a 2D CNN encoder extracts 64-dimensional spatial features from 3x3 local patches. Second, a 2-layer GRU captures temporal wave dynamics across the 5-day window, producing a 128-dimensional latent ocean embedding. Finally, a lightweight 3-layer MLP decoder projects this embedding into the 15 discrete vertical temperature levels. The model has only 203,791 parameters, enabling sub-millisecond inference per column."*
+  > *"The B8 architecture consists of three modular components: First, a 2D CNN encoder extracts 64-dimensional spatial features from 3x3 local patches. Second, a 2-layer GRU captures temporal dynamics across the 5-day window. After a 128-dimensional LayerNorm bottleneck, a lightweight decoder projects this embedding into the 15 discrete vertical temperature levels. The model has only 203,791 parameters, representing a lightweight architecture suitable for efficient inference."*
 
 ---
 
@@ -144,7 +144,7 @@
     - Verified test suite: 97/97 tests passing.
     - Vercel production deployment and GitHub links.
 - **Narration Script**:
-  > *"In adherence to scientific integrity, we emphasize three important disclosures: First, our training target is the GLORYS reanalysis, which is a state-of-the-art assimilation product rather than unassimilated in-situ ground truth. Second, low deep-water RMSE reflects low physical thermal variance at depth. Third, our model was evaluated on the 2020 annual cycle. In conclusion, the B8 Spatiotemporal Embedding Network establishes that joint spatial convolutions and causal temporal memory provide decisive improvements for vertical ocean temperature reconstruction. Thank you for watching!"*
+  > *"In adherence to scientific integrity, we emphasize three important disclosures: First, our training target is the GLORYS reanalysis, which is a reference assimilation product rather than unassimilated in-situ ground truth. Second, low deep-water RMSE reflects low physical thermal variance at depth. Third, our model was evaluated on the 2020 annual cycle. In conclusion, the B8 Spatiotemporal Embedding Network establishes that joint spatial convolutions and causal temporal memory provide decisive improvements for vertical ocean temperature reconstruction. Thank you for watching!"*
 
 ---
 
@@ -156,7 +156,7 @@
 **Source Repository**: https://github.com/neeravjain91-jpg/-Satellite-Embedding
 **Key Results**:
 - Model: B8 Spatiotemporal Embedding Network (203,791 parameters)
-- Test RMSE: 0.9800 °C (Column-Averaged, Days 311–366)
+- Test RMSE: 0.9800 °C (Column-Averaged, Days 313–365)
 - Climatology Gain: +22.11% over B1 (1.2582 °C)
 - Tabular ML Gain: +4.74% over B4 LightGBM (1.0288 °C)
 - Test Suite: 97/97 passing automated unit and integration tests

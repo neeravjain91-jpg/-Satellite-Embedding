@@ -12,7 +12,7 @@
 
 This repository houses the end-to-end scientific codebase, benchmark suite, evaluation pipelines, and interactive prototype for reconstructing depth-resolved subsurface ocean potential temperature ($\theta_o$) across the **North Indian Ocean** from multi-satellite surface observations.
 
-Using a causal $5\text{-day} \times 3 \times 3$ spatiotemporal surface window encompassing 7 multi-satellite predictors (SST, SSS, SSH, Current $U/V$, Wind $U/V$), the proposed **B8 Spatiotemporal Embedding Network** reconstructs vertical temperature profiles across **15 discrete ocean depths** (0–1000 m). Evaluated on an independent, strictly chronologically split, purge-buffered test partition (Days 311–366 of 2020), **B8 achieves an overall column-averaged test RMSE of 0.9800 °C**, representing a **22.11% error reduction over daily climatology (B1)** and outperforming all evaluated internal tabular, machine learning, and deep learning baselines (B0–B7).
+Using a causal $5\text{-day} \times 3 \times 3$ spatiotemporal surface window encompassing 7 multi-satellite predictors (SST, SSS, SSH, Current $U/V$, Wind $U/V$), the proposed **B8 Spatiotemporal Embedding Network** reconstructs vertical temperature profiles across **15 discrete ocean depths** (0–1000 m). Evaluated on an independent, strictly chronologically split, purge-buffered test partition (Days 313–365 of 2020), **B8 achieves an overall column-averaged test RMSE of 0.9800 °C**, representing a **22.11% error reduction over daily climatology (B1)** and outperforming all evaluated internal tabular, machine learning, and deep learning baselines (B0–B7).
 
 > [!IMPORTANT]
 > **Scientific Designation**: B8 is designated strictly as the **"Best-performing architecture among evaluated internal benchmarks"**. Claims of universal "State-of-the-Art" are avoided in adherence to rigorous scientific integrity. GLORYS12V1 serves as the gridded reanalysis reference target.
@@ -77,17 +77,17 @@ To eliminate temporal autocorrelation leakage, seasonal lookahead bias, and spat
 
 ```
 2020 Calendar Timeline (366 Days):
-[==== TRAIN (Days 1–245) ====] [BUFFER 1] [== VAL (Days 252–304) ==] [BUFFER 2] [=== TEST (Days 311–366) ===]
-       Jan 1 – Sep 1            Sep 2–7           Sep 8 – Oct 30          Oct 31–Nov 5        Nov 6 – Dec 31
-        (245 Days)              (6 Days)             (53 Days)              (6 Days)             (56 Days)
+[==== TRAIN (Days 0–252) ====] [BUFFER 1] [== VAL (Days 259–306) ==] [BUFFER 2] [=== TEST (Days 313–365) ===]
+       Jan 1 – Sep 9            Sep 10–15          Sep 16 – Nov 2          Nov 3–8             Nov 9 – Dec 31
+        (253 Days)               (6 Days)             (48 Days)            (6 Days)              (53 Days)
 ```
 
 1. **Strict Chronological Ordering**: Training precedes validation, which precedes testing. Random train-test splitting was forbidden.
 2. **6-Day Purge Buffers**: 
-   - Buffer 1 (Days 246–251, Sep 2 – Sep 7): Isolates Train and Validation.
-   - Buffer 2 (Days 305–310, Oct 31 – Nov 5): Isolates Validation and Test.
+   - Buffer 1 (Days 253–258, Sep 10 – Sep 15): Isolates Train and Validation.
+   - Buffer 2 (Days 307–312, Nov 3 – Nov 8): Isolates Validation and Test.
    - Buffer width ($T_{\text{purge}} = 6 \text{ days}$) strictly exceeds the 5-day causal temporal receptive field ($T_{\text{causal}} = 5 \text{ days}$), guaranteeing that no test sample's historical window draws from the validation or training distributions.
-3. **Train-Only Normalization**: All standardizers (z-score means and standard deviations) were calculated exclusively on Days 1–245 and serialized to `data/metadata/normalization_stats.json`. Zero validation or test statistics contaminated normalization.
+3. **Train-Only Normalization**: All standardizers (z-score means and standard deviations) were calculated exclusively on Days 0–252 and serialized to `data/metadata/normalization_stats.json`. Zero validation or test statistics contaminated normalization.
 4. **Causal Spatiotemporal Slicing**: For any prediction day $t$, inputs are restricted to days $\{t-4, t-3, t-2, t-1, t\}$. Future timesteps are never accessible.
 
 ---
@@ -98,8 +98,8 @@ To isolate the marginal contributions of vertical regression, spatial context, t
 
 ```
 [Level 0: Physical & Climatological References]
-  B0:  Persist Day t-1 (1.5220 °C)
-  B0b: Persist Day 252 (1.7287 °C)
+  B0:  Day-0 Persistence (1.5220 °C)
+  B0b: Day-252 Persistence (1.7287 °C)
   B1:  Daily Climatology Mean (1.2582 °C)
          │
 [Level 1: Tabular Machine Learning Baselines]
@@ -123,31 +123,32 @@ The certified B8 model accepts an input tensor $\mathbf{X} \in \mathbb{R}^{B \ti
 1. **Spatial CNN Encoder**:
    - Time-distributed 2D convolutions processing each $3 \times 3$ spatial patch across 7 channels:
    - Conv2D($7 \to 32, 3\times3$, padding=1) + BatchNorm2D + ReLU
-   - Conv2D($32 \to 64, 3\times3$, padding=1) + BatchNorm2D + ReLU + AdaptiveAvgPool2d((1, 1))
+   - Conv2D($32 \to 64, 3\times3$, padding=1) + BatchNorm2D + ReLU + AdaptiveAvgPool2d((1, 1)) + Flatten
    - Spatial feature output: $\mathbf{s}_t \in \mathbb{R}^{64}$ for each timestep $t \in \{1,\dots,5\}$.
 2. **Temporal Recurrent Network**:
    - 2-Layer Causal GRU: input size 64, hidden dimension $H = 128$, `batch_first=True`.
-   - Hidden state output at final step $t=5$: $\mathbf{h}_5 \in \mathbb{R}^{128}$ (the 128-D spatiotemporal ocean embedding).
-3. **Vertical Column MLP Decoder**:
-   - Linear($128 \to 128$) + BatchNorm1D + ReLU + Dropout($p=0.1$)
-   - Linear($128 \to 64$) + BatchNorm1D + ReLU
+   - Hidden state output at final step $t=5$: $\mathbf{h}_5 \in \mathbb{R}^{128}$.
+3. **Latent Bottleneck**:
+   - `LayerNorm(128)` applied to terminal hidden state $\mathbf{h}_5$ to produce the 128-D Ocean Latent Embedding.
+4. **Vertical Column MLP Decoder**:
+   - Linear($128 \to 64$) + ReLU
    - Linear($64 \to 15$) $\to$ Reconstructed temperature anomaly $\hat{\mathbf{y}} \in \mathbb{R}^{15}$.
-4. **Parameter Footprint**:
+5. **Parameter Footprint**:
    - Total instantiated trainable parameters: **203,791 parameters** (0.81 MB memory footprint).
-   - Lightweight, edge-deployable, sub-millisecond inference per vertical ocean column.
+   - Lightweight architecture suitable for efficient inference.
 
 ---
 
 ## Master Benchmark Results
 
-All models evaluated strictly on the certified Test partition (Days 311–366, 56 consecutive daily steps $\times$ 166,400 active 3D ocean cells):
+All models evaluated strictly on the certified Test partition (Days 313–365, 53 consecutive daily steps $\times$ 166,400 active 3D ocean cells):
 
 | Model ID | Architecture Description | Input Domain | Instantiated Parameters | Test RMSE (°C) | Improvement vs B1 (%) | Improvement vs Best ML (B4) | Certified Status |
 |---|---|---|---|---|---|---|---|
-| **B0** | 1-Day Lag Persistence | $1 \times 1$ target column | 0 | 1.5220 | -20.97% | -47.94% | Locked |
-| **B0b** | Day-252 Static Persistence | $1 \times 1$ target column | 0 | 1.7287 | -37.40% | -68.03% | Locked |
+| **B0** | Day-0 Persistence | $1 \times 1$ target column | 0 | 1.5220 | -20.97% | -47.94% | Locked |
+| **B0b** | Day-252 Persistence | $1 \times 1$ target column | 0 | 1.7287 | -37.40% | -68.03% | Locked |
 | **B1** | Daily Mean Climatology | 366-day temporal mean | 0 | 1.2582 | Baseline | -22.30% | Locked |
-| **B2** | Ridge Linear Regression ($\alpha=1.0$) | Pointwise 7 surface | 120 | 1.0295 | +18.18% | -0.07% | Locked |
+| **B2** | Ridge Linear Regression ($\alpha=100{,}000$) | Pointwise 7 surface | 120 | 1.0295 | +18.18% | -0.07% | Locked |
 | **B3** | Random Forest Regressor (100 trees) | Pointwise 7 surface | ~850,000 | 1.0452 | +16.93% | -1.59% | Locked |
 | **B4** | LightGBM Gradient Boosting | Pointwise 7 surface | ~320,000 | 1.0288 | +18.23% | Baseline | Locked |
 | **B5** | Pointwise MLP (3 hidden layers) | Pointwise 7 surface | 26,767 | 1.5524 | -23.38% | -50.90% | Locked |
@@ -195,8 +196,8 @@ Overall         0.9800           Column-averaged test RMSE
 - **Bay of Bengal (BoB)**: **0.6775 °C** *(lower error due to strong perennial freshwater stratification stabilizing upper layers)*
 
 ### Certified Seasonal Subsets
-- **Late Fall (Nov 6 – Nov 30)**: **1.0059 °C**
-- **Early Winter (Dec 1 – Dec 31)**: **0.9060 °C**
+- **Late Fall (Nov 09 – Nov 30)**: **1.0059 °C**
+- **Early Winter (Dec 01 – Dec 31)**: **0.9060 °C**
 
 ---
 

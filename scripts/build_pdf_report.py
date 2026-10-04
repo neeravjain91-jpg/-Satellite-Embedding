@@ -87,8 +87,6 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
         def add_h1(self, text):
             self.check_space(45)
             self.y += 10
-            rect = pymupdf.Rect(MARGIN_LEFT, self.y, MARGIN_RIGHT, self.y + 24)
-            # small decorative accent bar
             self.current_page.draw_rect(
                 pymupdf.Rect(MARGIN_LEFT, self.y + 2, MARGIN_LEFT + 4, self.y + 20),
                 fill=C_BLUE, color=C_BLUE
@@ -109,13 +107,11 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
             self.y += 18
 
         def add_paragraph(self, text, fontsize=9, line_spacing=13, color=C_DARK):
-            # Split lines roughly to fit width
             words = text.split()
             lines = []
             curr_line = []
             for w in words:
                 curr_line.append(w)
-                # approximate character budget: ~95 chars per line at 9pt
                 if len(" ".join(curr_line)) > 92:
                     curr_line.pop()
                     lines.append(" ".join(curr_line))
@@ -174,7 +170,6 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
 
             rect = pymupdf.Rect(MARGIN_LEFT, self.y, MARGIN_RIGHT, self.y + box_h)
             self.current_page.draw_rect(rect, color=border_color, fill=bg_color, width=1.0)
-            # Left accent stripe
             self.current_page.draw_rect(
                 pymupdf.Rect(MARGIN_LEFT, self.y, MARGIN_LEFT + 4, self.y + box_h),
                 color=border_color, fill=border_color
@@ -199,7 +194,6 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
             total_h = header_h + len(rows) * row_h
             self.check_space(total_h + 15)
 
-            # Draw header
             x = MARGIN_LEFT
             for i, (h, w) in enumerate(zip(headers, col_widths)):
                 rect = pymupdf.Rect(x, self.y, x + w, self.y + header_h)
@@ -211,7 +205,6 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
                 x += w
             self.y += header_h
 
-            # Draw rows
             for r_idx, row in enumerate(rows):
                 x = MARGIN_LEFT
                 is_hl = (highlight_row is not None and r_idx == highlight_row)
@@ -235,7 +228,6 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     # ==========================================
     pb.new_page()
 
-    # Header Banner
     banner_rect = pymupdf.Rect(MARGIN_LEFT, MARGIN_TOP, MARGIN_RIGHT, MARGIN_TOP + 95)
     pb.current_page.draw_rect(banner_rect, color=C_NAVY, fill=C_NAVY)
     pb.current_page.draw_rect(
@@ -266,7 +258,6 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
 
     pb.y = MARGIN_TOP + 110
 
-    # Submission Meta Card
     meta_h = 58
     meta_rect = pymupdf.Rect(MARGIN_LEFT, pb.y, MARGIN_RIGHT, pb.y + meta_h)
     pb.current_page.draw_rect(meta_rect, color=C_BORDER, fill=C_CARD_BG, width=0.5)
@@ -288,30 +279,27 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     )
     pb.y += meta_h + 12
 
-    # Executive Summary
     pb.add_h1("Executive Summary")
     pb.add_paragraph(
-        "This project presents an end-to-end deep learning framework for inverting three-dimensional subsurface ocean potential temperature (theta_o) from synoptic multi-satellite surface observations across the tropical and subtropical North Indian Ocean. Satellite radiometers and scatterometers observe only the skin and surface boundary layer; the subsurface thermal interior remains invisible to direct remote sensing. Autonomous profiling floats (Argo) provide high vertical accuracy but suffer from severe spatial and temporal sparsity (300 km nominal spacing, 10-day sampling cycles)."
+        "This project presents an end-to-end deep learning framework for inverting three-dimensional subsurface ocean potential temperature (theta_o) from synoptic multi-satellite surface observations across the tropical and subtropical North Indian Ocean. Satellite radiometers and scatterometers observe only the skin and surface boundary layer; the subsurface thermal interior remains invisible to direct remote sensing. Autonomous profiling floats (Argo) provide high vertical accuracy but suffer from spatial and temporal sparsity (300 km nominal spacing, 10-day sampling cycles)."
     )
     pb.add_paragraph(
         "To bridge this observational gap, we formulate subsurface temperature reconstruction as a spatiotemporal representation learning problem. The framework ingests a 5-day causal temporal sequence of 3x3 spatial patches comprising 7 harmonized multi-satellite surface predictors (OSTIA SST, Copernicus SSS, DUACS SSH/SLA, OSCAR currents U/V, and CCMP vector winds U/V) to predict vertical temperature profiles across 15 discrete ocean depths from the surface down to 1000 meters."
     )
 
-    # Key Performance Highlight Box
     pb.add_callout(
-        "CERTIFIED PERFORMANCE VERDICT (INDEPENDENT TEST PARTITION: DAYS 311–366)",
+        "CERTIFIED PERFORMANCE VERDICT (INDEPENDENT TEST PARTITION: DAYS 313–365)",
         "• B8 Spatiotemporal Embedding Network achieves an overall column-averaged test RMSE of 0.9800 °C.\n"
         "• Represents a 22.11% error reduction over daily climatology (B1: 1.2582 °C) and 4.74% over best tabular ML (B4: 1.0288 °C).\n"
         "• Statistical significance certified via 7-day block bootstrap (1000 resamples): 95% CI [-0.3957, -0.1756] °C (p < 0.001).\n"
         "• Strict scientific protocol: 6-day purge buffers, zero data leakage, and train-only z-score normalization."
     )
 
-    # Progression Summary
     pb.add_h2("Systematic Model Progression")
-    pb.add_bullet("Level 0 Physical Baselines", "Lag-1 Persistence B0 (1.5220 °C) and Day-252 Persistence B0b (1.7287 °C) exhibit large error drifts; daily mean climatology B1 achieves 1.2582 °C.")
-    pb.add_bullet("Level 1 Tabular ML", "Ridge Linear Regression B2 (1.0295 °C), Random Forest B3 (1.0452 °C), and LightGBM B4 (1.0288 °C) demonstrate that surface-subsurface coupling contains strong predictive signal.")
+    pb.add_bullet("Level 0 Physical Baselines", "Day-0 Persistence B0 (1.5220 °C) and Day-252 Persistence B0b (1.7287 °C) exhibit large error drifts; daily mean climatology B1 achieves 1.2582 °C.")
+    pb.add_bullet("Level 1 Tabular ML", "Ridge Linear Regression B2 (alpha=100,000; 1.0295 °C), Random Forest B3 (1.0452 °C), and LightGBM B4 (1.0288 °C) demonstrate that surface-subsurface coupling contains strong predictive signal.")
     pb.add_bullet("Level 2 DL Ablations", "Pointwise MLP B5 (1.5524 °C), Spatial CNN B6 (1.2702 °C), and Temporal GRU B7 (1.5320 °C) demonstrate that isolated spatial or temporal context is insufficient.")
-    pb.add_bullet("Level 3 Spatiotemporal Embedding", "B8 fuses 2D spatial convolutions with a 2-layer GRU into a 128-D latent representation, achieving the best internal benchmark (0.9800 °C, 203,791 parameters).")
+    pb.add_bullet("Level 3 Spatiotemporal Embedding", "B8 fuses 2D spatial convolutions with a 2-layer GRU into a 128-D LayerNorm latent representation, achieving the best internal benchmark (0.9800 °C, 203,791 parameters).")
 
     # ==========================================
     # PAGE 2: Problem Formulation & Study Domain
@@ -362,17 +350,17 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     )
     headers_split = ["Partition", "Calendar Range", "Day Index Range", "Duration", "Role"]
     rows_split = [
-        ["Training Split", "2020-01-01 to 2020-09-01", "Days 1 – 245", "245 Days (66.9%)", "Model parameter optimization"],
-        ["Purge Buffer 1", "2020-09-02 to 2020-09-07", "Days 246 – 251", "6 Days (1.6%)", "Buffer: prevents train-val leakage"],
-        ["Validation Split", "2020-09-08 to 2020-10-30", "Days 252 – 304", "53 Days (14.5%)", "Hyperparameter tuning & early stop"],
-        ["Purge Buffer 2", "2020-10-31 to 2020-11-05", "Days 305 – 310", "6 Days (1.6%)", "Buffer: prevents val-test leakage"],
-        ["Test Split", "2020-11-06 to 2020-12-31", "Days 311 – 366", "56 Days (15.3%)", "Final uncompromised benchmark"],
+        ["Training Split", "2020-01-01 to 2020-09-09", "Days 0 – 252", "253 Days (69.1%)", "Model parameter optimization"],
+        ["Purge Buffer 1", "2020-09-10 to 2020-09-15", "Days 253 – 258", "6 Days (1.6%)", "Buffer: prevents train-val leakage"],
+        ["Validation Split", "2020-09-16 to 2020-11-02", "Days 259 – 306", "48 Days (13.1%)", "Hyperparameter tuning & early stop"],
+        ["Purge Buffer 2", "2020-11-03 to 2020-11-08", "Days 307 – 312", "6 Days (1.6%)", "Buffer: prevents val-test leakage"],
+        ["Test Split", "2020-11-09 to 2020-12-31", "Days 313 – 365", "53 Days (14.5%)", "Final uncompromised benchmark"],
     ]
     pb.add_table(headers_split, rows_split, [85, 120, 95, 85, 120])
 
     pb.add_h2("Zero-Leakage Safeguards")
     pb.add_bullet("Temporal Purge Buffers", "With T_purge = 6 days and T_causal = 5 days, no test window can access any data point from the validation or training distributions.")
-    pb.add_bullet("Train-Only Normalization", "All z-score transforms (mean and standard deviation for 7 features and 15 depths) were fitted exclusively on Days 1–245 and stored in data/metadata/normalization_stats.json. Zero test statistics contaminated preprocessing.")
+    pb.add_bullet("Train-Only Normalization", "All z-score transforms (mean and standard deviation for 7 features and 15 depths) were fitted exclusively on Days 0–252 and stored in data/metadata/normalization_stats.json. Zero test statistics contaminated preprocessing.")
     pb.add_bullet("Strict Causal Conditioning", "Inference at day t uses only historical timesteps [t-4, t-3, t-2, t-1, t]. Forward-looking temporal convolutions or bidirectional recurrent networks were strictly prohibited.")
     pb.add_bullet("Bathymetric Seafloor Cutoffs", "Cells below the GEBCO bathymetry floor were assigned NaN and excluded from loss computation and metric aggregation, preventing unphysical crustal predictions.")
 
@@ -389,10 +377,10 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     pb.add_paragraph(
         "The primary model B8 maps 5-day causal sequences of 3x3 spatial patches into vertical temperature columns through three specialized stages:"
     )
-    pb.add_bullet("Spatial CNN Encoder", "Processes each 3x3 patch across 7 input channels at each timestep: Conv2D(7->32, k=3, pad=1) + BatchNorm2D + ReLU, followed by Conv2D(32->64, k=3, pad=1) + BatchNorm2D + ReLU + AdaptiveAvgPool2d((1, 1)). Emits 64-D spatial summary vector s_t for each t in {1..5}.")
-    pb.add_bullet("Temporal Recurrent Core", "A 2-layer Gated Recurrent Unit (input_dim=64, hidden_dim=128, batch_first=True) models temporal dynamics across the 5 daily steps. The final hidden state h_5 in R^{128} serves as the compressed Ocean Latent Embedding.")
-    pb.add_bullet("Vertical Depth Decoder", "A 3-layer MLP maps the 128-D embedding to 15 vertical depths: Linear(128->128) + BatchNorm1D + ReLU + Dropout(p=0.1) -> Linear(128->64) + BatchNorm1D + ReLU -> Linear(64->15).")
-    pb.add_bullet("Parameter Footprint", "Total instantiated trainable parameters: 203,791 (0.81 MB memory footprint). Inference latency is under 1 millisecond per ocean column on CPU.")
+    pb.add_bullet("Spatial CNN Encoder", "Processes each 3x3 patch across 7 input channels at each timestep: Conv2D(7->32, k=3, pad=1) + BatchNorm2D + ReLU, followed by Conv2D(32->64, k=3, pad=1) + BatchNorm2D + ReLU + AdaptiveAvgPool2d((1, 1)) + Flatten. Emits 64-D spatial summary vector s_t for each t in {1..5}.")
+    pb.add_bullet("Temporal Recurrent Core", "A 2-layer Gated Recurrent Unit (input_size=64, hidden_size=128, batch_first=True) models temporal dynamics across the 5 daily steps. The terminal hidden state h_5 in R^{128} passes through LayerNorm(128) to serve as the compressed Ocean Latent Embedding.")
+    pb.add_bullet("Vertical Depth Decoder", "A 2-layer MLP maps the 128-D embedding to 15 vertical depths: Linear(128->64) + ReLU -> Linear(64->15).")
+    pb.add_bullet("Parameter Footprint", "Total instantiated trainable parameters: 203,791 (0.81 MB memory footprint). Lightweight architecture suitable for efficient inference.")
 
     pb.add_h2("Deep Learning Architectural Audit")
     pb.add_paragraph(
@@ -403,7 +391,7 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
         ["B5", "Pointwise MLP", "1x1 pixel, 1 day", "BatchNorm1D", "26,767", "Verified"],
         ["B6", "Spatial CNN", "3x3 patch, 1 day", "BatchNorm2D", "30,991", "Verified"],
         ["B7", "Temporal GRU", "1x1 pixel, 5 days", "LayerNorm", "44,111", "Verified"],
-        ["B8", "Spatiotemporal Embedding", "3x3 patch, 5 days", "BatchNorm2D/1D", "203,791", "Verified"],
+        ["B8", "Spatiotemporal Embedding", "3x3 patch, 5 days", "BatchNorm2D / LayerNorm", "203,791", "Verified"],
     ]
     pb.add_table(headers_arch, rows_arch, [55, 125, 95, 75, 95, 60])
 
@@ -413,15 +401,15 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     pb.new_page()
     pb.add_h1("4. Master Benchmark Results & Statistical Significance")
     pb.add_paragraph(
-        "All models were evaluated strictly on the independent Test partition (Days 311–366, 56 consecutive days across 166,400 active 3D ocean cells). The table below reports the complete certified benchmark results:"
+        "All models were evaluated strictly on the independent Test partition (Days 313–365, 53 consecutive days across 166,400 active 3D ocean cells). The table below reports the complete certified benchmark results:"
     )
 
     headers_bm = ["Model", "Description", "Input Context", "Parameters", "Test RMSE (°C)", "Gain vs B1", "Status"]
     rows_bm = [
-        ["B0", "1-Day Lag Persistence", "Target column (t-1)", "0", "1.5220", "-20.97%", "Locked"],
-        ["B0b", "Day-252 Persistence", "Target column (t=252)", "0", "1.7287", "-37.40%", "Locked"],
+        ["B0", "Day-0 Persistence", "Target column (Day 0)", "0", "1.5220", "-20.97%", "Locked"],
+        ["B0b", "Day-252 Persistence", "Target column (Day 252)", "0", "1.7287", "-37.40%", "Locked"],
         ["B1", "Daily Climatology", "366-day daily mean", "0", "1.2582", "Reference", "Locked"],
-        ["B2", "Ridge Linear Regression", "Pointwise 7 features", "120", "1.0295", "+18.18%", "Locked"],
+        ["B2", "Ridge Linear Regression (alpha=100,000)", "Pointwise 7 features", "120", "1.0295", "+18.18%", "Locked"],
         ["B3", "Random Forest Regressor", "Pointwise 7 features", "~850,000", "1.0452", "+16.93%", "Locked"],
         ["B4", "LightGBM Gradient Boosting", "Pointwise 7 features", "~320,000", "1.0288", "+18.23%", "Locked"],
         ["B5", "Pointwise MLP", "Pointwise 7 features", "26,767", "1.5524", "-23.38%", "Locked"],
@@ -433,7 +421,7 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
 
     pb.add_h2("Statistical Hypothesis Testing & Bootstrap")
     pb.add_bullet("B8 vs B1 (Daily Climatology)", "Delta RMSE = -0.2782 °C (+22.11% gain). Block bootstrap with 1000 resamples of 7-day temporal blocks yields a 95% Confidence Interval of [-0.3957, -0.1756] °C (p < 0.001), confirming highly significant performance over climatology.")
-    pb.add_bullet("B8 vs B4 (LightGBM)", "Delta RMSE = -0.0488 °C (+4.74% gain over the best tabular baseline). Demonstrates that spatial-temporal context extracts physical signals that pointwise tabular tree models cannot access.")
+    pb.add_bullet("B8 vs B4 (LightGBM)", "Delta RMSE = -0.0488 °C (+4.74% gain over the best tabular baseline). Demonstrates that spatial-temporal context extracts predictive signals that pointwise tabular tree models cannot access.")
     pb.add_bullet("B8 vs B2 (Ridge Regression)", "Delta RMSE = -0.0495 °C (+4.81% gain over linear baseline).")
     pb.add_bullet("Ablation Analysis", "B5 (1.5524 °C) and B7 (1.5320 °C) demonstrate that naive deep learning on uncoupled inputs underperforms linear regression due to overfitting. Only when spatial convolutions and temporal gating are jointly fused in B8 does deep learning beat tabular ML.")
 
@@ -472,8 +460,8 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     pb.add_bullet("Bay of Bengal (BoB)", "0.6775 °C — Significantly lower error due to immense riverine freshwater discharge creating a buoyant, stable barrier layer that shields upper-layer thermal profiles.")
 
     pb.add_h2("Certified Seasonal Subsets")
-    pb.add_bullet("Late Fall (Nov 6 – Nov 30)", "1.0059 °C — Post-monsoon transition period.")
-    pb.add_bullet("Early Winter (Dec 1 – Dec 31)", "0.9060 °C — Established Northeast Monsoon circulation.")
+    pb.add_bullet("Late Fall (Nov 09 – Nov 30)", "1.0059 °C — Post-monsoon transition period.")
+    pb.add_bullet("Early Winter (Dec 01 – Dec 31)", "0.9060 °C — Established Northeast Monsoon circulation.")
 
     # ==========================================
     # PAGE 7: Interactive Prototype & System Verification
@@ -540,12 +528,10 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     pb.add_bullet("GLORYS12V1", "Jean-Michel, L., et al. (2021). CMEMS. DOI: 10.48670/moi-00021")
     pb.add_bullet("Argo Program", "Argo Data Management Team (2021). DOI: 10.17882/42182")
 
-    # Draw header and footer across all pages
     total_pages = len(pb.pages)
     for p_idx in range(1, total_pages + 1):
         pb.draw_header_footer(p_idx, total_pages)
 
-    # Save PDF
     doc.save(output_path)
     doc.close()
     print(f"Submission PDF successfully built at: {output_path} ({total_pages} pages)")

@@ -30,13 +30,13 @@
 
 - [x] **Strict Chronological Ordering**: Random train/test shuffling strictly prohibited.
 - [x] **Calendar Partitioning**:
-  - [x] Training Split: Days 1–245 (Jan 1 – Sep 1, 245 days / 66.9%)
-  - [x] Purge Buffer 1: Days 246–251 (Sep 2 – Sep 7, 6 days / 1.6%)
-  - [x] Validation Split: Days 252–304 (Sep 8 – Oct 30, 53 days / 14.5%)
-  - [x] Purge Buffer 2: Days 305–310 (Oct 31 – Nov 5, 6 days / 1.6%)
-  - [x] Test Split: Days 311–366 (Nov 6 – Dec 31, 56 days / 15.3%)
+  - [x] Training Split: Days 0–252 (Jan 1 – Sep 9, 253 days / 69.1%)
+  - [x] Purge Buffer 1: Days 253–258 (Sep 10 – Sep 15, 6 days / 1.6%)
+  - [x] Validation Split: Days 259–306 (Sep 16 – Nov 2, 48 days / 13.1%)
+  - [x] Purge Buffer 2: Days 307–312 (Nov 3 – Nov 8, 6 days / 1.6%)
+  - [x] Test Split: Days 313–365 (Nov 9 – Dec 31, 53 days / 14.5%)
 - [x] **Buffer Width Guarantees**: $T_{\text{purge}} = 6 \text{ days} > T_{\text{causal}} = 5 \text{ days}$. Zero temporal receptive field overlap between train, val, and test distributions.
-- [x] **Train-Only Normalization**: All z-score transforms fitted strictly on Days 1–245 and serialized to `data/metadata/normalization_stats.json`. Zero test statistics leaked into preprocessing.
+- [x] **Train-Only Normalization**: All z-score transforms fitted strictly on Days 0–252 and serialized to `data/metadata/normalization_stats.json`. Zero test statistics leaked into preprocessing.
 - [x] **Causal Slicing**: At step $t$, receptive field is restricted to $[t-4, t-3, t-2, t-1, t]$. No forward-looking observations accessible.
 
 ---
@@ -44,11 +44,11 @@
 ## 3. Systematic Model Hierarchy & Code Implementations
 
 - [x] **Level 0 (Physical / Climatological Baselines)**:
-  - [x] `models/B0_persistence.py`: 1-Day Lag Persistence ($\text{RMSE} = 1.5220\ ^\circ\text{C}$)
+  - [x] `models/B0_persistence.py`: Day-0 Persistence ($\text{RMSE} = 1.5220\ ^\circ\text{C}$)
   - [x] `models/B0b_persistence.py`: Day-252 Persistence ($\text{RMSE} = 1.7287\ ^\circ\text{C}$)
   - [x] `models/B1_climatology.py`: Daily Mean Climatology ($\text{RMSE} = 1.2582\ ^\circ\text{C}$)
 - [x] **Level 1 (Tabular Machine Learning Baselines)**:
-  - [x] `models/B2_ridge.py`: Ridge Linear Regression $\alpha=1.0$ ($\text{RMSE} = 1.0295\ ^\circ\text{C}$, 120 parameters)
+  - [x] `models/B2_ridge.py`: Ridge Linear Regression $\alpha=100{,}000$ ($\text{RMSE} = 1.0295\ ^\circ\text{C}$, 120 parameters)
   - [x] `models/B3_random_forest.py`: Random Forest Regressor ($\text{RMSE} = 1.0452\ ^\circ\text{C}$, ~850,000 parameters)
   - [x] `models/B4_lightgbm.py`: LightGBM Gradient Boosting ($\text{RMSE} = 1.0288\ ^\circ\text{C}$, ~320,000 parameters)
 - [x] **Level 2 (Deep Learning Ablations)**:
@@ -73,7 +73,7 @@
 
 ## 5. Certified Scientific Performance Metrics
 
-- [x] **Master Benchmark Leaderboard (Days 311–366)**:
+- [x] **Master Benchmark Leaderboard (Days 313–365)**:
   - B0 = 1.5220 °C
   - B0b = 1.7287 °C
   - B1 = 1.2582 °C
@@ -106,8 +106,8 @@
   - Arabian Sea: **1.0907 °C**
   - Bay of Bengal: **0.6775 °C**
 - [x] **Certified Seasonal Subsets**:
-  - Late Fall (Nov 6 – Nov 30): **1.0059 °C**
-  - Early Winter (Dec 1 – Dec 31): **0.9060 °C**
+  - Late Fall (Nov 09 – Nov 30): **1.0059 °C**
+  - Early Winter (Dec 01 – Dec 31): **0.9060 °C**
 - [x] **Statistical Significance Testing**:
   - B8 vs B1: 7-day block bootstrap (1000 resamples): 95% CI $[-0.3957, -0.1756]\ ^\circ\text{C}$, $p < 0.001$.
   - B8 vs B4: $\Delta\text{RMSE} = -0.0488\ ^\circ\text{C}$ (+4.74% relative gain).

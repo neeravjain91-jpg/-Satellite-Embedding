@@ -40,7 +40,7 @@ Previous machine learning literature in subsurface reconstruction often exhibits
 1. **Temporal Leakage**: Random shuffling of space-time grids allows models to interpolate between temporally adjacent days, drastically underestimating test error.
 2. **Missing Purge Buffers**: Due to ocean memory and assimilation smoothing, consecutive daily frames share high autocorrelation. Without purge buffers, models memorize transient eddy states.
 3. **Target NaN-to-Zero Corruption**: Filling land or sub-seafloor target levels with 0 °C biases regression decoders, creating physically invalid deep profiles.
-4. **Over-Claimed SOTA Performance**: Reporting single-depth surface RMSE or unweighted metrics as overall accuracy without acknowledging thermocline error inflation.
+4. **Over-Claimed Generalization Performance**: Reporting single-depth surface RMSE or unweighted metrics as overall accuracy without acknowledging thermocline error inflation.
 
 This project addresses these systemic issues through a controlled scientific audit and standardized protocol.
 
@@ -172,7 +172,7 @@ Ten models were constructed to evaluate the progressive utility of physical heur
 - **B0 (Day-0 Persistence)**: $\hat{T}(t, z, \mathbf{x}) = T(t_0, z, \mathbf{x})$, predicting the first day of the year frozen forward.
 - **B0b (Day-252 Persistence)**: $\hat{T}(t, z, \mathbf{x}) = T(t_{252}, z, \mathbf{x})$, predicting the final training day frozen forward.
 - **B1 (Spatial-Depth Climatology)**: $\hat{T}(t, z, \mathbf{x}) = \frac{1}{253}\sum_{\tau=0}^{252} T(\tau, z, \mathbf{x})$, the historical mean profile for each pixel.
-- **B2 (Multi-Output Ridge)**: Fits independent Ridge regression models per depth on normalized 7-channel pointwise vectors with L2 penalty $\alpha$ tuned via validation grid search.
+- **B2 (Multi-Output Ridge)**: Fits independent Ridge regression models per depth on normalized 7-channel pointwise vectors with L2 penalty $\alpha = 100{,}000$ (selected by validation-only search after expanding the grid to $10^8$).
 - **B3 (Random Forest)**: Bagging ensemble of decision trees trained depth-wise on valid bathymetric points.
 - **B4 (LightGBM)**: 15 depth-wise histogram gradient boosted decision tree ensembles (50 trees per depth).
 - **B5 (Pointwise MLP)**: 3-layer feedforward network (128-128-64 units) trained on pointwise surface vectors.
@@ -197,7 +197,7 @@ The B8 model processes spatiotemporal cubes $\mathbf{X}_{\text{cube}} \in \mathb
    - `LayerNorm(128)` applied to terminal hidden state $h_5 \in \mathbb{R}^{128}$.
    - Constrains embedding distribution and prevents representation drift.
 4. **Depth Decoder**:
-   - `Linear(128, 64)` + `ReLU()` + `Dropout(0.1)`
+   - `Linear(128, 64)` + `ReLU()`
    - `Linear(64, 15)` $\to$ predicted temperatures across all 15 canonical depths.
 - **Actual Instantiated Parameters**: Exactly **203,791**.
 
