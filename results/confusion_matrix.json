@@ -1,0 +1,635 @@
+{
+  "evaluation_partition": "Test (Days 313\u2013365, Nov 9 \u2013 Dec 31, 2020)",
+  "total_test_samples": 8017734,
+  "diagnostic_definition": "Six temperature-based thermal regimes defined for diagnostic classification of the continuous temperature field.",
+  "thermal_regimes": [
+    "Deep Water (<10\u00b0C)",
+    "Lower Thermocline (10\u201315\u00b0C)",
+    "Core Thermocline (15\u201320\u00b0C)",
+    "Upper Thermocline (20\u201325\u00b0C)",
+    "Mixed Layer (25\u201328\u00b0C)",
+    "Tropical Warm Pool (\u226528\u00b0C)"
+  ],
+  "temperature_boundaries_c": [
+    10.0,
+    15.0,
+    20.0,
+    25.0,
+    28.0
+  ],
+  "oceanographic_reference": "GLORYS numerical ocean reanalysis reference (validated against in-situ ARGO profiles via ARGO\u2013GLORYS Reference Consistency Assessment)",
+  "provenance_notes": {
+    "B1_Climatology": "Canonical Spatial-Depth historical train mean climatology (0 parameters)",
+    "B2_Ridge": "Canonical Multi-Output Ridge Regression with alpha=100,000 (120 coefficients)",
+    "B3_RandomForest": "Canonical Multi-Depth Random Forest (50 trees, max_depth 15, 13,289,966 nodes)",
+    "B5_PointwiseMLP": "Canonical Pointwise MLP (26,767 trainable parameters, [128, 128, 64])",
+    "Legacy_MLP_128_64": "Historical exploratory tuning candidate (10,255 trainable parameters, [128, 64]). Provenance origin of the 81.19% classification artifact."
+  },
+  "models": {
+    "B1_Climatology": {
+      "confusion_matrix": [
+        [
+          740665,
+          56941,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          67797,
+          1185362,
+          118851,
+          4270,
+          288,
+          0
+        ],
+        [
+          0,
+          45279,
+          645130,
+          279430,
+          10583,
+          0
+        ],
+        [
+          0,
+          0,
+          118180,
+          685005,
+          264178,
+          13277
+        ],
+        [
+          0,
+          0,
+          236,
+          174816,
+          1039151,
+          524705
+        ],
+        [
+          0,
+          0,
+          0,
+          19988,
+          206635,
+          1816967
+        ]
+      ],
+      "total_evaluated_samples": 8017734,
+      "accuracy_pct": 76.23,
+      "within_1_bin_pct": 99.39,
+      "beyond_1_bin_pct": 0.61,
+      "cohen_kappa": 0.7078,
+      "macro_f1": 0.7632,
+      "weighted_f1": 0.7604,
+      "per_class": [
+        {
+          "regime": "Deep Water (<10\u00b0C)",
+          "support": 797606,
+          "true_positives": 740665,
+          "false_positives": 67797,
+          "false_negatives": 56941,
+          "precision": 0.9161,
+          "recall": 0.9286,
+          "f1": 0.9223
+        },
+        {
+          "regime": "Lower Thermocline (10\u201315\u00b0C)",
+          "support": 1376568,
+          "true_positives": 1185362,
+          "false_positives": 102220,
+          "false_negatives": 191206,
+          "precision": 0.9206,
+          "recall": 0.8611,
+          "f1": 0.8899
+        },
+        {
+          "regime": "Core Thermocline (15\u201320\u00b0C)",
+          "support": 980422,
+          "true_positives": 645130,
+          "false_positives": 237267,
+          "false_negatives": 335292,
+          "precision": 0.7311,
+          "recall": 0.658,
+          "f1": 0.6926
+        },
+        {
+          "regime": "Upper Thermocline (20\u201325\u00b0C)",
+          "support": 1080640,
+          "true_positives": 685005,
+          "false_positives": 478504,
+          "false_negatives": 395635,
+          "precision": 0.5887,
+          "recall": 0.6339,
+          "f1": 0.6105
+        },
+        {
+          "regime": "Mixed Layer (25\u201328\u00b0C)",
+          "support": 1738908,
+          "true_positives": 1039151,
+          "false_positives": 481684,
+          "false_negatives": 699757,
+          "precision": 0.6833,
+          "recall": 0.5976,
+          "f1": 0.6376
+        },
+        {
+          "regime": "Tropical Warm Pool (\u226528\u00b0C)",
+          "support": 2043590,
+          "true_positives": 1816967,
+          "false_positives": 537982,
+          "false_negatives": 226623,
+          "precision": 0.7716,
+          "recall": 0.8891,
+          "f1": 0.8262
+        }
+      ]
+    },
+    "B2_Ridge": {
+      "confusion_matrix": [
+        [
+          672961,
+          124645,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          71449,
+          1161093,
+          143897,
+          129,
+          0,
+          0
+        ],
+        [
+          53,
+          65071,
+          738559,
+          174537,
+          2193,
+          9
+        ],
+        [
+          0,
+          0,
+          73527,
+          841146,
+          164101,
+          1866
+        ],
+        [
+          0,
+          0,
+          0,
+          168000,
+          1496511,
+          74397
+        ],
+        [
+          0,
+          0,
+          0,
+          2732,
+          547117,
+          1493741
+        ]
+      ],
+      "total_evaluated_samples": 8017734,
+      "accuracy_pct": 79.87,
+      "within_1_bin_pct": 99.91,
+      "beyond_1_bin_pct": 0.09,
+      "cohen_kappa": 0.7538,
+      "macro_f1": 0.8023,
+      "weighted_f1": 0.8014,
+      "per_class": [
+        {
+          "regime": "Deep Water (<10\u00b0C)",
+          "support": 797606,
+          "true_positives": 672961,
+          "false_positives": 71502,
+          "false_negatives": 124645,
+          "precision": 0.904,
+          "recall": 0.8437,
+          "f1": 0.8728
+        },
+        {
+          "regime": "Lower Thermocline (10\u201315\u00b0C)",
+          "support": 1376568,
+          "true_positives": 1161093,
+          "false_positives": 189716,
+          "false_negatives": 215475,
+          "precision": 0.8596,
+          "recall": 0.8435,
+          "f1": 0.8514
+        },
+        {
+          "regime": "Core Thermocline (15\u201320\u00b0C)",
+          "support": 980422,
+          "true_positives": 738559,
+          "false_positives": 217424,
+          "false_negatives": 241863,
+          "precision": 0.7726,
+          "recall": 0.7533,
+          "f1": 0.7628
+        },
+        {
+          "regime": "Upper Thermocline (20\u201325\u00b0C)",
+          "support": 1080640,
+          "true_positives": 841146,
+          "false_positives": 345398,
+          "false_negatives": 239494,
+          "precision": 0.7089,
+          "recall": 0.7784,
+          "f1": 0.742
+        },
+        {
+          "regime": "Mixed Layer (25\u201328\u00b0C)",
+          "support": 1738908,
+          "true_positives": 1496511,
+          "false_positives": 713411,
+          "false_negatives": 242397,
+          "precision": 0.6772,
+          "recall": 0.8606,
+          "f1": 0.758
+        },
+        {
+          "regime": "Tropical Warm Pool (\u226528\u00b0C)",
+          "support": 2043590,
+          "true_positives": 1493741,
+          "false_positives": 76272,
+          "false_negatives": 549849,
+          "precision": 0.9514,
+          "recall": 0.7309,
+          "f1": 0.8267
+        }
+      ]
+    },
+    "B3_RandomForest": {
+      "confusion_matrix": [
+        [
+          687687,
+          109919,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          70667,
+          1176049,
+          129101,
+          749,
+          2,
+          0
+        ],
+        [
+          0,
+          53055,
+          751149,
+          173738,
+          2480,
+          0
+        ],
+        [
+          0,
+          0,
+          88573,
+          838458,
+          151940,
+          1669
+        ],
+        [
+          0,
+          0,
+          719,
+          229230,
+          1444916,
+          64043
+        ],
+        [
+          0,
+          0,
+          0,
+          17861,
+          457639,
+          1568090
+        ]
+      ],
+      "total_evaluated_samples": 8017734,
+      "accuracy_pct": 80.65,
+      "within_1_bin_pct": 99.71,
+      "beyond_1_bin_pct": 0.29,
+      "cohen_kappa": 0.7636,
+      "macro_f1": 0.8085,
+      "weighted_f1": 0.8099,
+      "per_class": [
+        {
+          "regime": "Deep Water (<10\u00b0C)",
+          "support": 797606,
+          "true_positives": 687687,
+          "false_positives": 70667,
+          "false_negatives": 109919,
+          "precision": 0.9068,
+          "recall": 0.8622,
+          "f1": 0.8839
+        },
+        {
+          "regime": "Lower Thermocline (10\u201315\u00b0C)",
+          "support": 1376568,
+          "true_positives": 1176049,
+          "false_positives": 162974,
+          "false_negatives": 200519,
+          "precision": 0.8783,
+          "recall": 0.8543,
+          "f1": 0.8661
+        },
+        {
+          "regime": "Core Thermocline (15\u201320\u00b0C)",
+          "support": 980422,
+          "true_positives": 751149,
+          "false_positives": 218393,
+          "false_negatives": 229273,
+          "precision": 0.7747,
+          "recall": 0.7661,
+          "f1": 0.7704
+        },
+        {
+          "regime": "Upper Thermocline (20\u201325\u00b0C)",
+          "support": 1080640,
+          "true_positives": 838458,
+          "false_positives": 421578,
+          "false_negatives": 242182,
+          "precision": 0.6654,
+          "recall": 0.7759,
+          "f1": 0.7164
+        },
+        {
+          "regime": "Mixed Layer (25\u201328\u00b0C)",
+          "support": 1738908,
+          "true_positives": 1444916,
+          "false_positives": 612061,
+          "false_negatives": 293992,
+          "precision": 0.7024,
+          "recall": 0.8309,
+          "f1": 0.7613
+        },
+        {
+          "regime": "Tropical Warm Pool (\u226528\u00b0C)",
+          "support": 2043590,
+          "true_positives": 1568090,
+          "false_positives": 65712,
+          "false_negatives": 475500,
+          "precision": 0.9598,
+          "recall": 0.7673,
+          "f1": 0.8528
+        }
+      ]
+    },
+    "B5_PointwiseMLP": {
+      "confusion_matrix": [
+        [
+          709463,
+          88143,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          100148,
+          1145665,
+          130470,
+          285,
+          0,
+          0
+        ],
+        [
+          0,
+          55776,
+          747934,
+          174469,
+          2241,
+          2
+        ],
+        [
+          0,
+          0,
+          80690,
+          831244,
+          166712,
+          1994
+        ],
+        [
+          0,
+          0,
+          42,
+          211206,
+          1441628,
+          86032
+        ],
+        [
+          0,
+          0,
+          0,
+          7146,
+          684866,
+          1351578
+        ]
+      ],
+      "total_evaluated_samples": 8017734,
+      "accuracy_pct": 77.67,
+      "within_1_bin_pct": 99.85,
+      "beyond_1_bin_pct": 0.15,
+      "cohen_kappa": 0.7275,
+      "macro_f1": 0.7876,
+      "weighted_f1": 0.7797,
+      "per_class": [
+        {
+          "regime": "Deep Water (<10\u00b0C)",
+          "support": 797606,
+          "true_positives": 709463,
+          "false_positives": 100148,
+          "false_negatives": 88143,
+          "precision": 0.8763,
+          "recall": 0.8895,
+          "f1": 0.8828
+        },
+        {
+          "regime": "Lower Thermocline (10\u201315\u00b0C)",
+          "support": 1376568,
+          "true_positives": 1145665,
+          "false_positives": 143919,
+          "false_negatives": 230903,
+          "precision": 0.8884,
+          "recall": 0.8323,
+          "f1": 0.8594
+        },
+        {
+          "regime": "Core Thermocline (15\u201320\u00b0C)",
+          "support": 980422,
+          "true_positives": 747934,
+          "false_positives": 211202,
+          "false_negatives": 232488,
+          "precision": 0.7798,
+          "recall": 0.7629,
+          "f1": 0.7712
+        },
+        {
+          "regime": "Upper Thermocline (20\u201325\u00b0C)",
+          "support": 1080640,
+          "true_positives": 831244,
+          "false_positives": 393106,
+          "false_negatives": 249396,
+          "precision": 0.6789,
+          "recall": 0.7692,
+          "f1": 0.7213
+        },
+        {
+          "regime": "Mixed Layer (25\u201328\u00b0C)",
+          "support": 1738908,
+          "true_positives": 1441628,
+          "false_positives": 853819,
+          "false_negatives": 297280,
+          "precision": 0.628,
+          "recall": 0.829,
+          "f1": 0.7147
+        },
+        {
+          "regime": "Tropical Warm Pool (\u226528\u00b0C)",
+          "support": 2043590,
+          "true_positives": 1351578,
+          "false_positives": 88028,
+          "false_negatives": 692012,
+          "precision": 0.9389,
+          "recall": 0.6614,
+          "f1": 0.7761
+        }
+      ]
+    },
+    "Legacy_MLP_128_64": {
+      "confusion_matrix": [
+        [
+          695353,
+          102253,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          75342,
+          1163137,
+          137834,
+          255,
+          0,
+          0
+        ],
+        [
+          0,
+          47705,
+          761959,
+          168932,
+          1821,
+          5
+        ],
+        [
+          0,
+          0,
+          87190,
+          824379,
+          167082,
+          1989
+        ],
+        [
+          0,
+          0,
+          1,
+          180261,
+          1457588,
+          101058
+        ],
+        [
+          0,
+          0,
+          0,
+          8508,
+          427873,
+          1607209
+        ]
+      ],
+      "total_evaluated_samples": 8017734,
+      "accuracy_pct": 81.19,
+      "within_1_bin_pct": 99.84,
+      "beyond_1_bin_pct": 0.16,
+      "cohen_kappa": 0.7699,
+      "macro_f1": 0.8133,
+      "weighted_f1": 0.8146,
+      "per_class": [
+        {
+          "regime": "Deep Water (<10\u00b0C)",
+          "support": 797606,
+          "true_positives": 695353,
+          "false_positives": 75342,
+          "false_negatives": 102253,
+          "precision": 0.9022,
+          "recall": 0.8718,
+          "f1": 0.8868
+        },
+        {
+          "regime": "Lower Thermocline (10\u201315\u00b0C)",
+          "support": 1376568,
+          "true_positives": 1163137,
+          "false_positives": 149958,
+          "false_negatives": 213431,
+          "precision": 0.8858,
+          "recall": 0.845,
+          "f1": 0.8649
+        },
+        {
+          "regime": "Core Thermocline (15\u201320\u00b0C)",
+          "support": 980422,
+          "true_positives": 761959,
+          "false_positives": 225025,
+          "false_negatives": 218463,
+          "precision": 0.772,
+          "recall": 0.7772,
+          "f1": 0.7746
+        },
+        {
+          "regime": "Upper Thermocline (20\u201325\u00b0C)",
+          "support": 1080640,
+          "true_positives": 824379,
+          "false_positives": 357956,
+          "false_negatives": 256261,
+          "precision": 0.6972,
+          "recall": 0.7629,
+          "f1": 0.7286
+        },
+        {
+          "regime": "Mixed Layer (25\u201328\u00b0C)",
+          "support": 1738908,
+          "true_positives": 1457588,
+          "false_positives": 596776,
+          "false_negatives": 281320,
+          "precision": 0.7095,
+          "recall": 0.8382,
+          "f1": 0.7685
+        },
+        {
+          "regime": "Tropical Warm Pool (\u226528\u00b0C)",
+          "support": 2043590,
+          "true_positives": 1607209,
+          "false_positives": 103052,
+          "false_negatives": 436381,
+          "precision": 0.9397,
+          "recall": 0.7865,
+          "f1": 0.8563
+        }
+      ]
+    }
+  }
+}
