@@ -329,7 +329,7 @@ Comparing paradigms across the hierarchy:
 
 ## 28. Limitations
 1. **Reference Target Semantics**: GLORYS12V1 is a numerical ocean reanalysis product that assimilates observations and enforces model physics. It is a high-fidelity reference target, not raw in-situ ground truth.
-2. **Argo Observational Validation**: Direct evaluation against independent Argo profiling float trajectories represents a distinct scientific tier that evaluates real-world observational fidelity outside the GLORYS manifold.
+2. **ARGO–GLORYS Reference Consistency Assessment**: Operational in-situ ARGO profiles are assimilated into the GLORYS reanalysis system and provide an observational reference consistency check on the reanalysis product; they do not constitute independent validation of the machine learning reconstruction outside the assimilation system.
 3. **Single Benchmark Year**: Training and evaluation were conducted on full-year 2020. Multi-year decadal evaluation across distinct IOD (Indian Ocean Dipole) and ENSO (El Niño–Southern Oscillation) phases is required for operational deployment.
 4. **Non-Uniform Depth Error**: The $0.9800\ ^\circ\text{C}$ metric is a column-averaged mean across 15 depths. Performance varies significantly from $0.44\ ^\circ\text{C}$ at the surface to $1.81\ ^\circ\text{C}$ in the thermocline.
 5. **Interactive UI Simulation**: The frontend prototype operates on deterministic local simulation algorithms and does not perform live cloud GPU inference.
@@ -337,7 +337,7 @@ Comparing paradigms across the hierarchy:
 ---
 
 ## 29. Future Work
-1. **Direct Argo Float Co-Location**: Validate B8 reconstructions against raw delayed-mode Argo profiling float observations across the North Indian Ocean.
+1. **Direct Argo Float Co-Location**: Validate B8 reconstructions against unassimilated delayed-mode Argo profiling float observations across the North Indian Ocean as an independent observational evaluation tier.
 2. **Multi-Year Decadal Training**: Extend training to 2010–2019 to capture interannual climate cycles (positive/negative IOD phases).
 3. **Physics-Informed Loss Functions**: Incorporate hydrostatic balance and density-stratification constraints ($\partial \rho / \partial z \le 0$) into the neural loss to strictly prevent gravitational convective instabilities in reconstructed profiles.
 4. **Attention-Based Spatial Transformers**: Replace $3 \times 3$ convolutional patches with multi-scale spatial vision transformers to capture basin-wide planetary Rossby wave propagation.

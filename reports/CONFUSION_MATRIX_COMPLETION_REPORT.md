@@ -27,13 +27,13 @@ This project phase resolved a critical architectural and metadata collision in t
 3. **Standardized Oceanographic Terminology & Physics**:
    - Replaced all informal/standardization claims with the formal definition: *"Six temperature-based thermal regimes defined for diagnostic classification of the continuous temperature field."*
    - Purged references to "equatorial warm pool", adopting the geographically correct designation *"Tropical Warm Pool ($\ge 28^\circ\text{C}$)"*.
-   - Strictly enforced reference terminology: GLORYS is designated as the *"GLORYS numerical ocean reanalysis reference"*, and ARGO matchups are designated as the *"ARGO–GLORYS Reference Consistency Assessment"*.
-   - Replaced claims of "strictly physical boundaries" with dynamic, exact mathematical computations of within $\pm 1$-bin and beyond $\pm 1$-bin percentages ($99.71\% - 99.91\%$ within $\pm 1$ bin).
+   - Strictly enforced reference terminology: GLORYS is designated as the *"GLORYS numerical ocean reanalysis reference"*, and ARGO matchups are designated as the *"ARGO–GLORYS Reference Consistency Assessment"* (noting that because operational ARGO observations are assimilated into GLORYS, this comparison evaluates the reanalysis reference state rather than serving as independent validation of the ML model).
+   - Replaced causal and proof claims with descriptive, mathematically verified statements: more than $99.7\%$ of evaluated predictions fall within the true thermal-regime bin or an immediately adjacent bin, indicating local regime containment along continuous boundaries.
 
 4. **Refactored Training and Evaluation Scripts**:
    - Established `scripts/train_b5.py` to train/evaluate canonical B5 Pointwise MLP (26,767 parameters).
    - Refactored `scripts/train_b3.py` to train/evaluate canonical B3 Multi-Depth Random Forest.
-   - Upgraded `scripts/evaluate_confusion_matrix.py` to evaluate all canonical baselines and legacy candidates.
+   - Upgraded `scripts/evaluate_confusion_matrix.py` to evaluate all canonical baselines and legacy candidates. Explicitly documented that B3 classification metrics are reproduced by refitting the canonical B3 training protocol with the locked seed (`random_state=42`) and 100,000-row training subsample, then evaluating on the frozen held-out test partition.
    - Synchronized `results/confusion_matrix.json`, `reports/confusion_matrix_report.md`, and the interactive artifact `confusion_matrix.html`.
 
 ---
@@ -73,6 +73,7 @@ The previous confusion matrix artifact reported:
 - **Model Topology**: `PointwiseMLPNet(7, [128, 64], 15)` with 10,255 trainable parameters.
 - **Finding**: This was an exploratory hyperparameter tuning candidate evaluated during earlier Phase 3 experiments. It is **not** canonical B3 (which is Random Forest) and **not** canonical B5 (which has 26,767 parameters, hidden dims `[128, 128, 64]`, and achieves $77.67\%$ classification accuracy).
 - **Resolution**: Under Decision Rule Case B, the legacy 10,255-parameter model is transparently documented as a historical tuning candidate. The canonical models (B1, B2, B3, B5) have been evaluated to establish genuine, reproducible classification metrics.
+- **B3 Reproducibility Provenance**: B3 classification metrics are reproduced by refitting the canonical B3 training protocol with the locked seed (`random_state=42`) and 100,000-row training subsample, then evaluating on the frozen held-out test partition.
 
 ---
 
@@ -192,6 +193,22 @@ Evaluated over the held-out test split of **$8,017,734$** valid target observati
 
 ---
 
+### 6.5 Historical Exploratory Tuning Candidate (Legacy MLP)
+
+#### Raw Confusion Matrix ($N = 8,017,734$)
+
+| Actual \ Predicted | <10°C (Deep) | 10–15°C (Low-TC) | 15–20°C (Core-TC) | 20–25°C (Upp-TC) | 25–28°C (Mixed) | ≥28°C (Warm Pool) | Total Actual |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **<10°C (Deep)** | **695,353** | 102,253 | 0 | 0 | 0 | 0 | **797,606** |
+| **10–15°C (Low-TC)** | 75,342 | **1,163,137** | 137,834 | 255 | 0 | 0 | **1,376,568** |
+| **15–20°C (Core-TC)** | 0 | 47,705 | **761,959** | 168,932 | 1,821 | 5 | **980,422** |
+| **20–25°C (Upp-TC)** | 0 | 0 | 87,190 | **824,379** | 167,082 | 1,989 | **1,080,640** |
+| **25–28°C (Mixed)** | 0 | 0 | 1 | 180,261 | **1,457,588** | 101,058 | **1,738,908** |
+| **≥28°C (Warm Pool)** | 0 | 0 | 0 | 8,508 | 427,873 | **1,607,209** | **2,043,590** |
+| **Total Predicted** | **770,695** | **1,313,095** | **986,984** | **1,182,335** | **2,054,364** | **1,710,261** | **8,017,734** |
+
+---
+
 ## 7. Mathematical Verification of Metrics
 
 1. **Total Sample Count Consistency**:
@@ -203,28 +220,33 @@ Evaluated over the held-out test split of **$8,017,734$** valid target observati
    - B5 Pointwise MLP: $\sum_{i=0}^5 \text{CM}[i, i] = 6,227,512 \implies \text{Accuracy} = \frac{6,227,512}{8,017,734} = 77.6717\% \to \mathbf{77.67\%}$
    - B2 Ridge: $\sum_{i=0}^5 \text{CM}[i, i] = 6,404,011 \implies \text{Accuracy} = \frac{6,404,011}{8,017,734} = 79.8731\% \to \mathbf{79.87\%}$
    - B1 Climatology: $\sum_{i=0}^5 \text{CM}[i, i] = 6,112,280 \implies \text{Accuracy} = \frac{6,112,280}{8,017,734} = 76.2345\% \to \mathbf{76.23\%}$
+   - Legacy MLP: $\sum_{i=0}^5 \text{CM}[i, i] = 6,509,625 \implies \text{Accuracy} = \frac{6,509,625}{8,017,734} = 81.1903\% \to \mathbf{81.19\%}$
 
 3. **Adjacency / Within $\pm 1$ Bin Calculation**:
    $$\text{Within }\pm 1 = \frac{1}{N} \sum_{|i - j| \le 1} \text{CM}[i, j] \times 100\%$$
-   - B2 Ridge: $8,010,753 / 8,017,734 = \mathbf{99.91\%}$ (Beyond: $0.09\%$)
-   - B5 Pointwise MLP: $8,005,979 / 8,017,734 = \mathbf{99.85\%}$ (Beyond: $0.15\%$)
-   - B3 Random Forest: $7,994,763 / 8,017,734 = \mathbf{99.71\%}$ (Beyond: $0.29\%$)
-   - B1 Climatology: $7,969,040 / 8,017,734 = \mathbf{99.39\%}$ (Beyond: $0.61\%$)
+   - B2 Ridge: $8,010,752 / 8,017,734 = \mathbf{99.91\%}$ (Beyond: $0.09\%$, $6,982$ points)
+   - B5 Pointwise MLP: $8,006,024 / 8,017,734 = \mathbf{99.85\%}$ (Beyond: $0.15\%$, $11,710$ points)
+   - B3 Random Forest: $7,994,254 / 8,017,734 = \mathbf{99.71\%}$ (Beyond: $0.29\%$, $23,480$ points)
+   - Legacy MLP: $8,005,155 / 8,017,734 = \mathbf{99.84\%}$ (Beyond: $0.16\%$, $12,579$ points)
+   - B1 Climatology: $7,969,092 / 8,017,734 = \mathbf{99.39\%}$ (Beyond: $0.61\%$, $48,642$ points)
+   - Exact sum: $\text{Within } \pm 1 + \text{Beyond } \pm 1 = 100.00\%$ across all models.
 
 4. **Cohen's Kappa ($\kappa$)**:
    $$\kappa = \frac{p_o - p_e}{1 - p_e}$$
-   All models exceed $\kappa > 0.70$, indicating substantial agreement beyond chance. B3 Random Forest achieves the highest certified inter-rater agreement at $\kappa = 0.7636$.
+   All models exceed $\kappa > 0.70$, indicating substantial agreement beyond chance. B3 Random Forest achieves the highest certified inter-rater agreement among certified baselines at $\kappa = 0.7636$.
 
 ---
 
 ## 8. Physical Oceanographic Interpretation & Error Adjacency
 
-1. **Monotonicity and Stratification Preservation**:
-   Across all supervised ML models (B2, B3, B5), more than **$99.7\%$** of predictions fall strictly within the true regime or an immediately adjacent regime tier ($\pm 1$ bin). This proves that the models preserve the monotonic vertical temperature structure of the ocean. Errors are concentrated along continuous transition zones where small fractional temperature shifts cross arbitrary classification thresholds, rather than representing unphysical layer inversions.
+1. **Local Error Adjacency**:
+   More than 99.7% of evaluated predictions across all supervised ML models (B2, B3, B5) fall within the true thermal-regime bin or an immediately adjacent bin ($99.91\%$ for B2 Ridge, $99.85\%$ for B5 Pointwise MLP, $99.71\%$ for B3 Random Forest). This indicates that most classification errors are local in regime space and are concentrated near continuous temperature-regime boundaries. Non-adjacent misclassifications (beyond $\pm 1$ bin) range from a low of $0.09\%$ (B2 Ridge) to $0.29\%$ (B3 Random Forest). Non-adjacent errors exist but remain rare (<0.30% across all supervised ML models).
+
+   *Important scientific constraint*: High $\pm 1$-bin containment does not prove vertical monotonicity across individual depth profiles, nor does discrete regime grouping preclude localized gradient inversions. Vertical thermal structure is formally evaluated via continuous profile metrics.
 
 2. **Comparative Model Analysis**:
-   - **B3 Random Forest** demonstrates the strongest discrete regime classification skill among certified baselines ($80.65\%$, $+4.42\%$ over Climatology). Its depth-wise decision trees capture non-linear thermocline gradients without spatial or temporal features.
-   - **B2 Ridge Regression** provides the highest near-neighbor containment ($99.91\%$ within $\pm 1$ bin; only $0.09\%$ beyond), demonstrating that regularized linear column projections prevent extreme tail predictions.
+   - **B3 Random Forest** achieves the highest discrete regime classification score among certified baselines with **80.65%** exact accuracy and $\kappa = 0.7636$, outperforming spatial climatology (76.23%, $+4.42\%$). (Note: No formal paired significance test has been certified for discrete classification accuracy; paired bootstrap significance is certified for continuous RMSE).
+   - **B2 Ridge Regression** delivers **79.87%** exact accuracy with the highest near-neighbor containment ($99.91\%$ within $\pm 1$ bin; only $0.09\%$ beyond), demonstrating that regularized linear column projections yield high local regime containment along the vertical thermal gradient.
    - **B5 Pointwise MLP** achieves $77.67\%$ exact accuracy and $99.85\%$ within $\pm 1$ bin. Without spatial patches (as in B6/B8) or temporal sequence memory (as in B7/B8), pointwise neural optimization on 1D columns exhibits lower discrete and continuous skill than tree ensembles.
 
 ---
@@ -234,7 +256,7 @@ Evaluated over the held-out test split of **$8,017,734$** valid target observati
 | Audit Area | Previous / Ambiguous Wording | Corrected Authoritative Designation | Scientific Rationale |
 | :--- | :--- | :--- | :--- |
 | **Target Field Reference** | "Observational ground truth", "measured truth" | **"GLORYS numerical ocean reanalysis reference"** | GLORYS12V1 is a numerical simulation integrating satellite/in-situ observations via data assimilation, not direct observational ground truth. |
-| **ARGO Observations** | "Independent validation of ML predictions" | **"ARGO–GLORYS Reference Consistency Assessment"** | ARGO float profiles assess the reference consistency of GLORYS and establish an observation-space baseline, rather than directly scoring gridded ML predictions. |
+| **ARGO Observations** | "Independent validation of ML predictions" | **"ARGO–GLORYS Reference Consistency Assessment"** | Operational ARGO float profiles are assimilated into GLORYS; this comparison assesses reanalysis reference consistency and does not constitute independent validation of the ML model. |
 | **Sea Surface Salinity** | Generic / SMAP labels | **"Copernicus Multi-Observation SSS"** | Accurately identifies the operational data stream (CMEMS MULTIOBS L4 SSS). |
 | **Bathymetry & Masking** | Independent GEBCO claims | **"GLORYS/ORCA12 Model Bathymetry & 4-Way Mask"** | Production masking strictly adheres to the numerical model's bathymetry and valid target envelope, preserving genuine target NaNs without artificial zero-filling. |
 | **Regime Categorization** | "Classical/international 6-regime standard" | **"Six temperature-based thermal regimes defined for diagnostic classification"** | Clarifies that regimes are physically motivated diagnostic discretization intervals, not an international treaty or WMO standard. |
@@ -269,11 +291,12 @@ All repository artifacts are synchronized with the canonical benchmark identitie
 4. `results/confusion_matrix.json` & `reports/confusion_matrix_report.md`:
    - Contains all 5 models (B1, B2, B3, B5, and Legacy MLP reference).
    - $N = 8,017,734$ valid physical test targets.
-   - Fully harmonized per-class and summary classification metrics.
+   - Fully harmonized per-class and summary classification metrics with verified exact counts.
 
 5. `confusion_matrix.html`:
    - Updated interactive dashboard with buttons for B3 (RF), B5 (MLP), B2 (Ridge), B1 (Clim), and Legacy MLP.
    - Dynamic metric recalculation for counts, percentages, and KPIs.
+   - Scientifically hardened error adjacency explanation.
 
 ---
 
@@ -283,7 +306,7 @@ To prevent future collisions between B3 and B5:
 - `scripts/train_b3.py`: Dedicated script for B3 Multi-Depth Random Forest (`B3_RandomForest`), writing strictly to `results/B3.json`.
 - `scripts/train_b5.py`: Dedicated script for B5 Pointwise MLP (`B5_PointwiseMLP`), writing strictly to `results/B5.json`.
 - `scripts/train_b3_to_b8.py`: Multi-model benchmark suite respecting the exact B3 (Random Forest) and B5 (Pointwise MLP) separation.
-- `scripts/evaluate_confusion_matrix.py`: Unified evaluation script testing all canonical models and recording provenance notes.
+- `scripts/evaluate_confusion_matrix.py`: Unified evaluation script testing all canonical models and recording provenance notes, explicitly noting that B3 is evaluated via deterministic refitting under the canonical training protocol with the locked seed (`random_state=42`) and 100,000-row training subsample.
 
 ---
 
@@ -298,10 +321,10 @@ The repository test suite was executed to verify that all preprocessing, masking
 ## 13. Git Status & Certification
 
 - **Branch**: `main`
-- **Commit History**:
+- **Verification Summary**:
   - Restored canonical B3 Random Forest from historical commit `68dc37b48279bc41a1daa639da3a82bd2fb8d9bf`.
   - Harmonized `master_benchmark_summary.json` and `master_benchmark_summary.md`.
   - Created `scripts/train_b5.py` and refactored `scripts/train_b3.py`.
   - Computed and saved `results/confusion_matrix.json` and `reports/confusion_matrix_report.md`.
   - Updated `confusion_matrix.html` interactive artifact.
-  - Documented completion in `reports/CONFUSION_MATRIX_COMPLETION_REPORT.md`.
+  - Hardened all causal, proof, significance, and ARGO independence language.

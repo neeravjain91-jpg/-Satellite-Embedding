@@ -201,11 +201,11 @@ def main():
         "diagnostic_definition": "Six temperature-based thermal regimes defined for diagnostic classification of the continuous temperature field.",
         "thermal_regimes": REGIME_LABELS,
         "temperature_boundaries_c": [10.0, 15.0, 20.0, 25.0, 28.0],
-        "oceanographic_reference": "GLORYS numerical ocean reanalysis reference (validated against in-situ ARGO profiles via ARGO–GLORYS Reference Consistency Assessment)",
+        "oceanographic_reference": "GLORYS numerical ocean reanalysis reference (compared against in-situ ARGO float profiles via ARGO–GLORYS Reference Consistency Assessment; note that this comparison assesses the reanalysis reference state and does not constitute independent validation of the ML model)",
         "provenance_notes": {
             "B1_Climatology": "Canonical Spatial-Depth historical train mean climatology (0 parameters)",
             "B2_Ridge": "Canonical Multi-Output Ridge Regression with alpha=100,000 (120 coefficients)",
-            "B3_RandomForest": "Canonical Multi-Depth Random Forest (50 trees, max_depth 15, 13,289,966 nodes)",
+            "B3_RandomForest": "Canonical Multi-Depth Random Forest (50 trees, max_depth 15, 13,289,966 nodes). B3 classification metrics are reproduced by refitting the canonical B3 training protocol with the locked seed and 100,000-row training subsample, then evaluating on the frozen held-out test partition.",
             "B5_PointwiseMLP": "Canonical Pointwise MLP (26,767 trainable parameters, [128, 128, 64])",
             "Legacy_MLP_128_64": "Historical exploratory tuning candidate (10,255 trainable parameters, [128, 64]). Provenance origin of the 81.19% classification artifact."
         },

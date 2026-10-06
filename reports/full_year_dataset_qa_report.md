@@ -166,7 +166,7 @@ The scientific ML pipeline enforces the 4-way unified mask:
 ## 9. In-Situ ARGO Float Reference Consistency Assessment
 
 > [!IMPORTANT]
-> This comparison evaluates reference consistency between independent in-situ ARGO float profiles and the canonical-grid GLORYS reanalysis target. It establishes observational reference fidelity prior to ML model training.
+> This comparison evaluates reference consistency between in-situ ARGO float profiles and the canonical-grid GLORYS reanalysis target (ARGO–GLORYS Reference Consistency Assessment). Operational ARGO profiles are assimilated into GLORYS and do not constitute independent validation of the ML model.
 
 - **Matched ARGO In-Situ Profile Levels**: 9,856
 - **Root Mean Square Difference (RMSD)**: 0.594 °C

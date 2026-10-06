@@ -1273,7 +1273,7 @@ def generate_full_year_dataset_qa_report(
         "## 9. In-Situ ARGO Float Reference Consistency Assessment",
         "",
         "> [!IMPORTANT]",
-        "> This comparison evaluates reference consistency between independent in-situ ARGO float profiles and the canonical-grid GLORYS reanalysis target. It establishes observational reference fidelity prior to ML model training.",
+        "> This comparison evaluates reference consistency between in-situ ARGO float profiles and the canonical-grid GLORYS reanalysis target (ARGO–GLORYS Reference Consistency Assessment). Operational ARGO profiles are assimilated into GLORYS and do not constitute independent validation of the ML model.",
         ""
     ])
 

@@ -31,7 +31,7 @@
 1. **B8 Spatiotemporal Embedding Model Achieves Best Performance Among Evaluated Baselines**:
    - **Test Column-Averaged RMSE = 0.9800 °C** (First and only model to achieve an overall unweighted depth-mean RMSE below 1.0 °C).
    - **Relative Improvement vs Climatology**: **+22.11%** (-0.2782 °C).
-   - **Paired 95% Bootstrap CI**: [-0.3957, -0.1756] °C (strictly negative, proving statistically significant superiority over B1 at p < 0.001).
+   - **Paired 95% Bootstrap CI**: [-0.3957, -0.1756] °C (strictly negative, confirming statistically significant superiority over B1 at p < 0.001).
 2. **Tree Ensembles and Ridge Show Substantial Linear and Non-Linear Skill**:
    - LightGBM (B4: 1.0288 °C) and Ridge (B2: 1.0295 °C) outperform Climatology by ~18% using purely pointwise features.
 3. **Spatiotemporal Context is Essential for Neural Architectures**:

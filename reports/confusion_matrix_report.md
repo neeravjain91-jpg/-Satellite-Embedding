@@ -2,7 +2,7 @@
 
 **Dataset Split**: Held-Out Test Partition (Days 313–365, Nov 9 – Dec 31, 2020)  
 **Total Evaluated Ocean Target Observations**: **8,017,734** valid physical target points across 15 canonical depths ($0$ to $1000$ m)  
-**Oceanographic Reference**: GLORYS numerical ocean reanalysis reference (independently assessed via ARGO–GLORYS Reference Consistency Assessment)  
+**Oceanographic Reference**: GLORYS numerical ocean reanalysis reference (assessed via ARGO–GLORYS Reference Consistency Assessment; note that this comparison assesses the reanalysis reference state and does not constitute independent validation of the ML model)<br>
 **Evaluated Models**: Canonical B1 (Spatial Climatology), Canonical B2 (Multi-Output Ridge), Canonical B3 (Multi-Depth Random Forest), Canonical B5 (Pointwise MLP), and Historical Exploratory Tuning Candidate (Legacy MLP)  
 **Status**: OFFICIALLY AUDITED, HARMONIZED & VERIFIED  
 
@@ -48,9 +48,10 @@ All evaluations are conducted over the exact held-out test split of **$8,017,734
 ## 3. Canonical B3: Multi-Depth Random Forest Confusion Matrix
 
 - **Architecture**: 15 depth-wise Random Forest models (`sklearn.ensemble.RandomForestRegressor`), 50 trees each, max depth 15 ($13,289,966$ total decision nodes).
+- **Evaluation Provenance**: B3 classification metrics are reproduced by refitting the canonical B3 training protocol with the locked seed (`random_state=42`) and 100,000-row training subsample, then evaluating on the frozen held-out test partition.
 - **Exact Accuracy**: **80.65%** ($6,466,349$ correctly classified points out of $8,017,734$).
-- **Within $\pm 1$ Bin Tolerance**: **99.71%** ($7,994,763 / 8,017,734$).
-- **Beyond $\pm 1$ Bin Error**: **0.29%** ($22,971 / 8,017,734$).
+- **Within $\pm 1$ Bin Tolerance**: **99.71%** ($7,994,254 / 8,017,734$).
+- **Beyond $\pm 1$ Bin Error**: **0.29%** ($23,480 / 8,017,734$).
 - **Cohen's Kappa**: **0.7636**.
 
 ### Raw Sample Counts ($N = 8,017,734$)
@@ -84,8 +85,8 @@ All evaluations are conducted over the exact held-out test split of **$8,017,734
 
 - **Architecture**: PyTorch Pointwise MLP (`Linear(7, 128) -> ReLU -> Linear(128, 128) -> ReLU -> Linear(128, 64) -> ReLU -> Linear(64, 15)`), 26,767 trainable parameters.
 - **Exact Accuracy**: **77.67%** ($6,227,512$ correctly classified points out of $8,017,734$).
-- **Within $\pm 1$ Bin Tolerance**: **99.85%** ($8,005,979 / 8,017,734$).
-- **Beyond $\pm 1$ Bin Error**: **0.15%** ($11,755 / 8,017,734$).
+- **Within $\pm 1$ Bin Tolerance**: **99.85%** ($8,006,024 / 8,017,734$).
+- **Beyond $\pm 1$ Bin Error**: **0.15%** ($11,710 / 8,017,734$).
 - **Cohen's Kappa**: **0.7275**.
 
 ### Raw Sample Counts ($N = 8,017,734$)
@@ -119,8 +120,8 @@ All evaluations are conducted over the exact held-out test split of **$8,017,734
 
 - **Architecture**: 15 depth-wise Ridge models with $\alpha^* = 100,000$ (120 coefficients total).
 - **Exact Accuracy**: **79.87%** ($6,404,011 / 8,017,734$).
-- **Within $\pm 1$ Bin Tolerance**: **99.91%** ($8,010,753 / 8,017,734$).
-- **Beyond $\pm 1$ Bin Error**: **0.09%** ($6,981 / 8,017,734$).
+- **Within $\pm 1$ Bin Tolerance**: **99.91%** ($8,010,752 / 8,017,734$).
+- **Beyond $\pm 1$ Bin Error**: **0.09%** ($6,982 / 8,017,734$).
 - **Cohen's Kappa**: **0.7538**.
 
 ### Raw Sample Counts ($N = 8,017,734$)
@@ -141,8 +142,8 @@ All evaluations are conducted over the exact held-out test split of **$8,017,734
 
 - **Architecture**: Historical train-split mean field across coordinates and depths (0 parameters).
 - **Exact Accuracy**: **76.23%** ($6,112,280 / 8,017,734$).
-- **Within $\pm 1$ Bin Tolerance**: **99.39%** ($7,969,040 / 8,017,734$).
-- **Beyond $\pm 1$ Bin Error**: **0.61%** ($48,694 / 8,017,734$).
+- **Within $\pm 1$ Bin Tolerance**: **99.39%** ($7,969,092 / 8,017,734$).
+- **Beyond $\pm 1$ Bin Error**: **0.61%** ($48,642 / 8,017,734$).
 - **Cohen's Kappa**: **0.7078**.
 
 ### Raw Sample Counts ($N = 8,017,734$)
@@ -164,8 +165,8 @@ All evaluations are conducted over the exact held-out test split of **$8,017,734
 - **Checkpoint**: `models/checkpoints/b3_MLP_128_64_best.pt`
 - **Architecture**: Pointwise MLP (`Linear(7, 128) -> ReLU -> Linear(128, 64) -> ReLU -> Linear(64, 15)`), 10,255 parameters.
 - **Exact Accuracy**: **81.19%** ($6,509,625 / 8,017,734$).
-- **Within $\pm 1$ Bin Tolerance**: **99.84%** ($8,004,809 / 8,017,734$).
-- **Beyond $\pm 1$ Bin Error**: **0.16%** ($12,925 / 8,017,734$).
+- **Within $\pm 1$ Bin Tolerance**: **99.84%** ($8,005,155 / 8,017,734$).
+- **Beyond $\pm 1$ Bin Error**: **0.16%** ($12,579 / 8,017,734$).
 - **Cohen's Kappa**: **0.7699**.
 
 ### Raw Sample Counts ($N = 8,017,734$)
@@ -184,17 +185,18 @@ All evaluations are conducted over the exact held-out test split of **$8,017,734
 
 ## 8. Physical Oceanographic Interpretation & Error Adjacency
 
-1. **Adjacency of Classification Errors**:
-   - For all evaluated ML models, between **99.71% and 99.91%** of all test observations fall strictly within $\pm 1$ thermal regime tier of the true regime.
-   - Non-adjacent misclassifications (beyond $\pm 1$ bin) range from a low of **0.09%** (B2 Ridge) to **0.29%** (B3 Random Forest).
-   - This proves that classification errors represent minor deviations along the continuous thermal gradient at regime transition boundaries, rather than unphysical layer inversions or catastrophic artifacts.
+1. **Local Error Adjacency**:
+   - More than 99.7% of evaluated predictions across all supervised ML models fall within the true thermal-regime bin or an immediately adjacent bin ($99.91\%$ for B2 Ridge, $99.85\%$ for B5 Pointwise MLP, $99.71\%$ for B3 Random Forest, $99.84\%$ for Legacy MLP, and $99.39\%$ for B1 Climatology).
+   - This indicates that most classification errors are local in regime space and are concentrated near continuous temperature-regime boundaries.
+   - Non-adjacent misclassifications (beyond $\pm 1$ bin) range from a low of **0.09%** (B2 Ridge) to **0.29%** (B3 Random Forest). Non-adjacent errors exist but remain rare (<0.30% across all supervised ML models).
+   - *Important constraint*: High $\pm 1$-bin containment does not prove vertical monotonicity across individual depth profiles, nor does discrete regime grouping preclude localized gradient inversions. Vertical thermal structure is formally evaluated via continuous profile metrics.
 
 2. **Comparative Model Behavior**:
-   - **Canonical B3 Random Forest** demonstrates the strongest discrete regime classification fidelity among certified baselines with **80.65%** exact accuracy and $\kappa = 0.7636$, significantly outperforming spatial climatology (76.23%, $+4.42\%$).
-   - **Canonical B2 Ridge** delivers **79.87%** exact accuracy with the highest near-neighbor containment (99.91% within $\pm 1$ bin), showing that linear regularized mappings preserve water column monotonicity exceptionally well.
+   - **Canonical B3 Random Forest** achieves the highest discrete regime classification score among certified baselines with **80.65%** exact accuracy and $\kappa = 0.7636$, outperforming spatial climatology (76.23%, $+4.42\%$). (Note: No formal paired significance test has been performed for discrete classification accuracy; significance tests are certified for continuous RMSE).
+   - **Canonical B2 Ridge** delivers **79.87%** exact accuracy with the highest near-neighbor containment (99.91% within $\pm 1$ bin; 0.09% beyond), demonstrating that regularized linear column projections yield high local regime containment along the vertical thermal gradient.
    - **Canonical B5 Pointwise MLP** achieves **77.67%** exact accuracy ($\kappa = 0.7275$), outperforming climatology by $+1.44\%$, but exhibits lower overall skill than tree-based ensembles when spatial/temporal context is excluded.
 
 3. **Data Source & Mask Integrity**:
-   - Target reference: GLORYS numerical ocean reanalysis reference (validated independently against ARGO float profiles in the ARGO–GLORYS Reference Consistency Assessment).
+   - Target reference: GLORYS numerical ocean reanalysis reference (compared against in-situ ARGO float profiles in the ARGO–GLORYS Reference Consistency Assessment; note that this comparison assesses the reanalysis reference state and does not constitute independent validation of the ML model).
    - Surface salinity: Copernicus Multi-Observation SSS.
    - Masking: Exact 4-way target masks applied; bathymetric limits rigorously maintained without artificial zero-filling.

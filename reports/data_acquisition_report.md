@@ -74,11 +74,11 @@ Every required dataset has been inspected against official current metadata cata
    - CCMP 6-hourly wind vectors (00, 06, 12, 18 UTC) aggregated strictly within each day to compute daily mean vectors without using future timestamps.
 4. **Data Leakage Elimination**:
    - Normalization statistics (`mean`, `std`) computed strictly on the designated training period and persisted in `data/metadata/normalization_stats.json`.
-   - Evaluation splits, testing periods, and independent ARGO profiles are strictly decoupled from parameter fitting.
+   - Evaluation splits, testing periods, and in-situ ARGO profile assessments are strictly decoupled from parameter fitting.
 5. **Storage and Lazy Loading**:
    - Stored in chunked Zarr format (1 day per chunk across full spatial domain).
    - PyTorch `OceanReconstructionDataset` verified with batch tensor shapes: `X: (batch, 7, 101, 241)`, `Y: (batch, 15, 101, 241)`, and `mask: (batch, 15, 101, 241)`.
-6. **Independent In-Situ ARGO Validation**:
+6. **In-Situ ARGO–GLORYS Reference Consistency Assessment**:
    - 22,136 live ARGO profile points retrieved from IFREMER GDAC ERDDAP.
-   - 19,225 observation points matched against gridded model temperature within 25 km and 24 hours.
-   - Validation statistics: RMSE = 4.17°C, Correlation r = 0.963.
+   - 19,225 observation points matched against GLORYS reference temperature within 25 km and 24 hours.
+   - Reference consistency statistics: RMSE = 4.17°C, Correlation r = 0.963 (evaluates GLORYS reference agreement against in-situ ARGO profiles; operational ARGO profiles are assimilated into GLORYS and do not constitute independent validation of ML models).

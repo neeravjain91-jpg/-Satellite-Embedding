@@ -1,6 +1,6 @@
 """
 scripts/download_argo.py
-Acquires in-situ ARGO float temperature profiles for independent validation:
+Acquires in-situ ARGO float temperature profiles for ARGO–GLORYS Reference Consistency Assessment:
 - Domain: 5°N–30°N, 45°E–105°E
 - Depths: 0–1000m
 - Source: IFREMER ERDDAP ArgoFloats

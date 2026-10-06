@@ -212,7 +212,7 @@ def check_pilot_completeness(start_date="2020-01-01", end_date="2020-01-07",
 
     req_dates_set = set(dates)
 
-    # 1. ARGO Validation Profiles
+    # 1. ARGO Reference Profiles (ARGO-GLORYS Reference Consistency Assessment)
     argo_path = os.path.join(data_dir, "argo", f"argo_profiles_{start_date}_{end_date}.csv")
     argo_ok = _is_provenance_verified(argo_path)
     if not argo_ok:
@@ -323,7 +323,7 @@ def run_download_pipeline(mode="pilot", exit_on_failure=True):
     results = {}
     
     # 5. Execute dataset acquisitions (resumable)
-    print("\n--- 1/7: ARGO In-Situ Validation Profiles ---")
+    print("\n--- 1/7: ARGO In-Situ Reference Profiles (ARGO-GLORYS Consistency) ---")
     try:
         results["argo"] = download_argo_profiles(start_date, end_date, bbox=bbox)
     except Exception as e:
