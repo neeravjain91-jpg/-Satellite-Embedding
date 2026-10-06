@@ -761,7 +761,7 @@ def serve_ui():
 
           <div class="p-4 bg-slate-950 border border-emerald-900/40 rounded-xl space-y-2">
             <div class="flex items-center gap-2 text-emerald-400 font-bold">
-              <span>✅</span> Independent GEBCO Bathymetry & 4-Way Mask
+              <span>✅</span> GLORYS/ORCA12 Model Bathymetry & 4-Way Mask
             </div>
             <p class="text-slate-400">
               Unified mask enforces: <span class="font-mono text-slate-300">geographic_ocean_mask AND depth_valid_mask AND surface_validity_mask AND target_validity_mask</span>.

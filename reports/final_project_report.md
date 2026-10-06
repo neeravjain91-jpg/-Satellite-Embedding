@@ -67,12 +67,12 @@ The geographic bounding domain covers the **North Indian Ocean (NIO)**:
 ## 8. Data Sources
 The framework harmonizes seven authentic satellite and reanalysis data products:
 1. **SST**: UK Met Office OSTIA (Operational Sea Surface Temperature and Ice Analysis), daily foundation SST at 0.05° regridded to 0.25°.
-2. **SSS**: NASA SMAP (Soil Moisture Active Passive) Level 3 daily sea surface salinity at 0.25°.
+2. **SSS**: Copernicus Multi-Observation Global Ocean Sea Surface Salinity (MULTIOBS) Level 4 daily product at 0.25°.
 3. **SSH**: Copernicus Marine DUACS multimission altimeter gridded daily sea level anomaly and absolute dynamic topography at 0.25°.
 4. **Current U & V**: NOAA OSCAR (Ocean Surface Current Analysis Real-time) third-degree geostrophic and wind-driven surface currents regridded to 0.25°.
 5. **Wind U & V**: Remote Sensing Systems CCMP V3.1 (Cross-Calibrated Multi-Platform) gridded 10-meter ocean surface wind vector components at 0.25°.
 6. **Reference Target**: Copernicus Marine GLORYS12V1 daily potential temperature ($\theta_o$) on native 50-level vertical grid, interpolated to 15 canonical depths.
-7. **Bathymetry**: GEBCO 2024 global terrain grid used to define canonical seafloor cutoffs.
+7. **Bathymetry**: GLORYS/ORCA12 model bathymetry used to define canonical seafloor cutoffs across all 15 depths.
 
 ---
 
@@ -117,7 +117,7 @@ A rigorous four-way composite boolean mask $\mathbf{M} \in \{0, 1\}^{T \times Z 
 1. **Geographic Ocean Mask**: Excludes permanent terrestrial landmasses using Natural Earth 1:10m coastlines.
 2. **Surface Observation Validity Mask**: Requires all 7 surface channels to be non-NaN.
 3. **Target Validity Mask**: Requires target GLORYS field to be valid and uncorrupted.
-4. **Depth Bathymetry Mask**: Depths exceeding local GEBCO seafloor bathymetry are masked as invalid (NaN).
+4. **Depth Bathymetry Mask**: Depths exceeding local GLORYS/ORCA12 model bathymetry are masked as invalid (NaN).
 - **Result**: Valid ocean evaluation samples per day: $N_{\text{valid}} \approx 11,350$. Total test samples: $N_{\text{test}} = 601,550$.
 
 ---
@@ -235,7 +235,7 @@ All 10 models evaluated on the frozen 2020 test partition ($N = 601,550$ samples
 | **B0b** | Day-252 Persistence | Persistence | Train boundary (Day 252) | 0 | 1.7287 | 1.2447 | +0.4705 | -37.39% | N/A |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean | 0 | 1.2582 | 0.9641 | 0.0000 | 0.00% | Reference |
 | **B2** | Multi-Output Ridge | Linear L2 | Pointwise (7 surface) | 120 | 1.0295 | 0.8029 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
-| **B3** | Random Forest | Bagging Trees | Pointwise (7 surface) | 10,255 | 1.0452 | 0.7461 | -0.2130 | +16.93% | N/A |
+| **B3** | Multi-Depth Random Forest | Bagging Trees | Pointwise (7 surface) | 13,289,966 nodes | 1.0452 | 0.7725 | -0.2130 | +16.93% | [-0.3478, -0.1000] |
 | **B4** | Gradient Boosting (LightGBM) | Boosting Trees | Pointwise (7 surface) | 750 | 1.0288 | 0.7615 | -0.2294 | +18.23% | [-0.3617, -0.1195] |
 | **B5** | Pointwise MLP | Neural MLP | Pointwise (7 surface) | 26,767 | 1.5524 | 1.2030 | +0.2942 | -23.38% | [0.2148, 0.3772] |
 | **B6** | Spatial CNN | Conv2D CNN | 3×3 spatial patches | 30,991 | 1.2702 | 0.9646 | +0.0120 | -0.95% | [-0.1042, 0.1205] |
@@ -352,11 +352,11 @@ This project demonstrates that daily multi-satellite surface observations can ac
 ## 31. References
 1. Copernicus Marine Service (CMEMS). *Global Ocean Physics Reanalysis GLORYS12V1*, E.U. Copernicus Marine Service Information, 2020.
 2. Donlon, C. J., et al. (2012). *The Operational Sea Surface Temperature and Sea Ice Analysis (OSTIA) system*. Remote Sensing of Environment, 116, 140–158.
-3. Fore, A. G., et al. (2016). *Combined Active/Passive Microwave Retrieval of Ocean Surface Salinity and Wind Vectors Using SMAP*. IEEE Trans. Geosci. Remote Sens., 54(12), 7396–7404.
+3. Droghei, R., et al. (2018). *A new storm-tailored sea surface salinity product from Copernicus Marine Service*. Journal of Operational Oceanography, 11(2), 65–78.
 4. Pujol, M.-I., et al. (2016). *DUACS DT2014: the new processing chain for satellite altimetry data*. Ocean Science, 12(5), 1067–1090.
 5. Bonjean, F., & Lagerloef, G. S. (2002). *Diagnostic Model and Analysis of the Surface Currents in the Tropical Pacific Ocean*. Journal of Physical Oceanography, 32(10), 2938–2954.
 6. Wentz, F. J., et al. (2015). *Remote Sensing Systems Cross-Calibrated Multi-Platform (CCMP) 6-hourly Ocean Vector Wind Analysis Product on 0.25 deg grid, Version 3.1*. Remote Sensing Systems, Santa Rosa, CA.
-7. GEBCO Bathymetric Compilation Group (2024). *The GEBCO_2024 Grid - a continuous terrain model for oceans and land*. NERC EDS British Oceanographic Data Centre NOC.
+7. Madec, G., et al. (2017). *NEMO ocean engine (Version v3.6)*. Notes du Pôle de modélisation du Climat, Institut Pierre-Simon Laplace (IPSL). (GLORYS12V1 ORCA12 configuration).
 8. Roemmich, D., et al. (2009). *The Argo Program: Observing the Global Ocean with Profiling Floats*. Oceanography, 22(2), 34–43.
 9. Ke, G., et al. (2017). *LightGBM: A Highly Efficient Gradient Boosting Decision Tree*. Advances in Neural Information Processing Systems (NeurIPS 30).
 10. Cho, K., et al. (2014). *Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation*. EMNLP 2014, 1724–1734.

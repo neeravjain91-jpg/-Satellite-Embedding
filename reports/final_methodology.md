@@ -9,7 +9,7 @@
 ## 1. Input Space: Seven Surface Predictors
 The framework consumes seven multi-satellite daily ocean surface observations:
 1. **Sea Surface Temperature (SST)**: UK Met Office OSTIA operational foundation temperature (°C).
-2. **Sea Surface Salinity (SSS)**: NASA SMAP Level 3 sea surface salinity (Practical Salinity Units, PSU).
+2. **Sea Surface Salinity (SSS)**: Copernicus Multi-Observation Global Ocean Sea Surface Salinity (MULTIOBS) Level 4 product (Practical Salinity Units, PSU).
 3. **Sea Surface Height (SSH)**: Copernicus Marine DUACS multi-mission gridded sea level anomaly and absolute dynamic topography (m).
 4. **Zonal Surface Current (Current U)**: NOAA OSCAR geostrophic and wind-driven surface velocity component (m/s).
 5. **Meridional Surface Current (Current V)**: NOAA OSCAR meridional surface velocity component (m/s).
@@ -23,7 +23,7 @@ All surface fields are regridded onto a uniform 0.25° grid across $101 \times 2
 ## 2. Target Space: 15 Canonical Oceanographic Depths
 The target field is Copernicus Marine GLORYS12V1 daily potential temperature ($\theta_o$) interpolated from native model levels to 15 canonical oceanographic depths:
 $$z \in \{0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000\}\text{ meters}$$
-Interpolation is performed using Piecewise Cubic Hermite Interpolating Polynomials (PCHIP) to guarantee monotonic stratification and prevent artificial temperature inversions. Sub-seafloor points are strictly masked as invalid (NaN) using GEBCO 2024 bathymetry; they are never converted to physical 0 °C.
+Interpolation is performed using Piecewise Cubic Hermite Interpolating Polynomials (PCHIP) to guarantee monotonic stratification and prevent artificial temperature inversions. Sub-seafloor points are strictly masked as invalid (NaN) using GLORYS/ORCA12 model bathymetry; they are never converted to physical 0 °C.
 
 ---
 
@@ -33,7 +33,7 @@ $$\mathbf{M}(t, z, \text{lat}, \text{lon}) = \mathbf{M}_{\text{geo}} \land \math
 1. **$\mathbf{M}_{\text{geo}}$ (Geographic Ocean Mask)**: $1$ over open ocean, $0$ over continental landmasses and islands.
 2. **$\mathbf{M}_{\text{surf}}$ (Surface Observation Mask)**: $1$ if all 7 surface predictor values are non-NaN and physically valid.
 3. **$\mathbf{M}_{\text{targ}}$ (Target Validity Mask)**: $1$ if GLORYS target field is present and uncorrupted.
-4. **$\mathbf{M}_{\text{depth}}$ (Bathymetric Depth Mask)**: $1$ if target depth $z \le \text{depth}_{\text{GEBCO}}(\text{lat}, \text{lon})$, $0$ if below the ocean floor.
+4. **$\mathbf{M}_{\text{depth}}$ (Bathymetric Depth Mask)**: $1$ if target depth $z \le \text{depth}_{\text{GLORYS}}(\text{lat}, \text{lon})$, $0$ if below the ocean floor (strictly enforcing GLORYS/ORCA12 model bathymetric cutoffs).
 
 Invalid target entries are excluded from loss computation and metrics:
 $$\mathcal{L}_{\text{masked}} = \frac{\sum_{i, k} M_{i,k} \cdot (\hat{Y}_{i,k} - Y_{i,k})^2}{\sum_{i, k} M_{i,k} + \epsilon}$$

@@ -938,7 +938,7 @@ export const OceanMap: React.FC<OceanMapProps> = ({
                 [{landWarning.lat.toFixed(2)}°N, {landWarning.lon.toFixed(2)}°E]
               </span>
               <span className="block text-[10px] text-amber-300/70">
-                Land cell masked by GEBCO Topography. Ocean ML framework operates only on marine grid points.
+                Land cell masked by model bathymetry. Ocean ML framework operates only on marine grid points.
               </span>
             </div>
           </div>
@@ -1028,7 +1028,7 @@ export const OceanMap: React.FC<OceanMapProps> = ({
           </div>
 
           <div className="hidden lg:flex items-center gap-1 text-slate-400 border-l border-slate-800 pl-3">
-            <span>GEBCO Depth:</span>
+            <span>Seafloor Depth:</span>
             <span className="text-slate-200 font-mono">~{selectedDepth.toLocaleString()} m</span>
           </div>
         </div>

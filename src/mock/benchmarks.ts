@@ -53,7 +53,7 @@ export const BENCHMARK_MODELS: BenchmarkModel[] = [
     family: 'Bagging Ensemble',
     rmse: 1.0452,
     improvementPct: 16.93,
-    parameters: 10255,
+    parameters: 13289966,
     status: 'Baseline'
   },
   {

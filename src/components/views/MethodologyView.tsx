@@ -123,7 +123,7 @@ export const MethodologyView: React.FC = () => {
             <span>Data Sources & Target</span>
           </div>
           <p className="text-slate-300 leading-relaxed">
-            The target is GLORYS12V1 daily potential temperature (<code className="text-cyan-300 font-mono">thetao</code>) interpolated to 15 canonical depth levels down to 1000m. An independent GEBCO 2024 bathymetric model defines seafloor depth. Sub-seafloor points are strictly preserved as NaNs and never converted to physical 0°C.
+            The target is GLORYS12V1 daily potential temperature (<code className="text-cyan-300 font-mono">thetao</code>) interpolated to 15 canonical depth levels down to 1000m. The GLORYS/ORCA12 model bathymetry defines seafloor depth. Sub-seafloor points are strictly preserved as NaNs and never converted to physical 0°C.
           </p>
         </div>
 
@@ -134,7 +134,7 @@ export const MethodologyView: React.FC = () => {
             <span>7 Surface Variables</span>
           </div>
           <p className="text-slate-300 leading-relaxed">
-            Daily predictors include Sea Surface Temperature (OSTIA), Sea Surface Salinity (SMAP), Sea Surface Height (DUACS Altimetry), Zonal & Meridional Currents (OSCAR Geostrophic), and Zonal & Meridional Wind Stress (CCMP V3.1). All standardized strictly with training split statistics.
+            Daily predictors include Sea Surface Temperature (OSTIA), Sea Surface Salinity (Copernicus Multi-Observation SSS), Sea Surface Height (DUACS Altimetry), Zonal & Meridional Currents (OSCAR Geostrophic), and Zonal & Meridional Wind Stress (CCMP V3.1). All standardized strictly with training split statistics.
           </p>
         </div>
 

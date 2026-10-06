@@ -2,7 +2,7 @@
 
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg?style=flat&logo=pytorch)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests: 97 Passed](https://img.shields.io/badge/Tests-97%2F97%20Passing-success.svg)](#test-suite--verification)
+[![Tests: 106 Passed](https://img.shields.io/badge/Tests-106%2F106%20Passing-success.svg)](#test-suite--verification)
 [![Deployed on Vercel](https://img.shields.io/badge/Vercel-Live%20Prototype-black.svg?logo=vercel)](https://code-gules-three.vercel.app)
 [![DOI](https://img.shields.io/badge/Dataset-Certified%202020%20Production-blue.svg)](#certified-multi-satellite--reanalysis-sources)
 
@@ -49,7 +49,7 @@ The study encompasses the tropical and subtropical basin of the North Indian Oce
 - **Bathymetric & Masking Rules**:
   - `geographic_ocean_mask`: 2D ocean boundaries (16,076 valid sea surface cells)
   - `target_validity_mask`: 3D ocean-depth mask enforcing bathymetric seafloor cutoffs (166,400 active 3D ocean cells across 15 depths)
-  - Points below the GEBCO seafloor are masked with strict NaN propagation to prevent unphysical land/sub-bottom hallucinations.
+  - Points below the GLORYS/ORCA12 model seafloor bathymetry are masked with strict NaN propagation to prevent unphysical sub-bottom predictions.
 
 ---
 
@@ -279,9 +279,9 @@ pip install -r requirements.txt
 ```
 
 ### 2. Run the Verification Test Suite
-Ensure the test suite passes (all 97 tests must pass without error):
+Ensure the test suite passes (all 106 tests must pass without error):
 ```bash
-pytest tests/
+pytest tests/ -rs
 ```
 
 ### 3. Evaluate the B8 Spatiotemporal Model
@@ -294,14 +294,15 @@ python scripts/evaluate_all.py --model B8
 
 ## Reproducibility & Test Suite
 
-The test suite contains **97 comprehensive unit and integration tests** guaranteeing end-to-end scientific fidelity:
-- `tests/test_leakage.py`: Proves strict temporal ordering and verifies zero overlap across the 6-day purge buffers.
-- `tests/test_masks.py`: Verifies canonical ocean boundaries and bathymetric cutoff masking across all 15 depths.
-- `tests/test_data_pipeline.py`: Verifies coordinate monotonicity, boundary limits, and normalization idempotence.
-- `tests/test_baselines.py`: Verifies model parameter counts, forward shapes, and reproducible scoring.
+The test suite contains **106 comprehensive unit, integration, and cross-artifact consistency tests** guaranteeing end-to-end scientific fidelity:
+- `tests/test_cross_artifact_consistency.py`: Automated cross-artifact consistency across JSON results, markdown tables, metadata, and frontend benchmarks.
+- `tests/test_confusion_matrix_integrity.py`: Confirms confusion matrix math, Cohen's kappa, and HTML synchronization.
+- `tests/test_ml_protocol_splits_and_leakage.py`: Proves strict temporal ordering and verifies zero overlap across the 6-day purge buffers.
+- `tests/test_scientific_masks_and_integrity.py`: Verifies canonical ocean boundaries and GLORYS/ORCA12 model bathymetric cutoff masking across all 15 depths.
+- `tests/test_b6_b7_b8_genuine_context.py`: Verifies spatial, temporal, and spatiotemporal receptive fields and model forward execution.
 
 ```
-============================== 97 passed in 338.24s ==============================
+============================= 106 passed in 335.80s =============================
 ```
 
 ---

@@ -22,7 +22,7 @@
 - [x] **Target Reference**: CMEMS GLORYS12V1 $\theta_o$ daily reanalysis (1/12° native, vertically splined to 15 depths).
 - [x] **Dual Canonical Ocean Masks**:
   - [x] `geographic_ocean_mask`: 16,076 valid sea surface cells.
-  - [x] `target_validity_mask`: 166,400 active 3D ocean cells across 15 depths enforcing GEBCO bathymetric floor cutoffs (NaN below seafloor).
+  - [x] `target_validity_mask`: 166,400 active 3D ocean cells across 15 depths enforcing GLORYS/ORCA12 model bathymetric floor cutoffs (NaN below seafloor).
 
 ---
 
@@ -49,8 +49,8 @@
   - [x] `models/B1_climatology.py`: Daily Mean Climatology ($\text{RMSE} = 1.2582\ ^\circ\text{C}$)
 - [x] **Level 1 (Tabular Machine Learning Baselines)**:
   - [x] `models/B2_ridge.py`: Ridge Linear Regression $\alpha=100{,}000$ ($\text{RMSE} = 1.0295\ ^\circ\text{C}$, 120 parameters)
-  - [x] `models/B3_random_forest.py`: Random Forest Regressor ($\text{RMSE} = 1.0452\ ^\circ\text{C}$, ~850,000 parameters)
-  - [x] `models/B4_lightgbm.py`: LightGBM Gradient Boosting ($\text{RMSE} = 1.0288\ ^\circ\text{C}$, ~320,000 parameters)
+  - [x] `models/B3_random_forest.py`: Random Forest Regressor ($\text{RMSE} = 1.0452\ ^\circ\text{C}$, 13,289,966 nodes across 750 trees)
+  - [x] `models/B4_lightgbm.py`: LightGBM Gradient Boosting ($\text{RMSE} = 1.0288\ ^\circ\text{C}$, 750 boosting trees)
 - [x] **Level 2 (Deep Learning Ablations)**:
   - [x] `models/B5_pointwise_mlp.py`: Pointwise MLP ($\text{RMSE} = 1.5524\ ^\circ\text{C}$, 26,767 parameters)
   - [x] `models/B6_spatial_cnn.py`: Spatial CNN ($\text{RMSE} = 1.2702\ ^\circ\text{C}$, 30,991 parameters)
@@ -127,13 +127,14 @@
 
 ## 7. Automated Test Suite Verification
 
-- [x] **Command Executed**: `python -m pytest tests/`
-- [x] **Result**: **97 passed**, 0 failed, 52 warnings (100% test pass rate).
+- [x] **Command Executed**: `python -m pytest tests/ -rs`
+- [x] **Result**: **106 passed**, 0 failed, 0 skipped (100% test pass rate).
 - [x] Modules Covered:
-  - `tests/test_leakage.py` (temporal monotonicity, purge buffer width, zero overlap)
-  - `tests/test_masks.py` (2D ocean boundaries, 3D bathymetric cutoffs, NaN consistency)
-  - `tests/test_data_pipeline.py` (coordinate ordering, normalization, bounds)
-  - `tests/test_baselines.py` (model forward passes, shapes, parameter counts)
+  - `tests/test_cross_artifact_consistency.py` (cross-artifact numerical & structural consistency)
+  - `tests/test_confusion_matrix_integrity.py` (confusion matrix math, Cohen's kappa, HTML synchronization)
+  - `tests/test_ml_protocol_splits_and_leakage.py` (temporal monotonicity, purge buffer width, zero overlap)
+  - `tests/test_scientific_masks_and_integrity.py` (2D ocean boundaries, 3D bathymetric cutoffs, NaN consistency)
+  - `tests/test_b6_b7_b8_genuine_context.py` (model forward passes, receptive fields, shapes, parameter counts)
 
 ---
 
@@ -169,7 +170,7 @@
 |---|---|---|
 | Core ML Pipelines & Weights | FROZEN & LOCKED | Antigravity AI Completion Lead |
 | Leakage & Mask Controls | VERIFIED (Zero Leakage) | Antigravity AI Completion Lead |
-| Test Suite (97/97 tests) | 100% PASSING | Antigravity AI Completion Lead |
+| Test Suite (106/106 tests) | 100% PASSING (Zero Skips) | Antigravity AI Completion Lead |
 | Web Prototype Deployment | LIVE ON VERCEL | Antigravity AI Completion Lead |
 | Scientific Documentation & PDF/PPTX | 100% COMPLETE | Antigravity AI Completion Lead |
 | Final Status | **READY FOR SUBMISSION** | Antigravity AI Completion Lead |

@@ -503,7 +503,7 @@ export const MONSOON_CURRENTS = [
 ];
 
 // ============================================================================
-// GEBCO DEPTH ESTIMATION & LAND DETECTION
+// BATHYMETRIC DEPTH ESTIMATION & LAND DETECTION
 // ============================================================================
 
 // Point-in-polygon algorithm (Ray casting)
@@ -586,7 +586,7 @@ export function checkLandLocation(lat: number, lon: number): LandCheckResult {
   return { isLand: false };
 }
 
-// Realistic GEBCO-consistent ocean bathymetric depth calculator (in meters)
+// Realistic ocean bathymetric depth calculator (in meters)
 export function getEstimatedOceanDepth(lat: number, lon: number): number {
   // Check if near continental shelf
   // Arabian Sea deep basin: ~3,500m - 4,400m

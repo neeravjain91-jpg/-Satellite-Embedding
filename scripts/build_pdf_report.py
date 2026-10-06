@@ -320,7 +320,7 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     pb.add_h2("Study Domain Specification")
     pb.add_bullet("Geographic Extent", "Latitude 5.00°N to 30.00°N, Longitude 45.00°E to 105.00°E (Arabian Sea, Bay of Bengal, Equatorial corridor).")
     pb.add_bullet("Horizontal Resolution", "Canonical uniform 0.25° x 0.25° grid: 101 latitude x 241 longitude points = 24,341 horizontal cells.")
-    pb.add_bullet("Masking Envelopes", "16,076 valid sea surface cells; 166,400 active 3D ocean cells across 15 depths after GEBCO bathymetry cutoff.")
+    pb.add_bullet("Masking Envelopes", "16,076 valid sea surface cells; 166,400 active 3D ocean cells across 15 depths after GLORYS/ORCA12 model bathymetry cutoff.")
     pb.add_bullet("Temporal Scope", "Full year 2020 (366 consecutive days, including leap day 2020-02-29).")
 
     pb.add_h2("Certified Input Data Streams")
@@ -362,7 +362,7 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     pb.add_bullet("Temporal Purge Buffers", "With T_purge = 6 days and T_causal = 5 days, no test window can access any data point from the validation or training distributions.")
     pb.add_bullet("Train-Only Normalization", "All z-score transforms (mean and standard deviation for 7 features and 15 depths) were fitted exclusively on Days 0–252 and stored in data/metadata/normalization_stats.json. Zero test statistics contaminated preprocessing.")
     pb.add_bullet("Strict Causal Conditioning", "Inference at day t uses only historical timesteps [t-4, t-3, t-2, t-1, t]. Forward-looking temporal convolutions or bidirectional recurrent networks were strictly prohibited.")
-    pb.add_bullet("Bathymetric Seafloor Cutoffs", "Cells below the GEBCO bathymetry floor were assigned NaN and excluded from loss computation and metric aggregation, preventing unphysical crustal predictions.")
+    pb.add_bullet("Bathymetric Seafloor Cutoffs", "Cells below the GLORYS/ORCA12 model bathymetry floor were assigned NaN and excluded from loss computation and metric aggregation, preventing unphysical sub-bottom predictions.")
 
     # ==========================================
     # PAGE 4: Model Architecture & B8 Embedding Network

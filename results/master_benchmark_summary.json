@@ -100,7 +100,7 @@
       "model_name": "Multi-Depth Random Forest",
       "family": "Bagging Ensemble",
       "context_type": "Pointwise 7-surface",
-      "parameters": 12450,
+      "parameters": 13289966,
       "val_rmse": 1.0467,
       "val_mae": 0.766,
       "val_r2": -0.1211,

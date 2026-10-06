@@ -106,10 +106,9 @@ class TestConfusionMatrixIntegrity(unittest.TestCase):
                                    msg=f"Weighted F1 mismatch for {m_key}: {weighted_f1} vs {m_val['weighted_f1']}")
 
     def test_03_html_artifact_matrix_synchronization(self):
-        """Verify that confusion_matrix.html contains the exact same matrices as confusion_matrix.json."""
-        html_path = r"C:\Users\ASUS\.gemini\antigravity\brain\801295e5-d465-4ab6-84f6-0e0cc01ce3e8\confusion_matrix.html"
-        if not os.path.exists(html_path):
-            self.skipTest("confusion_matrix.html artifact not found at expected path")
+        """Verify that canonical confusion_matrix.html contains the exact same matrices as confusion_matrix.json."""
+        html_path = os.path.join(self.repo_root, "confusion_matrix.html")
+        self.assertTrue(os.path.exists(html_path), f"Required canonical artifact missing: {html_path}")
 
         with open(html_path, "r", encoding="utf-8") as f:
             html_lines = f.readlines()

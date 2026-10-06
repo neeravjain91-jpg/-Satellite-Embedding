@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ocean Thermal Regime Confusion Matrix</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .cell-hover:hover {
+      transform: scale(1.04);
+      z-index: 20;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-3 font-sans">
+  <div class="bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] rounded-2xl p-5 shadow-lg max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[var(--border)] gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 font-bold text-sm">🌊</span>
+          <h2 class="text-[var(--foreground)] font-bold text-xl tracking-tight">Thermal Regime Confusion Matrix</h2>
+        </div>
+        <p class="text-[var(--muted-foreground)] text-xs mt-1">
+          Evaluated on <strong>8,017,734</strong> valid ocean test points across 15 depths (0–1000m) & 53 test days (Nov 9 – Dec 31, 2020).
+        </p>
+        <p class="text-[var(--muted-foreground)] text-[11px] mt-0.5 italic">
+          Six temperature-based thermal regimes defined for diagnostic classification of the continuous temperature field. Reference: GLORYS numerical ocean reanalysis.
+        </p>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Model Select -->
+        <div class="inline-flex rounded-lg p-0.5 bg-[var(--background)] border border-[var(--border)] text-xs">
+          <button id="btn-m-b3" onclick="selectModel('b3')" class="px-2 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs">B3 (RF)</button>
+          <button id="btn-m-b5" onclick="selectModel('b5')" class="px-2 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">B5 (MLP)</button>
+          <button id="btn-m-b2" onclick="selectModel('b2')" class="px-2 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">B2 (Ridge)</button>
+          <button id="btn-m-b1" onclick="selectModel('b1')" class="px-2 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">B1 (Clim)</button>
+          <button id="btn-m-leg" onclick="selectModel('leg')" class="px-2 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">Legacy MLP</button>
+        </div>
+
+        <!-- Metric Mode Select -->
+        <div class="inline-flex rounded-lg p-0.5 bg-[var(--background)] border border-[var(--border)] text-xs">
+          <button id="btn-mode-pct" onclick="selectMode('pct')" class="px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs">Percent (%)</button>
+          <button id="btn-mode-cnt" onclick="selectMode('cnt')" class="px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">Counts (N)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Exact Accuracy</span>
+        <span id="kpi-acc" class="text-xl font-bold text-blue-500">80.65%</span>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">Diagonal match</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Within ±1 Bin</span>
+        <span id="kpi-within1" class="text-xl font-bold text-emerald-500">99.71%</span>
+        <span id="kpi-beyond1" class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">0.29% beyond ±1</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Cohen's Kappa (κ)</span>
+        <span id="kpi-kappa" class="text-xl font-bold text-indigo-500">0.7636</span>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">Substantial agreement</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Macro / Weighted F1</span>
+        <span id="kpi-f1" class="text-xl font-bold text-purple-500">0.8085 / 0.8099</span>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">Balanced class skill</span>
+      </div>
+    </div>
+
+    <!-- Active Model Details Pill -->
+    <div id="model-desc" class="p-2.5 rounded-lg bg-[var(--background)]/60 border border-[var(--border)] text-xs mb-4 text-[var(--muted-foreground)] flex items-center justify-between">
+      <span><strong>Active Model:</strong> B3 Multi-Depth Random Forest (15 depth models, 50 trees, max depth 15, 13,289,966 decision nodes)</span>
+      <span class="text-emerald-500 font-medium">Official Benchmark</span>
+    </div>
+
+    <!-- Confusion Matrix Heatmap Table -->
+    <div class="overflow-x-auto custom-scroll pb-2">
+      <div class="min-w-[620px]">
+        <!-- Axis labels header -->
+        <div class="text-center font-bold text-xs uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
+          Predicted Thermal Regime &rarr;
+        </div>
+
+        <div class="grid grid-cols-[130px_repeat(6,1fr)_80px] gap-1 text-center text-xs">
+          <!-- Top Column Header -->
+          <div class="p-2 text-left font-bold text-[var(--muted-foreground)]">Actual \ Pred</div>
+          <div class="p-2 font-semibold text-[var(--foreground)] truncate" title="Deep Water (<10°C)">&lt;10°C<br><span class="text-[10px] text-[var(--muted-foreground)]">Deep</span></div>
+          <div class="p-2 font-semibold text-[var(--foreground)] truncate" title="Lower Thermocline (10–15°C)">10–15°C<br><span class="text-[10px] text-[var(--muted-foreground)]">Low-TC</span></div>
+          <div class="p-2 font-semibold text-[var(--foreground)] truncate" title="Core Thermocline (15–20°C)">15–20°C<br><span class="text-[10px] text-[var(--muted-foreground)]">Core-TC</span></div>
+          <div class="p-2 font-semibold text-[var(--foreground)] truncate" title="Upper Thermocline (20–25°C)">20–25°C<br><span class="text-[10px] text-[var(--muted-foreground)]">Upp-TC</span></div>
+          <div class="p-2 font-semibold text-[var(--foreground)] truncate" title="Subsurface Mixed Layer (25–28°C)">25–28°C<br><span class="text-[10px] text-[var(--muted-foreground)]">Mixed</span></div>
+          <div class="p-2 font-semibold text-[var(--foreground)] truncate" title="Tropical Warm Pool (≥28°C)">≥28°C<br><span class="text-[10px] text-[var(--muted-foreground)]">Warm Pool</span></div>
+          <div class="p-2 font-bold text-[var(--muted-foreground)]">Recall</div>
+
+          <!-- Rows injected by JavaScript -->
+          <div id="matrix-body" class="contents"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-Class Diagnostic Performance Table -->
+    <div class="mt-5 pt-4 border-t border-[var(--border)]">
+      <h3 class="font-bold text-sm text-[var(--foreground)] mb-2 flex items-center justify-between">
+        <span>Per-Class Oceanographic Diagnostic Metrics</span>
+        <span class="text-xs font-normal text-[var(--muted-foreground)]">N = 8,017,734 Valid Physical Target Points</span>
+      </h3>
+      <div class="overflow-x-auto custom-scroll">
+        <table class="w-full text-left text-xs border border-[var(--border)] rounded-lg overflow-hidden">
+          <thead class="bg-[var(--background)] text-[var(--muted-foreground)] border-b border-[var(--border)]">
+            <tr>
+              <th class="p-2 font-medium">Thermal Regime</th>
+              <th class="p-2 font-medium text-right">Support (N)</th>
+              <th class="p-2 font-medium text-right">True Positives</th>
+              <th class="p-2 font-medium text-right">Precision</th>
+              <th class="p-2 font-medium text-right">Recall</th>
+              <th class="p-2 font-medium text-right">F1-Score</th>
+            </tr>
+          </thead>
+          <tbody id="per-class-body" class="divide-y divide-[var(--border)]"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Oceanographic Context & Methodology Notes -->
+    <div class="mt-4 pt-3 border-t border-[var(--border)] text-[11px] text-[var(--muted-foreground)] space-y-1">
+      <p>• <strong>Local Error Adjacency:</strong> More than 99.7% of evaluated predictions fall within the true thermal-regime bin or an immediately adjacent bin. This indicates that most classification errors are local in regime space and are concentrated near continuous temperature-regime boundaries. Adjacency does not prove vertical profile monotonicity or absence of localized inversions.</p>
+      <p>• <strong>Diagnostic Purpose:</strong> Discretizing the temperature field into 6 thermal regimes provides structural insight into vertical water masses; primary model selection and optimization are performed using continuous column-averaged RMSE across 15 depths.</p>
+      <p>• <strong>Reference Product Semantics:</strong> Target temperatures are derived from the GLORYS numerical ocean reanalysis. In-situ ARGO profiles serve as an observational reference consistency check on GLORYS (ARGO–GLORYS Reference Consistency Assessment), not direct independent ML validation.</p>
+    </div>
+  </div>
+
+  <script>
+    const LABELS = [
+      "Deep Water (<10°C)",
+      "Lower Thermocline (10–15°C)",
+      "Core Thermocline (15–20°C)",
+      "Upper Thermocline (20–25°C)",
+      "Mixed Layer (25–28°C)",
+      "Tropical Warm Pool (≥28°C)"
+    ];
+
+    const MODELS = {
+      b3: {
+        id: "B3",
+        name: "Multi-Depth Random Forest",
+        desc: "Canonical B3 Multi-Depth Random Forest (15 depth models, 50 trees, max depth 15; reproduced via refitting under locked seed & 100k-row training subsample)",
+        status: "Official Benchmark",
+        acc: "80.65%",
+        within1: "99.71%",
+        beyond1: "0.29% beyond ±1",
+        kappa: "0.7636",
+        f1: "0.8085 / 0.8099",
+        cm: [
+          [687687, 109919, 0, 0, 0, 0],
+          [70667, 1176049, 129101, 749, 2, 0],
+          [0, 53055, 751149, 173738, 2480, 0],
+          [0, 0, 88573, 838458, 151940, 1669],
+          [0, 0, 719, 229230, 1444916, 64043],
+          [0, 0, 0, 17861, 457639, 1568090]
+        ],
+        perClass: [
+          { name: "Deep Water (<10°C)", n: 797606, tp: 687687, p: "90.68%", r: "86.22%", f1: "0.8839" },
+          { name: "Lower Thermocline (10–15°C)", n: 1376568, tp: 1176049, p: "87.83%", r: "85.43%", f1: "0.8661" },
+          { name: "Core Thermocline (15–20°C)", n: 980422, tp: 751149, p: "77.47%", r: "76.61%", f1: "0.7704" },
+          { name: "Upper Thermocline (20–25°C)", n: 1080640, tp: 838458, p: "66.54%", r: "77.59%", f1: "0.7164" },
+          { name: "Mixed Layer (25–28°C)", n: 1738908, tp: 1444916, p: "70.24%", r: "83.09%", f1: "0.7613" },
+          { name: "Tropical Warm Pool (≥28°C)", n: 2043590, tp: 1568090, p: "95.98%", r: "76.73%", f1: "0.8528" }
+        ]
+      },
+      b5: {
+        id: "B5",
+        name: "Pointwise MLP",
+        desc: "Canonical B5 Pointwise Multi-Layer Perceptron (PyTorch, [128, 128, 64], 26,767 trainable parameters)",
+        status: "Official Benchmark",
+        acc: "77.67%",
+        within1: "99.85%",
+        beyond1: "0.15% beyond ±1",
+        kappa: "0.7275",
+        f1: "0.7876 / 0.7797",
+        cm: [
+          [709463, 88143, 0, 0, 0, 0],
+          [100148, 1145665, 130470, 285, 0, 0],
+          [0, 55776, 747934, 174469, 2241, 2],
+          [0, 0, 80690, 831244, 166712, 1994],
+          [0, 0, 42, 211206, 1441628, 86032],
+          [0, 0, 0, 7146, 684866, 1351578]
+        ],
+        perClass: [
+          { name: "Deep Water (<10°C)", n: 797606, tp: 709463, p: "87.63%", r: "88.95%", f1: "0.8828" },
+          { name: "Lower Thermocline (10–15°C)", n: 1376568, tp: 1145665, p: "88.84%", r: "83.23%", f1: "0.8594" },
+          { name: "Core Thermocline (15–20°C)", n: 980422, tp: 747934, p: "77.98%", r: "76.29%", f1: "0.7712" },
+          { name: "Upper Thermocline (20–25°C)", n: 1080640, tp: 831244, p: "67.89%", r: "76.92%", f1: "0.7213" },
+          { name: "Mixed Layer (25–28°C)", n: 1738908, tp: 1441628, p: "62.80%", r: "82.90%", f1: "0.7147" },
+          { name: "Tropical Warm Pool (≥28°C)", n: 2043590, tp: 1351578, p: "93.89%", r: "66.14%", f1: "0.7761" }
+        ]
+      },
+      b2: {
+        id: "B2",
+        name: "Multi-Output Ridge",
+        desc: "Canonical B2 Multi-Output Ridge Regression (alpha=100,000, 120 regression coefficients)",
+        status: "Official Benchmark",
+        acc: "79.87%",
+        within1: "99.91%",
+        beyond1: "0.09% beyond ±1",
+        kappa: "0.7538",
+        f1: "0.8023 / 0.8014",
+        cm: [
+          [672961, 124645, 0, 0, 0, 0],
+          [71449, 1161093, 143897, 129, 0, 0],
+          [53, 65071, 738559, 174537, 2193, 9],
+          [0, 0, 73527, 841146, 164101, 1866],
+          [0, 0, 0, 168000, 1496511, 74397],
+          [0, 0, 0, 2732, 547117, 1493741]
+        ],
+        perClass: [
+          { name: "Deep Water (<10°C)", n: 797606, tp: 672961, p: "90.40%", r: "84.37%", f1: "0.8728" },
+          { name: "Lower Thermocline (10–15°C)", n: 1376568, tp: 1161093, p: "85.96%", r: "84.35%", f1: "0.8514" },
+          { name: "Core Thermocline (15–20°C)", n: 980422, tp: 738559, p: "77.26%", r: "75.33%", f1: "0.7628" },
+          { name: "Upper Thermocline (20–25°C)", n: 1080640, tp: 841146, p: "70.89%", r: "77.84%", f1: "0.7420" },
+          { name: "Mixed Layer (25–28°C)", n: 1738908, tp: 1496511, p: "67.72%", r: "86.06%", f1: "0.7579" },
+          { name: "Tropical Warm Pool (≥28°C)", n: 2043590, tp: 1493741, p: "95.14%", r: "73.09%", f1: "0.8267" }
+        ]
+      },
+      b1: {
+        id: "B1",
+        name: "Spatial Climatology",
+        desc: "Canonical B1 Spatial-Depth Climatology (Historical training mean across lat, lon, and depth)",
+        status: "Official Reference",
+        acc: "76.23%",
+        within1: "99.39%",
+        beyond1: "0.61% beyond ±1",
+        kappa: "0.7078",
+        f1: "0.7632 / 0.7604",
+        cm: [
+          [740665, 56941, 0, 0, 0, 0],
+          [67797, 1185362, 118851, 4270, 288, 0],
+          [0, 45279, 645130, 279430, 10583, 0],
+          [0, 0, 118180, 685005, 264178, 13277],
+          [0, 0, 236, 174816, 1039151, 524705],
+          [0, 0, 0, 19988, 206635, 1816967]
+        ],
+        perClass: [
+          { name: "Deep Water (<10°C)", n: 797606, tp: 740665, p: "91.61%", r: "92.86%", f1: "0.9223" },
+          { name: "Lower Thermocline (10–15°C)", n: 1376568, tp: 1185362, p: "92.06%", r: "86.11%", f1: "0.8899" },
+          { name: "Core Thermocline (15–20°C)", n: 980422, tp: 645130, p: "73.11%", r: "65.80%", f1: "0.6926" },
+          { name: "Upper Thermocline (20–25°C)", n: 1080640, tp: 685005, p: "58.87%", r: "63.39%", f1: "0.6105" },
+          { name: "Mixed Layer (25–28°C)", n: 1738908, tp: 1039151, p: "68.33%", r: "59.76%", f1: "0.6376" },
+          { name: "Tropical Warm Pool (≥28°C)", n: 2043590, tp: 1816967, p: "77.16%", r: "88.91%", f1: "0.8262" }
+        ]
+      },
+      leg: {
+        id: "Legacy",
+        name: "Exploratory Tuning Candidate (MLP_128_64)",
+        desc: "Historical Exploratory Tuning Candidate (10,255 weights, provenance origin of the initial 81.19% matrix)",
+        status: "Historical Reference",
+        acc: "81.19%",
+        within1: "99.84%",
+        beyond1: "0.16% beyond ±1",
+        kappa: "0.7699",
+        f1: "0.8133 / 0.8146",
+        cm: [
+          [695353, 102253, 0, 0, 0, 0],
+          [75342, 1163137, 137834, 255, 0, 0],
+          [0, 47705, 761959, 168932, 1821, 5],
+          [0, 0, 87190, 824379, 167082, 1989],
+          [0, 0, 1, 180261, 1457588, 101058],
+          [0, 0, 0, 8508, 427873, 1607209]
+        ],
+        perClass: [
+          { name: "Deep Water (<10°C)", n: 797606, tp: 695353, p: "90.22%", r: "87.18%", f1: "0.8868" },
+          { name: "Lower Thermocline (10–15°C)", n: 1376568, tp: 1163137, p: "88.58%", r: "84.50%", f1: "0.8649" },
+          { name: "Core Thermocline (15–20°C)", n: 980422, tp: 761959, p: "77.20%", r: "77.72%", f1: "0.7746" },
+          { name: "Upper Thermocline (20–25°C)", n: 1080640, tp: 824379, p: "69.72%", r: "76.29%", f1: "0.7286" },
+          { name: "Mixed Layer (25–28°C)", n: 1738908, tp: 1457588, p: "70.95%", r: "83.82%", f1: "0.7685" },
+          { name: "Tropical Warm Pool (≥28°C)", n: 2043590, tp: 1607209, p: "93.97%", r: "78.65%", f1: "0.8563" }
+        ]
+      }
+    };
+
+    let currentModel = "b3";
+    let currentMode = "pct";
+
+    function selectModel(mKey) {
+      currentModel = mKey;
+      ['b3', 'b5', 'b2', 'b1', 'leg'].forEach(k => {
+        const btn = document.getElementById(`btn-m-${k}`);
+        if (k === mKey) {
+          btn.className = "px-2 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs";
+        } else {
+          btn.className = "px-2 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]";
+        }
+      });
+      render();
+    }
+
+    function selectMode(mode) {
+      currentMode = mode;
+      document.getElementById('btn-mode-pct').className = mode === 'pct' ?
+        "px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs" :
+        "px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]";
+      document.getElementById('btn-mode-cnt').className = mode === 'cnt' ?
+        "px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs" :
+        "px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]";
+      render();
+    }
+
+    function render() {
+      const m = MODELS[currentModel];
+
+      // Update KPIs
+      document.getElementById('kpi-acc').innerText = m.acc;
+      document.getElementById('kpi-within1').innerText = m.within1;
+      document.getElementById('kpi-beyond1').innerText = m.beyond1;
+      document.getElementById('kpi-kappa').innerText = m.kappa;
+      document.getElementById('kpi-f1').innerText = m.f1;
+
+      // Update description
+      const descEl = document.getElementById('model-desc');
+      const statusColor = m.status === 'Historical Reference' ? 'text-amber-500' : 'text-emerald-500';
+      descEl.innerHTML = `<span><strong>Active Model:</strong> ${m.desc}</span><span class="${statusColor} font-medium">${m.status}</span>`;
+
+      // Render Matrix
+      const body = document.getElementById('matrix-body');
+      body.innerHTML = '';
+
+      const cm = m.cm;
+      for (let i = 0; i < 6; i++) {
+        const rowSum = cm[i].reduce((a, b) => a + b, 0);
+
+        // Row header
+        const rH = document.createElement('div');
+        rH.className = "p-2 text-left font-semibold text-[var(--foreground)] flex items-center justify-between text-xs";
+        rH.innerHTML = `<span class="truncate" title="${LABELS[i]}">${LABELS[i]}</span>`;
+        body.appendChild(rH);
+
+        // Cells
+        for (let j = 0; j < 6; j++) {
+          const val = cm[i][j];
+          const pct = ((val / rowSum) * 100).toFixed(1);
+          const isDiag = (i === j);
+          const isAdj = Math.abs(i - j) === 1;
+
+          let bg = 'bg-[var(--background)]';
+          let textColor = 'text-[var(--muted-foreground)]';
+
+          if (isDiag) {
+            bg = pct > 80 ? 'bg-blue-600/30' : 'bg-blue-600/20';
+            textColor = 'text-blue-500 font-bold';
+          } else if (isAdj && val > 0) {
+            bg = 'bg-amber-500/10';
+            textColor = 'text-amber-600';
+          } else if (val === 0) {
+            textColor = 'text-[var(--muted-foreground)]/30';
+          }
+
+          const cell = document.createElement('div');
+          cell.className = `p-2 rounded-lg border border-[var(--border)]/50 ${bg} ${textColor} flex flex-col justify-center items-center cell-hover transition-all cursor-default text-xs`;
+          if (currentMode === 'pct') {
+            cell.innerHTML = `<span>${pct}%</span><span class="text-[9px] text-[var(--muted-foreground)]">${val > 999999 ? (val/1e6).toFixed(2)+'M' : (val/1e3).toFixed(0)+'k'}</span>`;
+          } else {
+            cell.innerHTML = `<span>${val.toLocaleString()}</span><span class="text-[9px] text-[var(--muted-foreground)]">${pct}%</span>`;
+          }
+          body.appendChild(cell);
+        }
+
+        // Row Recall
+        const rRec = document.createElement('div');
+        const recallVal = ((cm[i][i] / rowSum) * 100).toFixed(1);
+        rRec.className = "p-2 font-bold text-xs flex items-center justify-center text-blue-500";
+        rRec.innerText = `${recallVal}%`;
+        body.appendChild(rRec);
+      }
+
+      // Render Per-Class Table
+      const pcBody = document.getElementById('per-class-body');
+      pcBody.innerHTML = '';
+      m.perClass.forEach(pc => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-[var(--background)]/40";
+        tr.innerHTML = `
+          <td class="p-2 font-medium text-[var(--foreground)]">${pc.name}</td>
+          <td class="p-2 text-right text-[var(--muted-foreground)]">${pc.n.toLocaleString()}</td>
+          <td class="p-2 text-right text-[var(--muted-foreground)]">${pc.tp.toLocaleString()}</td>
+          <td class="p-2 text-right font-semibold text-emerald-500">${pc.p}</td>
+          <td class="p-2 text-right font-semibold text-blue-500">${pc.r}</td>
+          <td class="p-2 text-right font-bold text-purple-500">${pc.f1}</td>
+        `;
+        pcBody.appendChild(tr);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

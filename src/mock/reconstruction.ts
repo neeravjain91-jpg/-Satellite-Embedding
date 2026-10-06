@@ -10,7 +10,7 @@ export const RECONSTRUCTION_STAGES: PipelineStage[] = [
     status: 'idle',
     details: {
       'Channels': '7 physical variables',
-      'Sources': 'OSTIA, SMAP, DUACS, OSCAR, CCMP',
+      'Sources': 'OSTIA, Copernicus SSS, DUACS, OSCAR, CCMP',
       'Resolution': '0.25° spatial grid'
     }
   },

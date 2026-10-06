@@ -13,7 +13,7 @@ code/
 ├── models/                # PyTorch neural architectures, scikit-learn baselines, checkpoints
 ├── preprocessing/         # Regridding, canonical grid definitions, masking, tabular extraction
 ├── scripts/               # Production pipelines, training routines, benchmark compilation
-├── tests/                 # 97 automated pytest unit and integration regression tests
+├── tests/                 # 106 automated pytest unit and integration regression tests
 ├── results/               # Authoritative B0–B8 evaluation JSON manifests & checksums
 ├── reports/               # Formal scientific reports, audit logs, and QA summaries
 ├── src/                   # React 18 + TypeScript + Tailwind frontend interactive prototype
@@ -31,7 +31,7 @@ code/
 ## Detailed Directory Breakdown
 
 ### 1. `data/`
-- `raw/`: Raw downloaded NetCDF files from Earthdata, Copernicus Marine, and RSS (OSTIA, SMAP, DUACS, OSCAR, CCMP, GLORYS).
+- `raw/`: Raw downloaded NetCDF files from Earthdata, Copernicus Marine, and RSS (OSTIA, SSS, DUACS, OSCAR, CCMP, GLORYS).
 - `interim/`: Temporarily chunked and validated regridded arrays during harmonization.
 - `processed/`: Production Zarr v3 datasets (`full_year_2020_surface.zarr`, `full_year_2020_target.zarr`, `scalers.json`) certified across 366 days.
 
@@ -42,7 +42,7 @@ code/
 
 ### 3. `preprocessing/`
 - `canonical_grid.py`: Authoritative domain grid definitions ($5^\circ-30^\circ\text{N}$, $45^\circ-105^\circ\text{E}$ at 0.25°), 7 surface feature names, and 15 canonical ocean depths.
-- `ocean_mask.py`: Four-way composite mask construction (geographic ocean, surface observation validity, GLORYS target validity, and GEBCO bathymetry cutoff).
+- `ocean_mask.py`: Four-way composite mask construction (geographic ocean, surface observation validity, GLORYS target validity, and GLORYS/ORCA12 model bathymetry cutoff).
 - `regrid.py`: Normalized bilinear interpolation with coastal zero-bleed prevention.
 - `tabular_dataset.py`: Temporal partition extraction, purge buffer enforcement (6-day gaps), and train-only z-score normalization.
 

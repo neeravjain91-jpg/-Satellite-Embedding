@@ -187,7 +187,7 @@ def create_deck(output_path="submission/Final_Project_Presentation.pptx"):
     p2.text = "\n• Spatial Bounding Box: 5.00°N to 30.00°N, 45.00°E to 105.00°E\n" \
               "• Canonical Grid: 0.25° × 0.25° (101 lat × 241 lon = 24,341 horizontal cells)\n" \
               "• Valid Ocean Sea Surface Cells: 16,076 cells\n" \
-              "• Active 3D Ocean-Depth Cells: 166,400 cells (GEBCO bathymetry cutoff enforced)\n" \
+              "• Active 3D Ocean-Depth Cells: 166,400 cells (GLORYS/ORCA12 model bathymetry cutoff enforced)\n" \
               "• Temporal Extent: Full Year 2020 (366 consecutive calendar days, leap day verified)\n" \
               "• 15 Target Depths: [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000] m\n" \
               "• Target Reference: CMEMS GLORYS12V1 (1/12° daily reanalysis, reference state)"
@@ -297,7 +297,7 @@ def create_deck(output_path="submission/Final_Project_Presentation.pptx"):
     p.text = "3. Bathymetric Cutoffs"
     p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = ACCENT_CYAN
     p2 = tf.add_paragraph()
-    p2.text = "\n• Sub-seafloor cells strictly masked as NaN via GEBCO bathymetry.\n" \
+    p2.text = "\n• Sub-seafloor cells strictly masked as NaN via GLORYS/ORCA12 model bathymetry.\n" \
               "• Loss computed only on active ocean depths.\n" \
               "• Prevents models from hallucinating temperature inside solid continental crust."
     p2.font.size = Pt(11); p2.font.color.rgb = TEXT_LIGHT
