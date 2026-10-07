@@ -191,6 +191,8 @@ def test_markdown_tables_consistency():
     reports_to_check = [
         os.path.join(REPO_ROOT, "reports", "final_results_table.md"),
         os.path.join(REPO_ROOT, "reports", "final_project_report.md"),
+        os.path.join(REPO_ROOT, "reports", "FINAL_ACADEMIC_PROJECT_REPORT.md"),
+        os.path.join(REPO_ROOT, "docs", "FINAL_PRESENTATION.md"),
     ]
 
     for report_path in reports_to_check:

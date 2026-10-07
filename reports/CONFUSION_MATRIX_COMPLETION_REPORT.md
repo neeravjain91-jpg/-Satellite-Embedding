@@ -240,9 +240,9 @@ Evaluated over the held-out test split of **$8,017,734$** valid target observati
 ## 8. Physical Oceanographic Interpretation & Error Adjacency
 
 1. **Local Error Adjacency**:
-   More than 99.7% of evaluated predictions across all supervised ML models (B2, B3, B5) fall within the true thermal-regime bin or an immediately adjacent bin ($99.91\%$ for B2 Ridge, $99.85\%$ for B5 Pointwise MLP, $99.71\%$ for B3 Random Forest). This indicates that most classification errors are local in regime space and are concentrated near continuous temperature-regime boundaries. Non-adjacent misclassifications (beyond $\pm 1$ bin) range from a low of $0.09\%$ (B2 Ridge) to $0.29\%$ (B3 Random Forest). Non-adjacent errors exist but remain rare (<0.30% across all supervised ML models).
+   More than 99.7% of evaluated predictions across all supervised ML models (B2, B3, B5) fall within the true thermal-regime bin or an immediately adjacent bin ($99.91\%$ for B2 Ridge, $99.85\%$ for B5 Pointwise MLP, $99.71\%$ for B3 Random Forest). This indicates that classification errors are predominantly localized near continuous temperature-regime boundaries. Non-adjacent misclassifications (beyond $\pm 1$ bin) range from a low of $0.09\%$ (B2 Ridge) to $0.29\%$ (B3 Random Forest). Non-adjacent errors exist but remain rare (<0.30% across all supervised ML models).
 
-   *Important scientific constraint*: High $\pm 1$-bin containment does not prove vertical monotonicity across individual depth profiles, nor does discrete regime grouping preclude localized gradient inversions. Vertical thermal structure is formally evaluated via continuous profile metrics.
+   *Important scientific constraint*: High $\pm 1$-bin containment does not prove vertical profile monotonicity or rule out localized gradient inversions. Vertical thermal structure is formally evaluated via continuous profile metrics.
 
 2. **Comparative Model Analysis**:
    - **B3 Random Forest** achieves the highest discrete regime classification score among certified baselines with **80.65%** exact accuracy and $\kappa = 0.7636$, outperforming spatial climatology (76.23%, $+4.42\%$). (Note: No formal paired significance test has been certified for discrete classification accuracy; paired bootstrap significance is certified for continuous RMSE).

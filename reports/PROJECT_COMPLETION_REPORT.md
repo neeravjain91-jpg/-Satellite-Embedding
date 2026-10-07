@@ -140,14 +140,14 @@ Evaluated across Days 313–365 ($N = 601,550$ columns, $8,017,734$ valid depth 
 | **30 m** | 1.3547 | 1.5090 | 0.9566 | 0.9774 | 0.9445 | 1.2014 | 1.2373 | 1.1481 | 1.2810 | **0.8607** |
 | **50 m** | 1.9890 | 1.7901 | 1.4925 | 1.3598 | 1.3648 | 1.5215 | 1.5266 | 1.3364 | 1.6785 | **1.3493** |
 | **75 m** | 2.9648 | 2.4603 | 2.3034 | 1.7446 | 1.7669 | 1.9062 | 1.9267 | 1.7498 | 2.1319 | **1.8110** |
-| **100 m** | 2.8988 | 2.5029 | 2.3396 | 1.6599 | 1.6766 | 1.7107 | 1.8344 | 1.6715 | 2.0526 | **1.7052** |
-| **125 m** | 2.4764 | 2.3105 | 2.0913 | 1.5649 | 1.5905 | 1.5471 | 1.7580 | 1.5818 | 1.9427 | **1.5643** |
-| **150 m** | 2.0838 | 2.0191 | 1.8159 | 1.4880 | 1.5173 | 1.4184 | 1.7610 | 1.5540 | 1.8596 | **1.4503** |
-| **200 m** | 1.4727 | 1.5796 | 1.4082 | 1.3259 | 1.3578 | 1.1963 | 1.7656 | 1.4851 | 1.6917 | **1.2330** |
-| **300 m** | 0.8228 | 1.1278 | 0.9850 | 1.0560 | 1.0772 | 0.9329 | 1.6882 | 1.2584 | 1.4862 | **0.9599** |
-| **500 m** | 0.5484 | 0.6974 | 0.5739 | 0.7712 | 0.7779 | 0.7027 | 1.5057 | 0.9996 | 1.2405 | **0.7103** |
-| **700 m** | 0.4485 | 0.5458 | 0.4286 | 0.6698 | 0.6811 | 0.6277 | 1.4055 | 0.8872 | 1.1592 | **0.6288** |
-| **1000 m**| 0.4072 | 0.4879 | 0.3831 | 0.6385 | 0.6483 | 0.6212 | 1.3789 | 0.8258 | 1.0967 | **0.5959** |
+| **100 m** | 3.1785 | 2.8206 | 2.6329 | 1.7556 | 1.7092 | 1.7128 | 1.9476 | 1.9058 | 2.0737 | **1.7651** |
+| **125 m** | 2.8495 | 2.8181 | 2.4589 | 1.4969 | 1.4864 | 1.5079 | 1.8911 | 1.7727 | 1.9133 | **1.5022** |
+| **150 m** | 2.2196 | 2.5000 | 2.0117 | 1.3179 | 1.3566 | 1.4048 | 1.8301 | 1.5840 | 1.8289 | **1.3650** |
+| **200 m** | 1.2338 | 1.7621 | 1.2421 | 1.2878 | 1.2221 | 1.1656 | 1.8391 | 1.3819 | 1.7152 | **1.1834** |
+| **300 m** | 0.6829 | 0.7630 | 0.6337 | 1.1761 | 0.9541 | 0.8699 | 1.5621 | 1.1565 | 1.4836 | **0.9845** |
+| **500 m** | 0.4063 | 0.4361 | 0.3411 | 0.8282 | 0.6358 | 0.6422 | 1.2918 | 0.8095 | 1.1899 | **0.6870** |
+| **700 m** | 0.4583 | 0.4597 | 0.3486 | 0.7578 | 0.6513 | 0.6378 | 1.2657 | 0.7290 | 1.1740 | **0.6619** |
+| **1000 m**| 0.4585 | 0.5088 | 0.3709 | 0.6542 | 0.5581 | 0.5947 | 1.0099 | 0.6060 | 1.0165 | **0.5959** |
 
 #### 6.3 Regional Test Error Breakdown (B8 Champion)
 - **Full Domain** (Cosine-latitude weighted): $0.9642^\circ\text{C}$ ($N = 601,550$)
@@ -223,8 +223,8 @@ To evaluate continuous temperature field fidelity in discrete oceanographic laye
 | *Legacy MLP* | *81.19%* | *99.84%* | *0.16%* | *0.7699* | *0.8133* | *0.8146* | Historical Tuning Candidate |
 
 #### 9.2 Scientific Claim Hardening
-- **Concentration of Errors**: More than 99.7% of evaluated predictions fall within the true thermal-regime bin or an immediately adjacent bin ($99.91\%$ for B2, $99.85\%$ for B5, $99.71\%$ for B3). This indicates that most classification errors are local in regime space and are concentrated near continuous temperature-regime boundaries.
-- **Physical Interpretation Constraint**: High $\pm 1$-bin containment does not prove vertical profile monotonicity, nor does it infer the complete absence of physical layer inversions. It serves as a diagnostic indicator of localized error behavior in temperature space.
+- **Concentration of Errors**: More than 99.7% of evaluated predictions fall within the true thermal-regime bin or an immediately adjacent bin ($99.91\%$ for B2, $99.85\%$ for B5, $99.71\%$ for B3). This indicates that classification errors are predominantly localized near continuous temperature-regime boundaries.
+- **Physical Interpretation Constraint**: High $\pm 1$-bin containment does not prove vertical profile monotonicity or rule out localized gradient inversions. It serves as a diagnostic indicator of localized error behavior in temperature space.
 - **Legacy Provenance Clarification**: The 81.19% figure previously recorded originated from an exploratory tuning candidate (`b3_MLP_128_64_best.pt`, 10,255 parameters). Under the locked benchmark hierarchy, canonical B3 is the Multi-Depth Random Forest (80.65% exact accuracy, 13,289,966 nodes across 750 trees).
 
 ---
