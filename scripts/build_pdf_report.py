@@ -407,7 +407,7 @@ def build_pdf(output_path="submission/Final_Project_Submission.pdf"):
     headers_bm = ["Model", "Description", "Input Context", "Parameters", "Test RMSE (°C)", "Gain vs B1", "Status"]
     rows_bm = [
         ["B0", "Day-0 Persistence", "Target column (Day 0)", "0", "1.5220", "-20.97%", "Locked"],
-        ["B0b", "Day-252 Persistence", "Target column (Day 252)", "0", "1.7287", "-37.40%", "Locked"],
+        ["B0b", "Day-252 Persistence", "Target column (Day 252)", "0", "1.7287", "-37.39%", "Locked"],
         ["B1", "Daily Climatology", "366-day daily mean", "0", "1.2582", "Reference", "Locked"],
         ["B2", "Ridge Linear Regression (alpha=100,000)", "Pointwise 7 features", "120", "1.0295", "+18.18%", "Locked"],
         ["B3", "Random Forest Regressor", "Pointwise 7 features", "~850,000", "1.0452", "+16.93%", "Locked"],

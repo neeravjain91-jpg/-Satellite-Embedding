@@ -16,10 +16,15 @@ Satellite sensors observe only the ocean surface skin and mixed-layer boundary, 
 - **Leakage Controls**: All normalization scalers fitted strictly on training data; 6-day purge buffers exceed temporal autocorrelation memory; 4-way composite mask preserves seafloor bathymetry without filling target NaNs with zero.
 
 ### 3. Model Hierarchy & Champion B8 Architecture
-We established a 10-model hierarchy: persistence (B0: 1.5220 °C, B0b: 1.7287 °C), daily climatology (B1: 1.2582 °C), regularized linear regression (B2: 1.0295 °C), random forest (B3: 1.0452 °C, 13,289,966 nodes across 750 trees), LightGBM (B4: 1.0288 °C), pointwise MLP (B5: 1.5524 °C), spatial CNN (B6: 1.2702 °C), temporal GRU (B7: 1.5320 °C), and the champion B8 Spatiotemporal Embedding Network.
+We established a locked 10-model hierarchy: persistence (B0: 1.5220 °C, B0b: 1.7287 °C, -37.39%), daily climatology (B1: 1.2582 °C), regularized linear regression (B2: 1.0295 °C, 120 parameters), random forest (B3: 1.0452 °C, 13,289,966 nodes across 750 trees), LightGBM (B4: 1.0288 °C, 750 boosting trees), pointwise MLP (B5: 1.5524 °C, 26,767 weights), spatial CNN (B6: 1.2702 °C, 3×3 spatial patch, P=3, 30,991 weights), temporal GRU (B7: 1.5320 °C, 5-day causal temporal history, T=5, 44,111 weights), and the champion B8 Spatiotemporal Embedding Network.
 
-**B8 Architecture (203,791 trainable parameters)**:
-Input cube $[B, T=5, C=7, P=3, P=3]$ ($\sim 75\text{ km} \times 75\text{ km}$ patches over 5 backward days) $\to$ Time-Distributed Conv2D ($7 \to 32 \to 64$) with BatchNorm and AdaptiveAvgPool $\to$ 2-layer causal GRU (hidden size 128) $\to$ LayerNorm(128) ocean latent bottleneck $\to$ 2-layer MLP decoder ($128 \to 64 \to 15$) $\to$ 15-depth potential temperature profile.
+**Canonical B8 Architecture (203,791 trainable parameters)**:
+- **Input**: $T=5, C=7, P=3$ spatiotemporal cubes $[B, T=5, C=7, P=3, P=3]$.
+- **Per-Timestep Spatial Encoder**: Conv2D ($7 \to 32 \to 64$, $3 \times 3$ spatial patch) with BatchNorm2d and AdaptiveAvgPool2d into a 64-dimensional latent token.
+- **Temporal Encoder**: 2-layer causal GRU ($\text{input} = 64, \text{hidden} = 128$).
+- **Latent Bottleneck**: $\text{LayerNorm}(128)$ yielding compressed ocean state vector $z \in \mathbb{R}^{128}$.
+- **Decoder**: $128 \to 64 \to 15$ linear decoder mapping to 15 canonical depths.
+- **Total**: Exactly **203,791** trainable parameters.
 
 ### 4. Primary Results & Statistical Validation
 - **Primary Test RMSE**: B8 achieves an overall column-averaged test RMSE of **0.9800 °C** (*unweighted 15-depth column average, not error at every depth*), representing a **+22.11% relative error reduction** over spatial climatology (B1: 1.2582 °C). **B8 was the best-performing architecture among evaluated internal benchmarks.**

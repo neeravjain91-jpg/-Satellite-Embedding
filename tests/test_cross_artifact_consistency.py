@@ -205,3 +205,31 @@ def test_markdown_tables_consistency():
             pattern = rf"\*\*{model_id}\*\*.*?\|\s*\**{re.escape(expected_rmse_str)}\**\s*\|"
             match = re.search(pattern, text)
             assert match, f"Could not find test RMSE {expected_rmse_str} for {model_id} in {report_path}"
+
+
+def test_architecture_and_statistical_claims_consistency():
+    """Verify B6, B7, B8 architecture specifications, B0b rounding, and statistical rigor across submission artifacts."""
+    submission_files = [
+        os.path.join(REPO_ROOT, "reports", "FINAL_ACADEMIC_PROJECT_REPORT.md"),
+        os.path.join(REPO_ROOT, "docs", "FINAL_PRESENTATION.md"),
+        os.path.join(REPO_ROOT, "reports", "ONE_PAGE_PROJECT_SUMMARY.md"),
+        os.path.join(REPO_ROOT, "reports", "FINAL_SUBMISSION_CERTIFICATE.md"),
+    ]
+
+    for path in submission_files:
+        assert os.path.exists(path), f"Missing {path}"
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # B6: 3x3 patch
+        assert ("3×3" in content or "3x3" in content or "3 \\times 3" in content), f"B6 3x3 patch not documented in {path}"
+        # B7: 5-day / T=5 causal
+        assert ("5-day" in content or "T=5" in content), f"B7 5-day causal window not documented in {path}"
+        # B8: 203,791 parameters
+        assert "203,791" in content, f"B8 parameter count 203,791 not documented in {path}"
+        # B0b rounding: no stale -37.40%
+        assert "-37.40%" not in content, f"Found stale -37.40% in {path}"
+        # No uncertified p-values for B2, B3, B4 in benchmark tables
+        assert not re.search(r"\|\s*\*\*B2\*\*.*?p\s*<\s*0\.001", content), f"Uncertified p-value for B2 in {path}"
+        assert not re.search(r"\|\s*\*\*B3\*\*.*?p\s*<\s*0\.001", content), f"Uncertified p-value for B3 in {path}"
+        assert not re.search(r"\|\s*\*\*B4\*\*.*?p\s*<\s*0\.001", content), f"Uncertified p-value for B4 in {path}"

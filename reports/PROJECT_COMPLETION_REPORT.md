@@ -196,9 +196,9 @@ Input Cube: [B, T=5, C=7, P=3, P=3]
 - **Methodology**: Paired 7-day moving block bootstrap ($B = 1,000$ iterations) evaluated across the 53-day held-out test partition. The 7-day block length accounts for temporal autocorrelation in ocean state fields.
 - **Paired Hypothesis Test ($\Delta\text{RMSE}$ vs B1 Climatology)**:
   - B8 vs B1: $\Delta = -0.2782^\circ\text{C}$, 95% Bootstrap CI: $[-0.3957, -0.1756]^\circ\text{C}$, $p < 0.001$. Statistically significant superiority over climatology.
-  - B2 vs B1: $\Delta = -0.2287^\circ\text{C}$, 95% Bootstrap CI: $[-0.3208, -0.1479]^\circ\text{C}$, $p < 0.001$.
-  - B3 vs B1: $\Delta = -0.2130^\circ\text{C}$, 95% Bootstrap CI: $[-0.3478, -0.1000]^\circ\text{C}$, $p < 0.001$.
-  - B4 vs B1: $\Delta = -0.2294^\circ\text{C}$, 95% Bootstrap CI: $[-0.3617, -0.1195]^\circ\text{C}$, $p < 0.001$.
+  - B2 vs B1: $\Delta = -0.2287^\circ\text{C}$, 95% Bootstrap CI: $[-0.3208, -0.1479]^\circ\text{C}$ (p-value not formally tested).
+  - B3 vs B1: $\Delta = -0.2130^\circ\text{C}$, 95% Bootstrap CI: $[-0.3478, -0.1000]^\circ\text{C}$ (p-value not formally tested).
+  - B4 vs B1: $\Delta = -0.2294^\circ\text{C}$, 95% Bootstrap CI: $[-0.3617, -0.1195]^\circ\text{C}$ (p-value not formally tested).
   - B6 vs B1: $\Delta = +0.0120^\circ\text{C}$, 95% Bootstrap CI: $[-0.1042, 0.1205]^\circ\text{C}$ (crosses 0, confirming lack of statistical significance).
 
 ---

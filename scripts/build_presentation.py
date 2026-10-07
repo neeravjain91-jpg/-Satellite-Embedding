@@ -442,7 +442,7 @@ def create_deck(output_path="submission/Final_Project_Presentation.pptx"):
 
     bm_data = [
         ("B0", "Day-0 Persistence", "0", "1.5220", "-20.97%", "Locked Baseline"),
-        ("B0b", "Day-252 Persistence", "0", "1.7287", "-37.40%", "Locked Baseline"),
+        ("B0b", "Day-252 Persistence", "0", "1.7287", "-37.39%", "Locked Baseline"),
         ("B1", "Daily Mean Climatology", "0", "1.2582", "Reference", "Locked Reference"),
         ("B2", "Ridge Regression (alpha=100,000)", "120", "1.0295", "+18.18%", "Locked Baseline"),
         ("B3", "Random Forest Regressor (100 trees)", "~850,000", "1.0452", "+16.93%", "Locked Baseline"),

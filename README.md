@@ -146,11 +146,11 @@ All models evaluated strictly on the certified Test partition (Days 313–365, 5
 | Model ID | Architecture Description | Input Domain | Instantiated Parameters | Test RMSE (°C) | Improvement vs B1 (%) | Improvement vs Best ML (B4) | Certified Status |
 |---|---|---|---|---|---|---|---|
 | **B0** | Day-0 Persistence | $1 \times 1$ target column | 0 | 1.5220 | -20.97% | -47.94% | Locked |
-| **B0b** | Day-252 Persistence | $1 \times 1$ target column | 0 | 1.7287 | -37.40% | -68.03% | Locked |
+| **B0b** | Day-252 Persistence | $1 \times 1$ target column | 0 | 1.7287 | -37.39% | -68.03% | Locked |
 | **B1** | Daily Mean Climatology | 366-day temporal mean | 0 | 1.2582 | Baseline | -22.30% | Locked |
 | **B2** | Ridge Linear Regression ($\alpha=100{,}000$) | Pointwise 7 surface | 120 | 1.0295 | +18.18% | -0.07% | Locked |
-| **B3** | Random Forest Regressor (100 trees) | Pointwise 7 surface | ~850,000 | 1.0452 | +16.93% | -1.59% | Locked |
-| **B4** | LightGBM Gradient Boosting | Pointwise 7 surface | ~320,000 | 1.0288 | +18.23% | Baseline | Locked |
+| **B3** | Random Forest Regressor (750 trees) | Pointwise 7 surface | 13,289,966 nodes | 1.0452 | +16.93% | -1.59% | Locked |
+| **B4** | LightGBM Gradient Boosting (750 trees) | Pointwise 7 surface | 750 boosting trees | 1.0288 | +18.23% | Baseline | Locked |
 | **B5** | Pointwise MLP (3 hidden layers) | Pointwise 7 surface | 26,767 | 1.5524 | -23.38% | -50.90% | Locked |
 | **B6** | Spatial CNN ($3 \times 3$ patches) | Spatial $3\times3$ patch | 30,991 | 1.2702 | -0.95% | -23.46% | Locked |
 | **B7** | Temporal GRU (5-day causal window) | 5-day sequence | 44,111 | 1.5320 | -21.76% | -48.91% | Locked |
