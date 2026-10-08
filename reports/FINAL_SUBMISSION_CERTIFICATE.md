@@ -13,7 +13,9 @@ This document certifies that the capstone engineering project described herein h
 - **Project Title**: **Satellite Embedding-Based Deep Learning Framework for Reconstruction of Depth-Wise Subsurface Ocean Temperature**
 - **Subtitle**: Daily 0.25° Reconstruction Across the North Indian Ocean Using Surface Satellite and Oceanographic Observations
 - **Repository**: `https://github.com/neeravjain91-jpg/-Satellite-Embedding`
-- **Certified Git Commit**: `7532359` (and Phase 3 submission release)
+- **Certified Git Commit**: `88f7dbc99cae223a2a66539cddbb5073ca4360c1` (Final Academic Release)
+- **Production URL**: `https://code-gules-three.vercel.app`
+- **Vercel Deployment ID**: `dpl_8rqrbnpzFUPRAJRGCWfBM7BvJjrM`
 - **Degree / Evaluation**: Bachelor of Technology Capstone Project Final Submission
 - **Academic Year**: 2025–2026
 
@@ -68,13 +70,13 @@ This document certifies that the capstone engineering project described herein h
 | **BENCHMARK VALUES** | B0=1.5220, B0b=1.7287 (-37.39%), B1=1.2582, B2=1.0295, B3=1.0452, B4=1.0288, B5=1.5524, B6=1.2702, B7=1.5320, B8=0.9800 | **PASS** |
 | **DEPTH METRICS** | All 15 canonical depths verified (0m: 0.4369 to 1000m: 0.5959, thermocline peak: 1.8110 at 75m) | **PASS** |
 | **SUBMISSION ARTIFACT CONSISTENCY** | Zero discrepancies across report, presentation, diagrams, summary, checklist, certificate | **PASS** |
-| **TESTS** | Pytest 9.1.1: 106 passed, 0 failed, 0 skipped | **PASS** |
+| **TESTS** | Pytest 9.1.1: 107 passed, 0 failed, 0 skipped | **PASS** |
 | **FRONTEND BUILD** | React 18 + Vite production build: 0 TypeScript errors | **PASS** |
 | **GIT STATUS** | Clean working directory on branch main | **PASS** |
 
-- **Automated Test Suite**: Pytest 9.1.1 — **106 tests collected, 106 passed, 0 failed, 0 skipped** (100% pass rate).
+- **Automated Test Suite**: Pytest 9.1.1 — **107 tests collected, 107 passed, 0 failed, 0 skipped** (100% pass rate).
 - **Cross-Artifact Consistency**: Validated via automated pytest suite comparing JSON manifests, markdown tables, and TypeScript mocks.
-- **Frontend Prototype**: React 18 + Vite production build verified cleanly with **0 TypeScript errors** and deployed on Vercel (`https://code-gules-three.vercel.app`).
+- **Frontend Prototype**: React 18 + Vite production build verified cleanly with **0 TypeScript errors** and deployed on Vercel (`https://code-gules-three.vercel.app`, Deployment ID: `dpl_8rqrbnpzFUPRAJRGCWfBM7BvJjrM`).
 - **Path Portability**: Zero hard-coded local machine paths.
 
 ---

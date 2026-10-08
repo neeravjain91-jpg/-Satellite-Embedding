@@ -8,7 +8,7 @@ Features:
 - Master benchmark leaderboard for B0 through B8
 - Interactive vertical column temperature error profiles (0m to 1000m)
 - Regional (Arabian Sea, Bay of Bengal, Equatorial) and seasonal analysis
-- Spatiotemporal architecture explorer with exact parameter proofs
+- Spatiotemporal architecture explorer with exact parameter counts and structures
 - Live interactive subsurface reconstruction sandbox (Ridge, MLP, B8)
 - Certified 2020 production dataset & scientific protocol audit viewer
 """

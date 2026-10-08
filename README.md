@@ -294,15 +294,15 @@ python scripts/evaluate_all.py --model B8
 
 ## Reproducibility & Test Suite
 
-The test suite contains **106 comprehensive unit, integration, and cross-artifact consistency tests** guaranteeing end-to-end scientific fidelity:
+The test suite contains **107 comprehensive unit, integration, and cross-artifact consistency tests** guaranteeing end-to-end scientific fidelity:
 - `tests/test_cross_artifact_consistency.py`: Automated cross-artifact consistency across JSON results, markdown tables, metadata, and frontend benchmarks.
 - `tests/test_confusion_matrix_integrity.py`: Confirms confusion matrix math, Cohen's kappa, and HTML synchronization.
-- `tests/test_ml_protocol_splits_and_leakage.py`: Proves strict temporal ordering and verifies zero overlap across the 6-day purge buffers.
+- `tests/test_ml_protocol_splits_and_leakage.py`: Verifies strict temporal ordering and confirms zero overlap across the 6-day purge buffers.
 - `tests/test_scientific_masks_and_integrity.py`: Verifies canonical ocean boundaries and GLORYS/ORCA12 model bathymetric cutoff masking across all 15 depths.
 - `tests/test_b6_b7_b8_genuine_context.py`: Verifies spatial, temporal, and spatiotemporal receptive fields and model forward execution.
 
 ```
-============================= 106 passed in 335.80s =============================
+============================= 107 passed in 333.88s =============================
 ```
 
 ---
