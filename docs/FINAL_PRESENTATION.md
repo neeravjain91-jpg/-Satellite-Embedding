@@ -89,7 +89,7 @@
   $$\mathbf{M} = \mathbf{M}_{\text{geo}} \land \mathbf{M}_{\text{surf}} \land \mathbf{M}_{\text{targ}} \land \mathbf{M}_{\text{depth}}$$
 - **Bathymetric Masking Rule**:
   - Points below the seafloor according to GLORYS/ORCA12 model bathymetry are strictly preserved as `NaN`.
-  - **Zero-Imputation Prohibition**: Target NaNs are never replaced with 0 °C.
+  - **Zero-Imputation Prohibition**: Invalid target NaNs are preserved as masked invalid targets and are never converted to zero.
 
 ---
 
@@ -110,18 +110,18 @@ Day 0                                 Day 252       Day 259    Day 306    Day 31
 
 ### Slide 9: Model Hierarchy
 ## 10 Systematic Benchmarks (B0 through B8)
-| ID | Model Name | Architecture Family | Context Representation | Complexity / Parameters |
+| ID | Model Name | Architecture Family | Context Representation | Parameters / Complexity |
 | :---: | :--- | :--- | :--- | :---: |
 | **B0** | Day-0 Persistence | Persistence | Initial state ($t=0$) | 0 |
 | **B0b**| Day-252 Persistence | Persistence | Train boundary ($t=252$) | 0 |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean profile | 0 |
 | **B2** | Multi-Output Ridge | Linear Regularized | Pointwise 7-surface vector | 120 coefficients |
-| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 nodes (750 trees) |
-| **B4** | Gradient Boosting (LightGBM)| Boosting Ensemble | Pointwise 7-surface vector | 750 boosting trees |
-| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | 26,767 weights |
-| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | 30,991 weights |
-| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | 44,111 weights |
-| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | 203,791 weights |
+| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 decision nodes across 750 Random Forest trees |
+| **B4** | Gradient Boosting (LightGBM)| Boosting Ensemble | Pointwise 7-surface vector | 750 boosted trees |
+| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | 26,767 trainable parameters |
+| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | 30,991 trainable parameters |
+| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | 44,111 trainable parameters |
+| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | 203,791 trainable parameters |
 
 ---
 

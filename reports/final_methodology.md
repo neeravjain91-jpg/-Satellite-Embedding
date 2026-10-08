@@ -23,7 +23,7 @@ All surface fields are regridded onto a uniform 0.25° grid across $101 \times 2
 ## 2. Target Space: 15 Canonical Oceanographic Depths
 The target field is Copernicus Marine GLORYS12V1 daily potential temperature ($\theta_o$) interpolated from native model levels to 15 canonical oceanographic depths:
 $$z \in \{0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000\}\text{ meters}$$
-Interpolation is performed using Piecewise Cubic Hermite Interpolating Polynomials (PCHIP) to guarantee monotonic stratification and prevent artificial temperature inversions. Sub-seafloor points are strictly masked as invalid (NaN) using GLORYS/ORCA12 model bathymetry; they are never converted to physical 0 °C.
+Interpolation is performed using Piecewise Cubic Hermite Interpolating Polynomials (PCHIP) to guarantee monotonic stratification and prevent artificial temperature inversions. Sub-seafloor points are strictly masked as invalid (NaN) using GLORYS/ORCA12 model bathymetry: invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 
 ---
 

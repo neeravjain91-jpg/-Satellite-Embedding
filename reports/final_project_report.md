@@ -30,7 +30,7 @@ $$z \in \{0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000\}\te
 subject to the constraints that:
 1. No future temporal observations $\tau > t$ are accessible (causal temporal protocol).
 2. Spatial context is bounded to local horizontal neighborhoods ($3 \times 3$ grid cells, $\sim 75\text{ km} \times 75\text{ km}$).
-3. Below-seafloor bathymetric depths are strictly masked as invalid (NaN) and never corrupted into physical 0 °C values.
+3. Invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 4. Normalization parameters are derived exclusively from historical training data.
 
 ---
@@ -229,18 +229,18 @@ The B8 model processes spatiotemporal cubes $\mathbf{X}_{\text{cube}} \in \mathb
 ## 21. Overall Benchmark Results
 All 10 models evaluated on the frozen 2020 test partition ($N = 601,550$ samples across Days 313–365):
 
-| Model ID | Model Name | Architecture Family | Context | Parameters | Test RMSE (°C) | Test MAE (°C) | Delta vs B1 (°C) | Rel. Imp. (%) | Paired 95% CI vs B1 |
+| Model ID | Model Name | Architecture Family | Context | Parameters / Complexity | Test RMSE (°C) | Test MAE (°C) | Delta vs B1 (°C) | Rel. Imp. (%) | Paired 95% CI vs B1 |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **B0** | Day-0 Persistence | Persistence | Initial state (Day 0) | 0 | 1.5220 | 1.1371 | +0.2638 | -20.97% | N/A |
 | **B0b** | Day-252 Persistence | Persistence | Train boundary (Day 252) | 0 | 1.7287 | 1.2447 | +0.4705 | -37.39% | N/A |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean | 0 | 1.2582 | 0.9641 | 0.0000 | 0.00% | Reference |
-| **B2** | Multi-Output Ridge | Linear L2 | Pointwise (7 surface) | 120 | 1.0295 | 0.8029 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
-| **B3** | Multi-Depth Random Forest | Bagging Trees | Pointwise (7 surface) | 13,289,966 nodes | 1.0452 | 0.7725 | -0.2130 | +16.93% | [-0.3478, -0.1000] |
-| **B4** | Gradient Boosting (LightGBM) | Boosting Trees | Pointwise (7 surface) | 750 | 1.0288 | 0.7615 | -0.2294 | +18.23% | [-0.3617, -0.1195] |
-| **B5** | Pointwise MLP | Neural MLP | Pointwise (7 surface) | 26,767 | 1.5524 | 1.2030 | +0.2942 | -23.38% | [0.2148, 0.3772] |
-| **B6** | Spatial CNN | Conv2D CNN | 3×3 spatial patches | 30,991 | 1.2702 | 0.9646 | +0.0120 | -0.95% | [-0.1042, 0.1205] |
-| **B7** | Temporal GRU | Recurrent GRU | 5-day causal sequences | 44,111 | 1.5320 | 1.2069 | +0.2738 | -21.76% | [0.2581, 0.2895] |
-| **B8** | Spatiotemporal Embedding | Conv2D + GRU | 5-day × 3×3 patch cubes | **203,791** | **0.9800** | **0.7391** | **-0.2782** | **+22.11%** | **[-0.3957, -0.1756]** |
+| **B2** | Multi-Output Ridge | Linear L2 | Pointwise (7 surface) | 120 coefficients | 1.0295 | 0.8029 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
+| **B3** | Multi-Depth Random Forest | Bagging Trees | Pointwise (7 surface) | 13,289,966 decision nodes across 750 Random Forest trees | 1.0452 | 0.7725 | -0.2130 | +16.93% | [-0.3478, -0.1000] |
+| **B4** | Gradient Boosting (LightGBM) | Boosting Trees | Pointwise (7 surface) | 750 boosted trees | 1.0288 | 0.7615 | -0.2294 | +18.23% | [-0.3617, -0.1195] |
+| **B5** | Pointwise MLP | Neural MLP | Pointwise (7 surface) | 26,767 trainable parameters | 1.5524 | 1.2030 | +0.2942 | -23.38% | [0.2148, 0.3772] |
+| **B6** | Spatial CNN | Conv2D CNN | 3×3 spatial patches | 30,991 trainable parameters | 1.2702 | 0.9646 | +0.0120 | -0.95% | [-0.1042, 0.1205] |
+| **B7** | Temporal GRU | Recurrent GRU | 5-day causal sequences | 44,111 trainable parameters | 1.5320 | 1.2069 | +0.2738 | -21.76% | [0.2581, 0.2895] |
+| **B8** | Spatiotemporal Embedding | Conv2D + GRU | 5-day × 3×3 patch cubes | **203,791 trainable parameters** | **0.9800** | **0.7391** | **-0.2782** | **+22.11%** | **[-0.3957, -0.1756]** |
 
 ---
 

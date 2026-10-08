@@ -34,7 +34,7 @@
 
 Subsurface ocean temperature structure governs upper-ocean heat content, thermosteric sea-level rise, ocean acoustic propagation, and the rapid intensification of tropical cyclones. However, operational satellite remote sensing is physically constrained to the ocean surface skin and mixed-layer boundary. While autonomous Argo profiling floats provide highly accurate vertical observations, their sparse spatial (~3° nominal resolution) and temporal (10-day cycle) distribution leaves critical mesoscale and synoptic gaps.
 
-This project develops, validates, and certifies an end-to-end, scientifically controlled machine learning framework to reconstruct continuous vertical potential temperature profiles across 15 standard oceanographic depths ($0\text{ m}$ to $1000\text{ m}$) from seven daily satellite-derived surface predictors across the North Indian Ocean ($5^\circ\text{N}–30^\circ\text{N}, 45^\circ\text{E}–105^\circ\text{E}$). The study utilizes the certified full-year 2020 leap-year dataset (366 days, $N = 4,017,900$ space-time columns). To prevent empirical data leakage, the protocol enforces strict 6-day temporal purge buffers, train-only z-score standard scaling, four-way geographic-bathymetric masking, and zero target NaN-to-zero corruption.
+This project develops, validates, and certifies an end-to-end, scientifically controlled machine learning framework to reconstruct continuous vertical potential temperature profiles across 15 standard oceanographic depths ($0\text{ m}$ to $1000\text{ m}$) from seven daily satellite-derived surface predictors across the North Indian Ocean ($5^\circ\text{N}–30^\circ\text{N}, 45^\circ\text{E}–105^\circ\text{E}$). The study utilizes the certified full-year 2020 leap-year dataset (366 days, $N = 4,017,900$ space-time columns). To prevent empirical data leakage, the protocol enforces strict 6-day temporal purge buffers, train-only z-score standard scaling, four-way geographic-bathymetric masking, and the strict preservation of invalid target NaNs as masked invalid targets (never converted to zero).
 
 A 10-model benchmark hierarchy (B0 through B8) is established, spanning persistence (B0, B0b), daily climatology (B1), regularized linear regression (B2), bagging and boosting decision tree ensembles (B3, B4), pointwise deep neural networks (B5), and spatiotemporal architectures (B6, B7, B8). The B8 Spatiotemporal Embedding Model (203,791 trainable parameters) couples a time-distributed 2D spatial convolution encoder ($3 \times 3$ patches, $\sim 75\text{ km} \times 75\text{ km}$) and a 2-layer causal Gated Recurrent Unit ($T = 5$ days) through a 128-dimensional LayerNorm bottleneck.
 
@@ -197,7 +197,7 @@ $$\mathbf{M}(t, z, \phi, \lambda) = \mathbf{M}_{\text{geo}}(\phi, \lambda) \land
 3. **$\mathbf{M}_{\text{targ}}$**: Active if the target GLORYS value is valid and uncorrupted.
 4. **$\mathbf{M}_{\text{depth}}$**: Enforces the local seafloor bathymetry from GLORYS/ORCA12 model bathymetry. If target depth $z > z_{\text{bathymetry}}(\phi, \lambda)$, the point is below the seabed and marked invalid.
 
-**Strict Prohibition on Zero-Filling**: Sub-seafloor points and missing targets are strictly kept as `NaN`. They are never imputed with 0.0 °C, which would severely distort neural loss landscapes and create unphysical deep freezing artifacts.
+**Strict Prohibition on Zero-Filling**: Invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero. Sub-seafloor points and missing targets remain strictly masked to prevent distorting neural loss landscapes or creating unphysical deep freezing artifacts.
 
 ---
 
@@ -257,18 +257,18 @@ Level 3: Spatiotemporal Embedding Champion
 ```
 
 ### Authoritative Model Complexity & Identities
-| ID | Canonical Model Name | Family | Context Representation | Parameter Count / Complexity |
+| ID | Canonical Model Name | Family | Context Representation | Parameters / Complexity |
 | :---: | :--- | :--- | :--- | :---: |
 | **B0** | Day-0 Persistence | Persistence | Initial state ($t=0$) | 0 |
 | **B0b**| Day-252 Persistence | Persistence | Train boundary ($t=252$) | 0 |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean profile | 0 |
 | **B2** | Multi-Output Ridge ($\alpha=10^5$) | Linear Regularized | Pointwise 7-surface vector | 120 coefficients |
-| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 nodes (750 trees) |
-| **B4** | Gradient Boosting (LightGBM)| Boosting Ensemble | Pointwise 7-surface vector | 750 boosting trees |
-| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | 26,767 weights |
-| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | 30,991 weights |
-| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | 44,111 weights |
-| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | 203,791 weights |
+| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 decision nodes across 750 Random Forest trees |
+| **B4** | Gradient Boosting (LightGBM)| Boosting Ensemble | Pointwise 7-surface vector | 750 boosted trees |
+| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | 26,767 trainable parameters |
+| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | 30,991 trainable parameters |
+| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | 44,111 trainable parameters |
+| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | 203,791 trainable parameters |
 
 *Complexity Metric Disclosure*: Neural and linear baselines report trainable weights/coefficients. Decision tree ensembles report architectural complexity (B3: 50 trees $\times$ 15 depth models = 750 trees, 13,289,966 total decision nodes; B4: 50 trees $\times$ 15 depth models = 750 boosting trees).
 

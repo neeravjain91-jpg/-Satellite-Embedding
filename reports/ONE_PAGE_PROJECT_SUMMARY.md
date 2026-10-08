@@ -13,10 +13,10 @@ Satellite sensors observe only the ocean surface skin and mixed-layer boundary, 
 - **Surface Predictors ($C=7$)**: OSTIA SST, Copernicus Multi-Observation SSS, DUACS SSH, OSCAR zonal/meridional currents, CCMP zonal/meridional vector winds.
 - **Reference Target**: Copernicus Marine GLORYS12V1 daily potential temperature ($\theta_o$) across 15 canonical depths: `[0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000] m`. *(Note: GLORYS is a numerical ocean reanalysis state estimate, not direct observational ground truth).*
 - **Chronological Split**: TRAIN (Days 0–252, 253d, $N=2,871,550$), PURGE 1 (Days 253–258, 6d), VAL (Days 259–306, 48d, $N=544,800$), PURGE 2 (Days 307–312, 6d), TEST (Days 313–365, 53d, $N=601,550$ columns, $8,017,734$ valid depth observations).
-- **Leakage Controls**: All normalization scalers fitted strictly on training data; 6-day purge buffers exceed temporal autocorrelation memory; 4-way composite mask preserves seafloor bathymetry without filling target NaNs with zero.
+- **Leakage Controls**: All normalization scalers fitted strictly on training data; 6-day purge buffers exceed temporal autocorrelation memory; 4-way composite mask preserves seafloor bathymetry; invalid target NaNs are preserved as masked invalid targets and are never converted to zero.
 
 ### 3. Model Hierarchy & Champion B8 Architecture
-We established a locked 10-model hierarchy: persistence (B0: 1.5220 °C, B0b: 1.7287 °C, -37.39%), daily climatology (B1: 1.2582 °C), regularized linear regression (B2: 1.0295 °C, 120 parameters), random forest (B3: 1.0452 °C, 13,289,966 nodes across 750 trees), LightGBM (B4: 1.0288 °C, 750 boosting trees), pointwise MLP (B5: 1.5524 °C, 26,767 weights), spatial CNN (B6: 1.2702 °C, 3×3 spatial patch, P=3, 30,991 weights), temporal GRU (B7: 1.5320 °C, 5-day causal temporal history, T=5, 44,111 weights), and the champion B8 Spatiotemporal Embedding Network.
+We established a locked 10-model hierarchy: persistence (B0: 1.5220 °C, B0b: 1.7287 °C, -37.39%), daily climatology (B1: 1.2582 °C), regularized linear regression (B2: 1.0295 °C, 120 coefficients), random forest (B3: 1.0452 °C, 13,289,966 decision nodes across 750 Random Forest trees), LightGBM (B4: 1.0288 °C, 750 boosted trees), pointwise MLP (B5: 1.5524 °C, 26,767 trainable parameters), spatial CNN (B6: 1.2702 °C, 3×3 spatial patch, P=3, 30,991 trainable parameters), temporal GRU (B7: 1.5320 °C, 5-day causal temporal history, T=5, 44,111 trainable parameters), and the champion B8 Spatiotemporal Embedding Network (203,791 trainable parameters).
 
 **Canonical B8 Architecture (203,791 trainable parameters)**:
 - **Input**: $T=5, C=7, P=3$ spatiotemporal cubes $[B, T=5, C=7, P=3, P=3]$.
@@ -44,7 +44,7 @@ Collocation against $N=1,482$ in-situ Argo profiles ($\pm 0.25^\circ, \pm 12\tex
 - **Future Work**: Multi-decadal scaling (1993–2022); validation against unassimilated delayed-mode experimental floats; physics-informed vertical density penalties ($\partial \rho/\partial z \ge 0$); continuous Neural ODEs.
 
 ### 8. Reproducibility & Engineering Artifacts
-- **Repository**: `https://github.com/neeravjain91-jpg/-Satellite-Embedding` (Certified Commit `7532359`).
-- **Test Suite**: 106 automated pytest unit/integration/consistency tests (106 passed, 0 failed, 0 skipped).
+- **Repository**: `https://github.com/neeravjain91-jpg/-Satellite-Embedding` (Certified Release Commit `88f7dbc99cae223a2a66539cddbb5073ca4360c1`).
+- **Test Suite**: 107 automated pytest unit/integration/consistency tests (107 passed, 0 failed, 0 skipped).
 - **Web Prototype**: Interactive React + Vite frontend live at `https://code-gules-three.vercel.app` (0 build errors).
 - **Reproduction**: `pytest tests/ -rs`, `python scripts/01_verify_dataset_corrected.py`, `python scripts/serve_dashboard.py`.

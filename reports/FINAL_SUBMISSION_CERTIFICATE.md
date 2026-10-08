@@ -34,7 +34,7 @@ This document certifies that the capstone engineering project described herein h
   - VAL: Days 259–306 (48 days / 13.1%, $N = 544,800$)
   - PURGE BUFFER 2: Days 307–312 (6 days, discarded)
   - TEST: Days 313–365 (53 days / 14.5%, $N = 601,550$ columns, $8,017,734$ valid depth observations)
-- **Leakage Controls**: Train-only z-score normalization (SHA-256: `279b13aa6662c693b4a36da0bfd78ff35ed5213a0e16b0fbb7560d657ee02fe3`); 6-day purge buffers ($T_{\text{purge}} = 6 > T = 5$ causal window); 4-way composite mask enforcing GLORYS/ORCA12 model bathymetric cutoffs; zero target NaN-to-zero corruption.
+- **Leakage Controls**: Train-only z-score normalization (SHA-256: `279b13aa6662c693b4a36da0bfd78ff35ed5213a0e16b0fbb7560d657ee02fe3`); 6-day purge buffers ($T_{\text{purge}} = 6 > T = 5$ causal window); 4-way composite mask enforcing GLORYS/ORCA12 model bathymetric cutoffs; invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 
 ---
 

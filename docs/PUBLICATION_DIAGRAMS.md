@@ -41,7 +41,7 @@ flowchart TD
     subgraph S5["5. Reanalysis Target Reference"]
         T1["GLORYS12V1 Potential Temperature θ_o"]
         T2["15 Canonical Depths: 0, 5, 10, ..., 1000 m (PCHIP Spline)"]
-        T3["Strict NaN Seafloor Bathymetric Preservation"]
+        T3["Strict NaN Seafloor Bathymetric Preservation (Invalid NaNs Never Converted to Zero)"]
     end
 
     subgraph S6["6. Multi-Tier Evaluation Engine"]
@@ -81,7 +81,7 @@ flowchart LR
     subgraph CANON["Canonical Zarr Storage"]
         Z1["Surface Zarr Tensor\nShape: [366, 101, 241, 7]"]
         Z2["Target Zarr Tensor\nShape: [366, 15, 101, 241]"]
-        Z3["GLORYS/ORCA12 Bathymetry Mask\n(Preserve NaNs below seabed)"]
+        Z3["GLORYS/ORCA12 Bathymetry Mask\n(Preserve NaNs below seabed; Never Converted to Zero)"]
     end
 
     R1 --> G1

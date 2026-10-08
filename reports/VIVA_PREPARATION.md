@@ -26,7 +26,7 @@ We addressed widespread data leakage vulnerabilities in published literature:
 1. We used strict chronological splitting: 253 days train, 48 days validation, and 53 days held-out test.
 2. We placed 6-day purge buffers between splits to eliminate ocean memory autocorrelation.
 3. We derived all z-score scalers strictly on the training partition.
-4. We enforced four-way masking to preserve bathymetric seafloor cutoffs without filling NaNs with zero.
+4. We enforced four-way masking to preserve bathymetric seafloor cutoffs: invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 
 We evaluated a 10-model benchmark hierarchy:
 - Reference baselines: Day-0 persistence (1.5220 °C), Day-252 persistence (1.7287 °C), and spatial climatology (1.2582 °C).
@@ -154,7 +154,7 @@ Argo floats provide direct in-situ vertical CTD observations. In this study, col
 **Answer**: "No. GLORYS is a numerical ocean reanalysis state estimate. It incorporates model physics, assimilation approximations, and forcing errors. Our model learns to reconstruct the GLORYS reanalysis state estimate."
 
 #### Q6: How do you handle points below the ocean floor in shallow waters?
-**Answer**: "We enforce GLORYS/ORCA12 model bathymetry. If a canonical depth exceeds the seafloor depth at that coordinate, it is masked as `NaN`. We strictly forbid filling target NaNs with zero, which would unphysically distort gradients."
+**Answer**: "We enforce GLORYS/ORCA12 model bathymetry. If a canonical depth exceeds the seafloor depth at that coordinate, it is masked as `NaN`. Invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero."
 
 #### Q7: What are the exact dates for your train, validation, and test splits?
 **Answer**: "Train: Days 0–252 (Jan 1 – Sep 9, 253 days). Purge Buffer 1: Days 253–258 (Sep 10 – Sep 15, 6 days). Validation: Days 259–306 (Sep 16 – Nov 2, 48 days). Purge Buffer 2: Days 307–312 (Nov 3 – Nov 8, 6 days). Test: Days 313–365 (Nov 9 – Dec 31, 53 days)."
@@ -245,13 +245,13 @@ Argo floats provide direct in-situ vertical CTD observations. In this study, col
 | Canonical Depths | 15 levels (0 to 1000 m) | Standard oceanographic depth grid |
 | Surface Predictors | 7 satellite variables | SST, SSS, SSH, Current U/V, Wind U/V |
 | B1 Climatology Test RMSE | 1.2582 °C | Reference baseline anchor |
-| B2 Ridge Test RMSE | 1.0295 °C | Linear regularized benchmark ($\alpha=100{,}000$) |
-| B3 Random Forest Test RMSE | 1.0452 °C | 13,289,966 nodes across 750 trees |
-| B4 LightGBM Test RMSE | 1.0288 °C | 750 boosting trees |
-| B5 Pointwise MLP Test RMSE | 1.5524 °C | 26,767 trainable weights |
-| B6 Spatial CNN Test RMSE | 1.2702 °C | 30,991 trainable weights |
-| B7 Temporal GRU Test RMSE | 1.5320 °C | 44,111 trainable weights |
-| **B8 Spatiotemporal Test RMSE** | **0.9800 °C** | **Champion model (203,791 weights)** |
+| B2 Ridge Test RMSE | 1.0295 °C | 120 coefficients ($\alpha=100{,}000$) |
+| B3 Random Forest Test RMSE | 1.0452 °C | 13,289,966 decision nodes across 750 Random Forest trees |
+| B4 LightGBM Test RMSE | 1.0288 °C | 750 boosted trees |
+| B5 Pointwise MLP Test RMSE | 1.5524 °C | 26,767 trainable parameters |
+| B6 Spatial CNN Test RMSE | 1.2702 °C | 30,991 trainable parameters |
+| B7 Temporal GRU Test RMSE | 1.5320 °C | 44,111 trainable parameters |
+| **B8 Spatiotemporal Test RMSE** | **0.9800 °C** | **Champion model (203,791 trainable parameters)** |
 | B8 vs B1 Improvement | **+22.11%** ($-0.2782^\circ\text{C}$) | Paired 95% CI: $[-0.3957, -0.1756]^\circ\text{C}$ ($p < 0.001$) |
 | B8 Depth 0 m Test RMSE | 0.4369 °C | Strong direct SST constraint |
 | B8 Depth 75 m Test RMSE | 1.8110 °C | Main thermocline gradient peak error |
@@ -261,4 +261,4 @@ Argo floats provide direct in-situ vertical CTD observations. In this study, col
 | Full Domain Cosine RMSE | 0.9642 °C | Cosine-latitude area-weighted |
 | B3 Diagnostic Accuracy | 80.65% ($\kappa = 0.7636$) | Highest discrete regime accuracy |
 | B2 Diagnostic Accuracy | 79.87% ($\kappa = 0.7538$) | Highest $\pm 1$-bin containment (99.91%) |
-| Automated Test Suite | 106 passed, 0 failed, 0 skipped | 100% pass rate in pytest |
+| Automated Test Suite | 107 passed, 0 failed, 0 skipped | 100% pass rate in pytest |

@@ -24,7 +24,7 @@
 - [x] **Mask Semantics**:
   - Four-way composite boolean mask: $\mathbf{M} = \mathbf{M}_{\text{geo}} \land \mathbf{M}_{\text{surf}} \land \mathbf{M}_{\text{targ}} \land \mathbf{M}_{\text{depth}}$.
   - Bathymetric floor cutoffs strictly derived from GLORYS/ORCA12 model bathymetry.
-  - Seafloor points strictly preserved as `NaN`; never replaced with zero.
+  - Invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 - [x] **Leakage Control**:
   - Strict chronological split: TRAIN (Days 0–252, 253d), PURGE 1 (Days 253–258, 6d), VAL (Days 259–306, 48d), PURGE 2 (Days 307–312, 6d), TEST (Days 313–365, 53d).
   - Zero temporal shuffling.
@@ -33,7 +33,7 @@
   - Validation split used strictly for model tuning; test split remains held out.
 - [x] **Model Hierarchy**:
   - 10 canonical models locked: B0 (Persistence Day 0), B0b (Persistence Day 252), B1 (Spatial-Depth Climatology), B2 (Multi-Output Ridge, $\alpha=100{,}000$), B3 (Multi-Depth Random Forest), B4 (LightGBM), B5 (Pointwise MLP), B6 (Spatial CNN, 3×3 spatial patch, P=3, 30,991 weights), B7 (Temporal GRU, 5-day causal temporal history, T=5, 44,111 weights), B8 (Spatiotemporal Embedding Network, T=5, C=7, P=3, 203,791 weights).
-  - Exact model complexity certified: B0 (0), B0b (0), B1 (0), B2 (120 coefficients), B3 (13,289,966 nodes / 750 trees), B4 (750 boosting trees), B5 (26,767 weights), B6 (30,991 weights), B7 (44,111 weights), B8 (203,791 weights).
+  - Exact model complexity certified: B0 (0), B0b (0), B1 (0), B2 (120 coefficients), B3 (13,289,966 decision nodes across 750 Random Forest trees), B4 (750 boosted trees), B5 (26,767 trainable parameters), B6 (30,991 trainable parameters), B7 (44,111 trainable parameters), B8 (203,791 trainable parameters).
 - [x] **Metrics**:
   - Continuous column-averaged test RMSE, MAE, Bias, $R^2$ vs B1, Pearson $r$.
   - Secondary discrete diagnostic classification across 6 thermal regimes (<10°, 10–15°, 15–20°, 20–25°, 25–28°, $\ge 28$°C): Accuracy, $\pm 1$-bin containment, Cohen's $\kappa$, Macro F1, Weighted F1.
@@ -82,7 +82,7 @@
   - Pushed to remote `https://github.com/neeravjain91-jpg/-Satellite-Embedding.git`.
 - [x] **No Machine-Specific Paths**: All tests, scripts, and documentation use repository-relative paths (`tests/test_confusion_matrix_integrity.py` uses `confusion_matrix.html` in repo root).
 - [x] **No Stale Benchmark Values**: All tables across JSON, Markdown, and TypeScript match canonical certified values.
-- [x] **No Contradictory Model IDs**: Hierarchy strictly locked: B3 = Multi-Depth Random Forest (13.3M nodes), B5 = Pointwise MLP (26,767 weights), B8 = Spatiotemporal Embedding (203,791 weights). Legacy MLP clearly identified as historical exploratory tuning candidate.
+- [x] **No Contradictory Model IDs**: Hierarchy strictly locked: B3 = Multi-Depth Random Forest (13,289,966 decision nodes across 750 Random Forest trees), B5 = Pointwise MLP (26,767 trainable parameters), B8 = Spatiotemporal Embedding (203,791 trainable parameters). Legacy MLP clearly identified as historical exploratory tuning candidate.
 
 ---
 

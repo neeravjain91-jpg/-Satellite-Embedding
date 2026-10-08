@@ -10,20 +10,20 @@
 
 ## 1. Master Model Evaluation Hierarchy
 
-| Model ID | Model Name | Architecture Family | Context Representation | Parameter Count | Test RMSE (°C) | Test MAE (°C) | Test R² (vs B1) | Delta vs B1 (°C) | Relative Improvement (%) | Paired 95% Bootstrap CI vs B1 |
+| Model ID | Model Name | Architecture Family | Context Representation | Parameters / Complexity | Test RMSE (°C) | Test MAE (°C) | Test R² (vs B1) | Delta vs B1 (°C) | Relative Improvement (%) | Paired 95% Bootstrap CI vs B1 |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **B0** | Day-0 Persistence | Persistence | Initial state (Day 0) | 0 | 1.5220 | 1.1371 | -0.4966 | +0.2638 | -20.97% | N/A |
 | **B0b** | Day-252 Persistence | Persistence | Train boundary (Day 252) | 0 | 1.7287 | 1.2447 | -1.2358 | +0.4705 | -37.39% | N/A |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean profile | 0 | 1.2582 | 0.9641 | 0.0000 | 0.0000 | 0.00% | Reference Anchor |
-| **B2** | Multi-Output Ridge ($\alpha = 100{,}000$) | Linear Regularized | Pointwise 7-surface vector | 120 | 1.0295 | 0.8029 | -0.5404 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
-| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 nodes | 1.0452 | 0.7725 | -0.2584 | -0.2130 | +16.93% | [-0.3478, -0.1000] |
-| **B4** | Gradient Boosting (LightGBM) | Boosting Ensemble | Pointwise 7-surface vector | 750 | 1.0288 | 0.7615 | -0.2210 | -0.2294 | +18.23% | [-0.3617, -0.1195] |
-| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | **26,767** | 1.5524 | 1.2030 | -2.8076 | +0.2942 | -23.38% | [0.2148, 0.3772] |
-| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | **30,991** | 1.2702 | 0.9646 | -0.8343 | +0.0120 | -0.95% | [-0.1042, 0.1205] |
-| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | **44,111** | 1.5320 | 1.2069 | -2.4438 | +0.2738 | -21.76% | [0.2581, 0.2895] |
-| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | **203,791** | **0.9800** | **0.7391** | **-0.2040** | **-0.2782** | **+22.11%** | **[-0.3957, -0.1756]** |
+| **B2** | Multi-Output Ridge ($\alpha = 100{,}000$) | Linear Regularized | Pointwise 7-surface vector | 120 coefficients | 1.0295 | 0.8029 | -0.5404 | -0.2287 | +18.18% | [-0.3208, -0.1479] |
+| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 decision nodes across 750 Random Forest trees | 1.0452 | 0.7725 | -0.2584 | -0.2130 | +16.93% | [-0.3478, -0.1000] |
+| **B4** | Gradient Boosting (LightGBM) | Boosting Ensemble | Pointwise 7-surface vector | 750 boosted trees | 1.0288 | 0.7615 | -0.2210 | -0.2294 | +18.23% | [-0.3617, -0.1195] |
+| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | **26,767 trainable parameters** | 1.5524 | 1.2030 | -2.8076 | +0.2942 | -23.38% | [0.2148, 0.3772] |
+| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | **30,991 trainable parameters** | 1.2702 | 0.9646 | -0.8343 | +0.0120 | -0.95% | [-0.1042, 0.1205] |
+| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | **44,111 trainable parameters** | 1.5320 | 1.2069 | -2.4438 | +0.2738 | -21.76% | [0.2581, 0.2895] |
+| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | **203,791 trainable parameters** | **0.9800** | **0.7391** | **-0.2040** | **-0.2782** | **+22.11%** | **[-0.3957, -0.1756]** |
 
-> **Note on Parameter Counts**: All parameter counts are derived from direct inspection of the instantiated PyTorch and Scikit-Learn models. B5 = 26,767, B6 = 30,991, B7 = 44,111, B8 = 203,791.
+> **Note on Model Complexity**: Neural and regression baselines report trainable weights/coefficients (B2 = 120, B5 = 26,767, B6 = 30,991, B7 = 44,111, B8 = 203,791). Decision tree ensembles report architectural complexity (B3 Random Forest: 13,289,966 decision nodes across 750 trees; B4 LightGBM: 750 boosted trees).
 
 ---
 

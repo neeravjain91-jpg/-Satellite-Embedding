@@ -43,23 +43,23 @@
   - Buffer width guarantee: $T_{\text{purge}} = 6\text{ days} > T_{\text{causal}} = 5\text{ days}$.
   - Normalization parameters fitted strictly on Days 0–252 training data (SHA-256: `279b13aa6662c693b4a36da0bfd78ff35ed5213a0e16b0fbb7560d657ee02fe3`). Zero test statistics leaked into preprocessing.
   - Causal receptive field: strictly backwards-looking $[t-4, t-3, t-2, t-1, t]$.
-  - Composite 4-way mask: strictly preserves GLORYS/ORCA12 model bathymetric cutoffs; target sub-seafloor NaNs are never converted to physical 0 °C.
+  - Composite 4-way mask: strictly preserves GLORYS/ORCA12 model bathymetric cutoffs; invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 
 ---
 
 ### 4. Evaluated Model Hierarchy
-| Level | Model ID | Canonical Architecture Designation | Context Scope | Trainable Parameters | Certified Test RMSE | Relative Error Reduction (vs B1) |
+| Level | Model ID | Canonical Architecture Designation | Context Scope | Parameters / Complexity | Certified Test RMSE | Relative Error Reduction (vs B1) |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
 | **0** | **B0** | Day-0 Persistence | Boundary $t=0$ state | 0 | $1.5220\ ^\circ\text{C}$ | -20.97% |
 | **0** | **B0b** | Day-252 Persistence | Train boundary $t=252$ state | 0 | $1.7287\ ^\circ\text{C}$ | -37.39% |
 | **0** | **B1** | Spatial-Depth Climatology Reference | Spatial-depth historical mean | 0 | $1.2582\ ^\circ\text{C}$ | **0.00% (Anchor)** |
-| **1** | **B2** | Multi-Output Ridge ($\alpha=100{,}000$) | Pointwise (7 variables) | 120 | $1.0295\ ^\circ\text{C}$ | +18.18% |
-| **1** | **B3** | Multi-Depth Random Forest (100 trees) | Pointwise (7 variables) | 13,289,966 | $1.0452\ ^\circ\text{C}$ | +16.93% |
-| **1** | **B4** | Gradient Boosted Trees (LightGBM) | Pointwise (7 variables) | 750 | $1.0288\ ^\circ\text{C}$ | +18.23% |
-| **2** | **B5** | Pointwise MLP (128-128-64) | Pointwise (7 variables) | 26,767 | $1.5524\ ^\circ\text{C}$ | -23.38% |
-| **2** | **B6** | Spatial CNN ($P=3$, $3 \times 3$ patch) | Spatial patch ($3 \times 3$, 7 channels) | 30,991 | $1.2702\ ^\circ\text{C}$ | -0.95% |
-| **2** | **B7** | Temporal GRU ($T=5$ causal window) | Causal temporal sequence ($T=5$) | 44,111 | $1.5320\ ^\circ\text{C}$ | -21.76% |
-| **2** | **B8** | Spatiotemporal Embedding Model | Spatiotemporal cube ($T=5, C=7, P=3$) | **203,791** | **0.9800 °C** | **+22.11% (Champion)** |
+| **1** | **B2** | Multi-Output Ridge ($\alpha=100{,}000$) | Pointwise (7 variables) | 120 coefficients | $1.0295\ ^\circ\text{C}$ | +18.18% |
+| **1** | **B3** | Multi-Depth Random Forest (750 trees) | Pointwise (7 variables) | 13,289,966 decision nodes across 750 Random Forest trees | $1.0452\ ^\circ\text{C}$ | +16.93% |
+| **1** | **B4** | Gradient Boosted Trees (LightGBM) | Pointwise (7 variables) | 750 boosted trees | $1.0288\ ^\circ\text{C}$ | +18.23% |
+| **2** | **B5** | Pointwise MLP (128-128-64) | Pointwise (7 variables) | 26,767 trainable parameters | $1.5524\ ^\circ\text{C}$ | -23.38% |
+| **2** | **B6** | Spatial CNN ($P=3$, $3 \times 3$ patch) | Spatial patch ($3 \times 3$, 7 channels) | 30,991 trainable parameters | $1.2702\ ^\circ\text{C}$ | -0.95% |
+| **2** | **B7** | Temporal GRU ($T=5$ causal window) | Causal temporal sequence ($T=5$) | 44,111 trainable parameters | $1.5320\ ^\circ\text{C}$ | -21.76% |
+| **2** | **B8** | Spatiotemporal Embedding Model | Spatiotemporal cube ($T=5, C=7, P=3$) | **203,791 trainable parameters** | **0.9800 °C** | **+22.11% (Champion)** |
 
 ---
 

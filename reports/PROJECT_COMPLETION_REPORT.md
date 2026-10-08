@@ -73,7 +73,7 @@ This project designs, certifies, and audits an end-to-end, scientifically contro
   - `current_v`: Mean = 0.0062 m/s, Std = 0.1970 m/s
   - `wind_u`: Mean = 1.3711 m/s, Std = 4.6115 m/s
   - `wind_v`: Mean = 0.6664 m/s, Std = 4.4036 m/s
-- **Zero-Imputation Ban**: Target NaNs below seafloor bathymetry or over land are never filled with 0 °C. Models are trained and evaluated strictly on bathymetrically valid points.
+- **Zero-Imputation Ban**: Invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero. Models are trained and evaluated strictly on bathymetrically valid points.
 
 ---
 
@@ -95,18 +95,18 @@ This project designs, certifies, and audits an end-to-end, scientifically contro
 ### 5. Canonical Model Hierarchy
 The benchmark establishes 10 canonical models spanning 4 architectural paradigms:
 
-| ID | Canonical Name | Architecture Family | Context Representation | Parameter Count / Complexity | Role |
+| ID | Canonical Name | Architecture Family | Context Representation | Parameters / Complexity | Role |
 | :---: | :--- | :--- | :--- | :---: | :--- |
 | **B0** | Day-0 Persistence | Persistence | Initial state ($t=0$) | 0 | Lower Bound Reference |
 | **B0b** | Day-252 Persistence | Persistence | Train boundary ($t=252$) | 0 | Transition Reference |
 | **B1** | Spatial-Depth Climatology | Climatology | Historical train mean profile | 0 | Baseline Reference Anchor |
 | **B2** | Multi-Output Ridge | Linear Regularized | Pointwise 7-surface vector | 120 coefficients | Supervised Linear Benchmark |
-| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 nodes (750 trees) | Non-Linear Tabular Benchmark |
-| **B4** | Gradient Boosting (LightGBM)| Boosting Ensemble | Pointwise 7-surface vector | 750 boosting trees | Gradient Boosted Benchmark |
-| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | 26,767 weights | Pointwise Neural Ablation |
-| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | 30,991 weights | Spatial-Only Neural Ablation |
-| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | 44,111 weights | Temporal-Only Neural Ablation |
-| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | 203,791 weights | Best-Performing Evaluated Model |
+| **B3** | Multi-Depth Random Forest | Bagging Ensemble | Pointwise 7-surface vector | 13,289,966 decision nodes across 750 Random Forest trees | Non-Linear Tabular Benchmark |
+| **B4** | Gradient Boosting (LightGBM)| Boosting Ensemble | Pointwise 7-surface vector | 750 boosted trees | Gradient Boosted Benchmark |
+| **B5** | Pointwise MLP | Feedforward Neural | Pointwise 7-surface vector | 26,767 trainable parameters | Pointwise Neural Ablation |
+| **B6** | Spatial CNN | Spatial Convolutional | 3×3 spatial patches ($P=3$) | 30,991 trainable parameters | Spatial-Only Neural Ablation |
+| **B7** | Temporal GRU | Sequential Recurrent | 5-day causal sequences ($T=5$) | 44,111 trainable parameters | Temporal-Only Neural Ablation |
+| **B8** | Spatiotemporal Embedding | Joint Spatiotemporal | 5-day × 3×3 patch cubes | 203,791 trainable parameters | Best-Performing Evaluated Model |
 
 *Note on Model Complexity*: Neural and linear baselines report trainable weights/coefficients. Decision tree ensembles report architectural complexity (B3 Random Forest: 50 trees $\times$ 15 depth models = 750 trees, 13,289,966 total decision nodes; B4 LightGBM: 50 trees $\times$ 15 depth models = 750 boosting trees).
 

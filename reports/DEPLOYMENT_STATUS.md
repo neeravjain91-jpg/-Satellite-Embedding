@@ -47,13 +47,13 @@ All frontend displays were audited and confirmed compliant with the authoritativ
 - **B0 (Day-0 Persistence)**: `1.5220 °C`
 - **B0b (Day-252 Persistence)**: `1.7287 °C`
 - **B1 (Spatial-Depth Climatology Reference)**: `1.2582 °C`
-- **B2 (Multi-Output Ridge, $\alpha=100{,}000$)**: `1.0295 °C` (120 params)
-- **B3 (Multi-Depth Random Forest)**: `1.0452 °C` (13,289,966 params)
-- **B4 (Gradient Boosting / LightGBM)**: `1.0288 °C` (750 params)
-- **B5 (Pointwise MLP, 128-128-64)**: `1.5524 °C` (26,767 params)
-- **B6 (Spatial CNN, 3×3 Patch)**: `1.2702 °C` (30,991 params)
-- **B7 (Temporal GRU, 5-Day Causal)**: `1.5320 °C` (44,111 params)
-- **B8 (Spatiotemporal Embedding Model)**: `0.9800 °C` (+22.11% vs B1, 203,791 params)
+- **B2 (Multi-Output Ridge, $\alpha=100{,}000$)**: `1.0295 °C` (120 coefficients)
+- **B3 (Multi-Depth Random Forest)**: `1.0452 °C` (13,289,966 decision nodes across 750 Random Forest trees)
+- **B4 (Gradient Boosting / LightGBM)**: `1.0288 °C` (750 boosted trees)
+- **B5 (Pointwise MLP, 128-128-64)**: `1.5524 °C` (26,767 trainable parameters)
+- **B6 (Spatial CNN, 3×3 Patch)**: `1.2702 °C` (30,991 trainable parameters)
+- **B7 (Temporal GRU, 5-Day Causal)**: `1.5320 °C` (44,111 trainable parameters)
+- **B8 (Spatiotemporal Embedding Model)**: `0.9800 °C` (+22.11% vs B1, 203,791 trainable parameters)
 
 ### B. Canonical Architecture Context
 - **B6**: Strictly designated as `3×3 spatial patch` (no 5×5 claims).

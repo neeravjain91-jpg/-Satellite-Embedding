@@ -49,7 +49,7 @@ The study encompasses the tropical and subtropical basin of the North Indian Oce
 - **Bathymetric & Masking Rules**:
   - `geographic_ocean_mask`: 2D ocean boundaries (16,076 valid sea surface cells)
   - `target_validity_mask`: 3D ocean-depth mask enforcing bathymetric seafloor cutoffs (166,400 active 3D ocean cells across 15 depths)
-  - Points below the GLORYS/ORCA12 model seafloor bathymetry are masked with strict NaN propagation to prevent unphysical sub-bottom predictions.
+  - Points below the GLORYS/ORCA12 model seafloor bathymetry are masked with strict NaN propagation: invalid target NaNs are preserved as masked invalid targets throughout preprocessing, training loss, and evaluation, and are never converted to zero.
 
 ---
 
@@ -143,18 +143,18 @@ The certified B8 model accepts an input tensor $\mathbf{X} \in \mathbb{R}^{B \ti
 
 All models evaluated strictly on the certified Test partition (Days 313–365, 53 consecutive daily steps $\times$ 166,400 active 3D ocean cells):
 
-| Model ID | Architecture Description | Input Domain | Instantiated Parameters | Test RMSE (°C) | Improvement vs B1 (%) | Improvement vs Best ML (B4) | Certified Status |
+| Model ID | Architecture Description | Input Domain | Parameters / Complexity | Test RMSE (°C) | Improvement vs B1 (%) | Improvement vs Best ML (B4) | Certified Status |
 |---|---|---|---|---|---|---|---|
 | **B0** | Day-0 Persistence | $1 \times 1$ target column | 0 | 1.5220 | -20.97% | -47.94% | Locked |
 | **B0b** | Day-252 Persistence | $1 \times 1$ target column | 0 | 1.7287 | -37.39% | -68.03% | Locked |
 | **B1** | Daily Mean Climatology | 366-day temporal mean | 0 | 1.2582 | Baseline | -22.30% | Locked |
-| **B2** | Ridge Linear Regression ($\alpha=100{,}000$) | Pointwise 7 surface | 120 | 1.0295 | +18.18% | -0.07% | Locked |
-| **B3** | Random Forest Regressor (750 trees) | Pointwise 7 surface | 13,289,966 nodes | 1.0452 | +16.93% | -1.59% | Locked |
-| **B4** | LightGBM Gradient Boosting (750 trees) | Pointwise 7 surface | 750 boosting trees | 1.0288 | +18.23% | Baseline | Locked |
-| **B5** | Pointwise MLP (3 hidden layers) | Pointwise 7 surface | 26,767 | 1.5524 | -23.38% | -50.90% | Locked |
-| **B6** | Spatial CNN ($3 \times 3$ patches) | Spatial $3\times3$ patch | 30,991 | 1.2702 | -0.95% | -23.46% | Locked |
-| **B7** | Temporal GRU (5-day causal window) | 5-day sequence | 44,111 | 1.5320 | -21.76% | -48.91% | Locked |
-| **B8** | **Spatiotemporal Embedding Network** | **5-day $\times 3 \times 3$ patch** | **203,791** | **0.9800** | **+22.11%** | **+4.74%** | **Best Internal** |
+| **B2** | Ridge Linear Regression ($\alpha=100{,}000$) | Pointwise 7 surface | 120 coefficients | 1.0295 | +18.18% | -0.07% | Locked |
+| **B3** | Random Forest Regressor (750 trees) | Pointwise 7 surface | 13,289,966 decision nodes across 750 Random Forest trees | 1.0452 | +16.93% | -1.59% | Locked |
+| **B4** | LightGBM Gradient Boosting (750 trees) | Pointwise 7 surface | 750 boosted trees | 1.0288 | +18.23% | Baseline | Locked |
+| **B5** | Pointwise MLP (3 hidden layers) | Pointwise 7 surface | 26,767 trainable parameters | 1.5524 | -23.38% | -50.90% | Locked |
+| **B6** | Spatial CNN ($3 \times 3$ patches) | Spatial $3\times3$ patch | 30,991 trainable parameters | 1.2702 | -0.95% | -23.46% | Locked |
+| **B7** | Temporal GRU (5-day causal window) | 5-day sequence | 44,111 trainable parameters | 1.5320 | -21.76% | -48.91% | Locked |
+| **B8** | **Spatiotemporal Embedding Network** | **5-day $\times 3 \times 3$ patch** | **203,791 trainable parameters** | **0.9800** | **+22.11%** | **+4.74%** | **Best Internal** |
 
 ### Statistical Significance Summary
 - **B8 vs. B1 (Daily Climatology)**: Absolute error reduction $\Delta\text{RMSE} = -0.2782\ ^\circ\text{C}$ (+22.11% relative gain). 7-day block bootstrap (1000 resamples): 95% CI $[-0.3957, -0.1756]\ ^\circ\text{C}$, $p < 0.001$ (statistically significant).
