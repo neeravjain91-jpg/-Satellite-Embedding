@@ -6,7 +6,7 @@
 ### 1. Release Overview
 - **Project Title**: **Satellite Embedding-Based Deep Learning Framework for Reconstruction of Depth-Wise Subsurface Ocean Temperature**
 - **Repository**: `https://github.com/neeravjain91-jpg/-Satellite-Embedding`
-- **Certified Release Commit**: `88f7dbc99cae223a2a66539cddbb5073ca4360c1`
+- **Certified Release Commit**: `b2ccf493313241df2ff1e89fb3d19802dc7c8907` (Final Academic Submission Freeze; Production Deployed Commit: `88f7dbc99cae223a2a66539cddbb5073ca4360c1`)
 - **Frontend Production URL**: [https://code-gules-three.vercel.app](https://code-gules-three.vercel.app)
 - **Vercel Deployment URL**: [https://code-jry5vs2ze-neeravjain91-6032s-projects.vercel.app](https://code-jry5vs2ze-neeravjain91-6032s-projects.vercel.app)
 - **Vercel Deployment ID**: `dpl_8rqrbnpzFUPRAJRGCWfBM7BvJjrM`

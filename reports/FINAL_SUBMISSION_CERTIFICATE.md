@@ -13,7 +13,7 @@ This document certifies that the capstone engineering project described herein h
 - **Project Title**: **Satellite Embedding-Based Deep Learning Framework for Reconstruction of Depth-Wise Subsurface Ocean Temperature**
 - **Subtitle**: Daily 0.25° Reconstruction Across the North Indian Ocean Using Surface Satellite and Oceanographic Observations
 - **Repository**: `https://github.com/neeravjain91-jpg/-Satellite-Embedding`
-- **Certified Git Commit**: `88f7dbc99cae223a2a66539cddbb5073ca4360c1` (Final Academic Release)
+- **Certified Git Commit**: `b2ccf493313241df2ff1e89fb3d19802dc7c8907` (Final Academic Release Freeze; Production Deployed Commit: `88f7dbc99cae223a2a66539cddbb5073ca4360c1`)
 - **Production URL**: `https://code-gules-three.vercel.app`
 - **Vercel Deployment ID**: `dpl_8rqrbnpzFUPRAJRGCWfBM7BvJjrM`
 - **Degree / Evaluation**: Bachelor of Technology Capstone Project Final Submission
