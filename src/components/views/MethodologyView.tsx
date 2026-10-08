@@ -123,7 +123,7 @@ export const MethodologyView: React.FC = () => {
             <span>Data Sources & Target</span>
           </div>
           <p className="text-slate-300 leading-relaxed">
-            The target is GLORYS12V1 daily potential temperature (<code className="text-cyan-300 font-mono">thetao</code>) interpolated to 15 canonical depth levels down to 1000m. The GLORYS/ORCA12 model bathymetry defines seafloor depth. Sub-seafloor points are strictly preserved as NaNs and never converted to physical 0°C.
+            The target is the <strong>GLORYS numerical ocean reanalysis reference</strong> (GLORYS12V1 daily potential temperature <code className="text-cyan-300 font-mono">thetao</code>) interpolated to 15 canonical depth levels down to 1000m. The GLORYS/ORCA12 model bathymetry defines seafloor depth. Sub-seafloor points are strictly preserved as NaNs and never converted to physical 0°C.
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export const MethodologyView: React.FC = () => {
             <span>Scope & Limitations</span>
           </div>
           <p className="text-slate-300 leading-relaxed">
-            Evaluation is conducted on GLORYS12V1 ocean reanalysis target fields as an emulation benchmark. Direct physical comparison with in-situ Argo profiling floats represents an independent validation tier outside the GLORYS training manifold.
+            Evaluation is conducted against the <strong>GLORYS numerical ocean reanalysis reference</strong> state estimate. Collocated in-situ profiling floats serve as an <strong>ARGO–GLORYS Reference Consistency Assessment</strong> ($N=1,482$ profiles); because operational Argo floats are assimilated into GLORYS, this assesses reanalysis reference consistency rather than serving as independent validation of the ML model.
           </p>
         </div>
       </div>
