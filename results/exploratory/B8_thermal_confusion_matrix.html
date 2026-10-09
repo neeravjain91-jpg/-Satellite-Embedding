@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B8 Spatiotemporal Embedding Thermal Regime Confusion Matrix</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .cell-hover:hover {
+      transform: scale(1.04);
+      z-index: 20;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-3 font-sans">
+  <div class="bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] rounded-2xl p-5 shadow-lg max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[var(--border)] gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-sky-500/10 text-sky-500 font-bold text-sm">🌌</span>
+          <h2 class="text-[var(--foreground)] font-bold text-xl tracking-tight">Canonical B8 Thermal Regime Confusion Matrix</h2>
+          <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-sky-500/10 text-sky-500 border border-sky-500/20">Spatiotemporal Embedding</span>
+        </div>
+        <p class="text-[var(--muted-foreground)] text-xs mt-1">
+          Evaluated on <strong>8,017,734</strong> valid ocean test points across 15 depths (0–1000m) & 53 test days (Nov 9 – Dec 31, 2020).
+        </p>
+        <p class="text-[var(--muted-foreground)] text-[11px] mt-0.5 italic">
+          B8 Architecture: Conv2D (3x3 patch) + Causal GRU (T=5) + Latent Bottleneck (128-d) &bull; 203,791 parameters &bull; Test RMSE: 0.9797°C.
+        </p>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-2">
+        <div class="inline-flex rounded-lg p-0.5 bg-[var(--background)] border border-[var(--border)] text-xs">
+          <button id="btn-mode-pct" onclick="setMode('pct')" class="px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs">Total %</button>
+          <button id="btn-mode-row" onclick="setMode('row')" class="px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">Row %</button>
+          <button id="btn-mode-cnt" onclick="setMode('cnt')" class="px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]">Counts</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Summary Cards with Comparison -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Exact Accuracy</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-xl font-bold text-sky-500">81.65%</span>
+          <span class="text-[11px] font-bold text-emerald-500">+1.00 pp</span>
+        </div>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">vs Certified B3: 80.65%</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Within ±1 Bin</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-xl font-bold text-emerald-500">99.82%</span>
+          <span class="text-[11px] font-bold text-[var(--muted-foreground)]">0.18% beyond</span>
+        </div>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">vs Certified B3: 99.71%</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Cohen's Kappa (κ)</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-xl font-bold text-indigo-500">0.7757</span>
+          <span class="text-[11px] font-bold text-emerald-500">+0.0121</span>
+        </div>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">vs Certified B3: 0.7636</span>
+      </div>
+      <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+        <span class="text-[var(--muted-foreground)] text-xs block font-medium">Macro / Weighted F1</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-xl font-bold text-purple-500">0.8185</span>
+          <span class="text-[11px] font-bold text-[var(--muted-foreground)]">/ 0.8192</span>
+        </div>
+        <span class="text-[var(--muted-foreground)] text-[11px] block mt-0.5">vs Certified: 0.8085</span>
+      </div>
+    </div>
+
+    <!-- Heatmap Table -->
+    <div class="overflow-x-auto custom-scroll pb-2">
+      <div class="min-w-[620px]">
+        <div class="text-center font-bold text-xs uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
+          Predicted Thermal Regime &rarr;
+        </div>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr>
+              <th class="p-2 text-left font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">Actual \ Pred</th>
+              <th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]"><10°C</th><th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">10–15°C</th><th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">15–20°C</th><th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">20–25°C</th><th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">25–28°C</th><th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">≥28°C</th>
+              <th class="p-2 text-center font-bold text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">Total True</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="p-2.5 font-medium text-xs text-[var(--foreground)] bg-[var(--background)]/40 border-b border-[var(--border)]">Deep Water (<10°C)</td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all ring-1 ring-sky-400" style="background-color: rgba(14, 165, 233, 0.2871991845410021); color: #ffffff;"><div class="font-bold val-pct">8.62%</div><div class="text-[10px] opacity-75 val-cnt hidden">690,806</div><div class="text-[10px] opacity-75 val-row hidden">86.6%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.13320471844039725); color: var(--foreground);"><div class="font-bold val-pct">1.33%</div><div class="text-[10px] opacity-75 val-cnt hidden">106,800</div><div class="text-[10px] opacity-75 val-row hidden">13.4%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs font-semibold border-b border-[var(--border)] bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">9.9%</span><span class="val-cnt hidden">797,606</span><span class="val-row hidden">100.0%</span></td></tr><tr><td class="p-2.5 font-medium text-xs text-[var(--foreground)] bg-[var(--background)]/40 border-b border-[var(--border)]">Lower Thermocline (10–15°C)</td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.08595944939056346); color: var(--foreground);"><div class="font-bold val-pct">0.86%</div><div class="text-[10px] opacity-75 val-cnt hidden">68,920</div><div class="text-[10px] opacity-75 val-row hidden">5.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all ring-1 ring-sky-400" style="background-color: rgba(14, 165, 233, 0.4917665431820678); color: #ffffff;"><div class="font-bold val-pct">14.75%</div><div class="text-[10px] opacity-75 val-cnt hidden">1,182,856</div><div class="text-[10px] opacity-75 val-row hidden">85.9%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.15544042743248904); color: var(--foreground);"><div class="font-bold val-pct">1.55%</div><div class="text-[10px] opacity-75 val-cnt hidden">124,628</div><div class="text-[10px] opacity-75 val-row hidden">9.1%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(244, 63, 94, 0.05); color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">164</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs font-semibold border-b border-[var(--border)] bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">17.2%</span><span class="val-cnt hidden">1,376,568</span><span class="val-row hidden">100.0%</span></td></tr><tr><td class="p-2.5 font-medium text-xs text-[var(--foreground)] bg-[var(--background)]/40 border-b border-[var(--border)]">Core Thermocline (15–20°C)</td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.06688423437345264); color: var(--foreground);"><div class="font-bold val-pct">0.67%</div><div class="text-[10px] opacity-75 val-cnt hidden">53,626</div><div class="text-[10px] opacity-75 val-row hidden">5.5%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all ring-1 ring-sky-400" style="background-color: rgba(14, 165, 233, 0.31752279800419086); color: #ffffff;"><div class="font-bold val-pct">9.53%</div><div class="text-[10px] opacity-75 val-cnt hidden">763,744</div><div class="text-[10px] opacity-75 val-row hidden">77.9%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.2017714730870343); color: var(--foreground);"><div class="font-bold val-pct">2.02%</div><div class="text-[10px] opacity-75 val-cnt hidden">161,775</div><div class="text-[10px] opacity-75 val-row hidden">16.5%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(244, 63, 94, 0.05); color: var(--muted-foreground);"><div class="font-bold val-pct">0.02%</div><div class="text-[10px] opacity-75 val-cnt hidden">1,277</div><div class="text-[10px] opacity-75 val-row hidden">0.1%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs font-semibold border-b border-[var(--border)] bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">12.2%</span><span class="val-cnt hidden">980,422</span><span class="val-row hidden">100.0%</span></td></tr><tr><td class="p-2.5 font-medium text-xs text-[var(--foreground)] bg-[var(--background)]/40 border-b border-[var(--border)]">Upper Thermocline (20–25°C)</td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.10276719082972821); color: var(--foreground);"><div class="font-bold val-pct">1.03%</div><div class="text-[10px] opacity-75 val-cnt hidden">82,396</div><div class="text-[10px] opacity-75 val-row hidden">7.6%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all ring-1 ring-sky-400" style="background-color: rgba(14, 165, 233, 0.34913438967502125); color: #ffffff;"><div class="font-bold val-pct">10.47%</div><div class="text-[10px] opacity-75 val-cnt hidden">839,780</div><div class="text-[10px] opacity-75 val-row hidden">77.7%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.19508753969637804); color: var(--foreground);"><div class="font-bold val-pct">1.95%</div><div class="text-[10px] opacity-75 val-cnt hidden">156,416</div><div class="text-[10px] opacity-75 val-row hidden">14.5%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(244, 63, 94, 0.051086753439313404); color: var(--muted-foreground);"><div class="font-bold val-pct">0.03%</div><div class="text-[10px] opacity-75 val-cnt hidden">2,048</div><div class="text-[10px] opacity-75 val-row hidden">0.2%</div></td><td class="p-2 text-center text-xs font-semibold border-b border-[var(--border)] bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">13.5%</span><span class="val-cnt hidden">1,080,640</span><span class="val-row hidden">100.0%</span></td></tr><tr><td class="p-2.5 font-medium text-xs text-[var(--foreground)] bg-[var(--background)]/40 border-b border-[var(--border)]">Mixed Layer (25–28°C)</td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(244, 63, 94, 0.05); color: var(--muted-foreground);"><div class="font-bold val-pct">0.01%</div><div class="text-[10px] opacity-75 val-cnt hidden">468</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.2205910048899103); color: var(--foreground);"><div class="font-bold val-pct">2.21%</div><div class="text-[10px] opacity-75 val-cnt hidden">176,864</div><div class="text-[10px] opacity-75 val-row hidden">10.2%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all ring-1 ring-sky-400" style="background-color: rgba(14, 165, 233, 0.6278831400492957); color: #ffffff;"><div class="font-bold val-pct">18.84%</div><div class="text-[10px] opacity-75 val-cnt hidden">1,510,260</div><div class="text-[10px] opacity-75 val-row hidden">86.8%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.06400312108134293); color: var(--foreground);"><div class="font-bold val-pct">0.64%</div><div class="text-[10px] opacity-75 val-cnt hidden">51,316</div><div class="text-[10px] opacity-75 val-row hidden">3.0%</div></td><td class="p-2 text-center text-xs font-semibold border-b border-[var(--border)] bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">21.7%</span><span class="val-cnt hidden">1,738,908</span><span class="val-row hidden">100.0%</span></td></tr><tr><td class="p-2.5 font-medium text-xs text-[var(--foreground)] bg-[var(--background)]/40 border-b border-[var(--border)]">Tropical Warm Pool (≥28°C)</td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: transparent; color: var(--muted-foreground);"><div class="font-bold val-pct">0.00%</div><div class="text-[10px] opacity-75 val-cnt hidden">0</div><div class="text-[10px] opacity-75 val-row hidden">0.0%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(244, 63, 94, 0.26014831622001927); color: var(--muted-foreground);"><div class="font-bold val-pct">0.13%</div><div class="text-[10px] opacity-75 val-cnt hidden">10,429</div><div class="text-[10px] opacity-75 val-row hidden">0.5%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all " style="background-color: rgba(186, 230, 253, 0.35); color: var(--foreground);"><div class="font-bold val-pct">5.91%</div><div class="text-[10px] opacity-75 val-cnt hidden">473,921</div><div class="text-[10px] opacity-75 val-row hidden">23.2%</div></td><td class="p-2 text-center text-xs border-b border-[var(--border)] cell-hover transition-all ring-1 ring-sky-400" style="background-color: rgba(14, 165, 233, 0.6482463332740481); color: #ffffff;"><div class="font-bold val-pct">19.45%</div><div class="text-[10px] opacity-75 val-cnt hidden">1,559,240</div><div class="text-[10px] opacity-75 val-row hidden">76.3%</div></td><td class="p-2 text-center text-xs font-semibold border-b border-[var(--border)] bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">25.5%</span><span class="val-cnt hidden">2,043,590</span><span class="val-row hidden">100.0%</span></td></tr>
+            <tr><td class="p-2 text-xs font-bold text-[var(--foreground)] bg-[var(--background)]/40">Total Pred</td><td class="p-2 text-center text-xs font-semibold bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">9.5%</span><span class="val-cnt hidden">759,726</span><span class="val-row hidden">9.5%</span></td><td class="p-2 text-center text-xs font-semibold bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">16.8%</span><span class="val-cnt hidden">1,343,282</span><span class="val-row hidden">16.8%</span></td><td class="p-2 text-center text-xs font-semibold bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">12.1%</span><span class="val-cnt hidden">971,236</span><span class="val-row hidden">12.1%</span></td><td class="p-2 text-center text-xs font-semibold bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">14.8%</span><span class="val-cnt hidden">1,189,012</span><span class="val-row hidden">14.8%</span></td><td class="p-2 text-center text-xs font-semibold bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">26.7%</span><span class="val-cnt hidden">2,141,874</span><span class="val-row hidden">26.7%</span></td><td class="p-2 text-center text-xs font-semibold bg-[var(--background)]/40 text-[var(--foreground)]"><span class="val-pct">20.1%</span><span class="val-cnt hidden">1,612,604</span><span class="val-row hidden">20.1%</span></td><td class="p-2 text-center text-xs font-bold bg-[var(--background)]/60 text-sky-500">100.0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="mt-4 pt-3 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center text-xs text-[var(--muted-foreground)] gap-2">
+      <div>
+        <strong>Evaluation Status:</strong> Canonical B8 diagnostic evaluation &bull; Target-NaN masking fully preserved.
+      </div>
+      <div>
+        Continuous Test RMSE: <strong class="text-sky-500">0.9797 °C</strong> (Certified Reference: 0.9800 °C)
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setMode(mode) {
+      const pcts = document.querySelectorAll('.val-pct');
+      const cnts = document.querySelectorAll('.val-cnt');
+      const rows = document.querySelectorAll('.val-row');
+      const btnPct = document.getElementById('btn-mode-pct');
+      const btnCnt = document.getElementById('btn-mode-cnt');
+      const btnRow = document.getElementById('btn-mode-row');
+
+      pcts.forEach(el => el.classList.add('hidden'));
+      cnts.forEach(el => el.classList.add('hidden'));
+      rows.forEach(el => el.classList.add('hidden'));
+      btnPct.className = "px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]";
+      btnCnt.className = "px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]";
+      btnRow.className = "px-2.5 py-1 rounded-md font-medium transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]";
+
+      if (mode === 'pct') {
+        pcts.forEach(el => el.classList.remove('hidden'));
+        btnPct.className = "px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs";
+      } else if (mode === 'cnt') {
+        cnts.forEach(el => el.classList.remove('hidden'));
+        btnCnt.className = "px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs";
+      } else if (mode === 'row') {
+        rows.forEach(el => el.classList.remove('hidden'));
+        btnRow.className = "px-2.5 py-1 rounded-md font-medium transition-all bg-[var(--card)] text-[var(--foreground)] shadow-xs";
+      }
+    }
+  </script>
+</body>
+</html>

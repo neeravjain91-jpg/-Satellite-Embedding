@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "title": "B3-A Validation Winner Thermal Regime Confusion Matrix",
+    "model_id": "B3-A",
+    "model_name": "Multi-Depth Random Forest (100 trees, max_depth=15)",
+    "sample_train_size": 100000,
+    "n_estimators": 100,
+    "max_depth": 15,
+    "decision_nodes": 26549170,
+    "total_trees": 1500,
+    "evaluation_partition": "Held-Out Test (Days 313\u2013365, Nov 9 \u2013 Dec 31, 2020)",
+    "total_valid_test_points": 8017734,
+    "status": "EXPLORATORY \u2022 NON-CANONICAL"
+  },
+  "regimes": {
+    "labels": [
+      "Deep Water (<10\u00b0C)",
+      "Lower Thermocline (10\u201315\u00b0C)",
+      "Core Thermocline (15\u201320\u00b0C)",
+      "Upper Thermocline (20\u201325\u00b0C)",
+      "Mixed Layer (25\u201328\u00b0C)",
+      "Tropical Warm Pool (\u226528\u00b0C)"
+    ],
+    "temperature_boundaries_c": [
+      10.0,
+      15.0,
+      20.0,
+      25.0,
+      28.0
+    ]
+  },
+  "metrics": {
+    "accuracy_pct": 80.68,
+    "within_1_bin_pct": 99.71,
+    "beyond_1_bin_pct": 0.29,
+    "cohen_kappa": 0.7639,
+    "macro_f1": 0.8088,
+    "weighted_f1": 0.8102
+  },
+  "comparison_vs_certified_b3": {
+    "delta_accuracy_pct": 0.03,
+    "delta_within_1_bin_pct": 0.0,
+    "delta_cohen_kappa": 0.0003,
+    "delta_macro_f1": 0.0003,
+    "delta_weighted_f1": 0.0003
+  },
+  "confusion_matrix_counts": [
+    [
+      686651,
+      110955,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      70539,
+      1176258,
+      128994,
+      775,
+      2,
+      0
+    ],
+    [
+      0,
+      53564,
+      751653,
+      172732,
+      2473,
+      0
+    ],
+    [
+      0,
+      0,
+      87803,
+      839703,
+      151469,
+      1665
+    ],
+    [
+      0,
+      0,
+      484,
+      228395,
+      1447193,
+      62836
+    ],
+    [
+      0,
+      0,
+      0,
+      17521,
+      458597,
+      1567472
+    ]
+  ],
+  "confusion_matrix_percent": [
+    [
+      8.5642,
+      1.3839,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.8798,
+      14.6707,
+      1.6089,
+      0.0097,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.6681,
+      9.3749,
+      2.1544,
+      0.0308,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0951,
+      10.4731,
+      1.8892,
+      0.0208
+    ],
+    [
+      0.0,
+      0.0,
+      0.006,
+      2.8486,
+      18.0499,
+      0.7837
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.2185,
+      5.7198,
+      19.5501
+    ]
+  ],
+  "per_class_metrics": [],
+  "per_class": [
+    {
+      "regime": "Deep Water (<10\u00b0C)",
+      "support": 797606,
+      "true_positives": 686651,
+      "false_positives": 70539,
+      "false_negatives": 110955,
+      "precision": 0.9068,
+      "recall": 0.8609,
+      "f1": 0.8833
+    },
+    {
+      "regime": "Lower Thermocline (10\u201315\u00b0C)",
+      "support": 1376568,
+      "true_positives": 1176258,
+      "false_positives": 164519,
+      "false_negatives": 200310,
+      "precision": 0.8773,
+      "recall": 0.8545,
+      "f1": 0.8657
+    },
+    {
+      "regime": "Core Thermocline (15\u201320\u00b0C)",
+      "support": 980422,
+      "true_positives": 751653,
+      "false_positives": 217281,
+      "false_negatives": 228769,
+      "precision": 0.7758,
+      "recall": 0.7667,
+      "f1": 0.7712
+    },
+    {
+      "regime": "Upper Thermocline (20\u201325\u00b0C)",
+      "support": 1080640,
+      "true_positives": 839703,
+      "false_positives": 419423,
+      "false_negatives": 240937,
+      "precision": 0.6669,
+      "recall": 0.777,
+      "f1": 0.7178
+    },
+    {
+      "regime": "Mixed Layer (25\u201328\u00b0C)",
+      "support": 1738908,
+      "true_positives": 1447193,
+      "false_positives": 612541,
+      "false_negatives": 291715,
+      "precision": 0.7026,
+      "recall": 0.8322,
+      "f1": 0.762
+    },
+    {
+      "regime": "Tropical Warm Pool (\u226528\u00b0C)",
+      "support": 2043590,
+      "true_positives": 1567472,
+      "false_positives": 64501,
+      "false_negatives": 476118,
+      "precision": 0.9605,
+      "recall": 0.767,
+      "f1": 0.8529
+    }
+  ]
+}
