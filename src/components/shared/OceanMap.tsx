@@ -1,59 +1,84 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import L from 'leaflet';
 import {
   MapPin,
-  Crosshair,
+  RotateCcw,
+  Maximize2,
+  Minimize2,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
   Layers,
+  Calendar,
+  Layers3,
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Sliders,
   Wind,
   Navigation,
-  Compass,
+  Check,
+  AlertCircle,
   Eye,
-  AlertTriangle,
-  Info,
-  Maximize2
+  EyeOff
 } from 'lucide-react';
 import {
-  MAP_DOMAIN,
-  lonToX,
-  latToY,
-  xToLon,
-  yToLat,
-  coordsToSvgPath,
-  INDIA_COASTLINE,
-  SRI_LANKA_COASTLINE,
-  PAKISTAN_COASTLINE,
-  ARABIA_COASTLINE,
-  IRAN_COASTLINE,
-  SOMALIA_COASTLINE,
-  SOCOTRA_ISLAND,
-  ABD_AL_KURI,
-  BANGLADESH_COASTLINE,
-  SE_ASIA_COASTLINE,
-  SUMATRA_TIP,
-  ANDAMAN_ISLANDS,
-  LAKSHADWEEP_ATOLLS,
-  MALDIVES_ATOLLS,
-  CONTINENTAL_SHELF_200M,
-  OCEAN_RIDGES,
-  OCEAN_BASINS,
-  MONSOON_CURRENTS,
-  checkLandLocation,
-  getEstimatedOceanDepth,
-} from './oceanGeography';
-import { resolveOceanRegion } from '../../mock/oceanData';
+  OceanManifest,
+  loadOceanManifest,
+  loadDayData,
+  inspectPoint,
+  renderScalarToCanvas,
+  extractVectorArrows,
+  PointInspectionResult,
+  VectorSample
+} from '../../services/oceanDataService';
 
-export type MapOverlayLayer = 'none' | 'sst' | 'sss' | 'ssh' | 'recon';
-export type GridMode = 'graticule' | 'dense' | 'none';
-
-interface OceanMapProps {
+export interface OceanMapProps {
   selectedLat: number;
   selectedLon: number;
   onSelectCoordinates: (lat: number, lon: number) => void;
   className?: string;
   showPresets?: boolean;
 }
+
+type BasemapProvider = 'carto-dark' | 'carto-light' | 'esri-ocean' | 'osm';
+
+const BASEMAP_TILES: Record<BasemapProvider, { name: string; url: string; attribution: string; maxZoom: number }> = {
+  'carto-dark': {
+    name: 'CartoDB Dark Matter',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    maxZoom: 19
+  },
+  'carto-light': {
+    name: 'CartoDB Positron',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 19
+  },
+  'esri-ocean': {
+    name: 'Esri World Ocean',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, DeLorme',
+    maxZoom: 13
+  },
+  'osm': {
+    name: 'OpenStreetMap Standard',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }
+};
+
+const OCEAN_PRESETS = [
+  { name: 'Central Arabian Sea', lat: 15.0, lon: 65.0, desc: 'High salinity & oligotrophic central basin' },
+  { name: 'Bay of Bengal Interior', lat: 15.0, lon: 88.0, desc: 'Ganges-Brahmaputra freshwater plume stratification' },
+  { name: 'Somali Upwelling Boundary', lat: 9.0, lon: 52.0, desc: 'SW monsoon cold coastal upwelling' },
+  { name: 'Sri Lanka Dome Region', lat: 8.0, lon: 83.5, desc: 'Monsoon cyclonic eddy & thermocline shallowing' },
+  { name: 'Equatorial Indian Ocean', lat: 5.0, lon: 77.0, desc: 'Wyrtki jet equatorial waveguide' },
+  { name: 'Andaman Sea Basin', lat: 11.5, lon: 94.0, desc: 'Internal solitary waves & basin bathymetry' },
+];
 
 export const OceanMap: React.FC<OceanMapProps> = ({
   selectedLat,
@@ -62,1005 +87,856 @@ export const OceanMap: React.FC<OceanMapProps> = ({
   className = '',
   showPresets = true,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const imageOverlayRef = useRef<L.ImageOverlay | null>(null);
+  const boundaryLayerRef = useRef<L.Rectangle | null>(null);
+  const vectorLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
-  // Zoom & Pan transformation state
-  const [zoom, setZoom] = useState(1.0);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // Scientific data state
+  const [manifest, setManifest] = useState<OceanManifest | null>(null);
+  const [currentDayData, setCurrentDayData] = useState<Int16Array | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadingMsg, setLoadingMsg] = useState<string>('Initializing Ocean GIS...');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Interactive Layer & Display Controls
-  const [activeLayer, setActiveLayer] = useState<MapOverlayLayer>('none');
-  const [gridMode, setGridMode] = useState<GridMode>('graticule');
-  const [showBathymetry, setShowBathymetry] = useState(true);
-  const [showCurrents, setShowCurrents] = useState(false);
-  const [showLabels, setShowLabels] = useState(true);
+  // Map configuration state
+  const [activeLayer, setActiveLayer] = useState<string>('sst');
+  const [activeDepth, setActiveDepth] = useState<number>(0);
+  const [activeDate, setActiveDate] = useState<string>('2020-11-09');
+  const [basemap, setBasemap] = useState<BasemapProvider>('carto-dark');
+  const [layerOpacity, setLayerOpacity] = useState<number>(0.85);
+  const [showVectors, setShowVectors] = useState<boolean>(true);
+  const [showBoundary, setShowBoundary] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  // Cursor Hover State
-  const [hoveredInfo, setHoveredInfo] = useState<{
-    lat: number;
-    lon: number;
-    depth: number;
-    region: string;
-    isLand: boolean;
-    landName?: string;
-  } | null>(null);
+  // Inspection & Hover state
+  const [hoverCoords, setHoverCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [inspection, setInspection] = useState<PointInspectionResult | null>(null);
+  const [showInspector, setShowInspector] = useState<boolean>(true);
 
-  // Land Click Warning Toast
-  const [landWarning, setLandWarning] = useState<{
-    lat: number;
-    lon: number;
-    name: string;
-  } | null>(null);
-
-  // Clear land warning after 3.5 seconds
+  // 1. Initial Load: Load Manifest
   useEffect(() => {
-    if (!landWarning) return;
-    const timer = setTimeout(() => setLandWarning(null), 3500);
-    return () => clearTimeout(timer);
-  }, [landWarning]);
+    let mounted = true;
+    async function init() {
+      try {
+        setLoadingMsg('Loading Research Domain Metadata...');
+        const m = await loadOceanManifest();
+        if (!mounted) return;
+        setManifest(m);
+        setActiveDate(m.defaultDate);
+        setActiveDepth(m.defaultDepth);
 
-  // Convert SVG client mouse event into Projected Ocean Coordinates
-  const getEventOceanCoords = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!svgRef.current) return null;
-      const rect = svgRef.current.getBoundingClientRect();
-      const clientX = e.clientX - rect.left;
-      const clientY = e.clientY - rect.top;
+        setLoadingMsg(`Loading Daily Scientific Slice (${m.defaultDate})...`);
+        const dayArr = await loadDayData(m.defaultDate);
+        if (!mounted) return;
+        setCurrentDayData(dayArr);
+        setIsLoading(false);
+      } catch (err: any) {
+        if (!mounted) return;
+        console.error('Failed to initialize scientific map data:', err);
+        setErrorMsg(err.message || 'Error loading scientific dataset.');
+        setIsLoading(false);
+      }
+    }
+    init();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-      // Scale from client pixels to SVG viewBox space
-      const svgViewX = (clientX / rect.width) * MAP_DOMAIN.width;
-      const svgViewY = (clientY / rect.height) * MAP_DOMAIN.height;
+  // 2. Initialize Leaflet Map Instance
+  useEffect(() => {
+    if (!mapContainerRef.current || leafletMapRef.current) return;
 
-      // Invert pan & zoom transformation
-      const rawX = (svgViewX - pan.x) / zoom;
-      const rawY = (svgViewY - pan.y) / zoom;
+    // Study Domain Bounds: [5.0, 45.0] to [30.0, 105.0]
+    const southWest = L.latLng(5.0, 45.0);
+    const northEast = L.latLng(30.0, 105.0);
+    const bounds = L.latLngBounds(southWest, northEast);
 
-      // Convert to Longitude & Latitude
-      const lon = xToLon(rawX);
-      const lat = yToLat(rawY);
+    const map = L.map(mapContainerRef.current, {
+      center: [17.5, 75.0],
+      zoom: 4,
+      minZoom: 3,
+      maxZoom: 9,
+      zoomControl: false,
+      attributionControl: true,
+      maxBounds: L.latLngBounds(L.latLng(-5.0, 30.0), L.latLng(40.0, 120.0)),
+      maxBoundsViscosity: 0.8,
+    });
 
-      return {
-        lat: Math.min(MAP_DOMAIN.latMax, Math.max(MAP_DOMAIN.latMin, lat)),
-        lon: Math.min(MAP_DOMAIN.lonMax, Math.max(MAP_DOMAIN.lonMin, lon)),
-        svgX: rawX,
-        svgY: rawY,
-      };
-    },
-    [pan.x, pan.y, zoom]
-  );
+    leafletMapRef.current = map;
 
-  // Handle Mouse Click on the Ocean Map
-  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (isDragging) return;
-    const coords = getEventOceanCoords(e);
-    if (!coords) return;
+    // Add Initial Basemap Tiles
+    const tileConfig = BASEMAP_TILES['carto-dark'];
+    const tileLayer = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
+      maxZoom: tileConfig.maxZoom,
+      subdomains: 'abcd',
+    }).addTo(map);
+    tileLayerRef.current = tileLayer;
 
-    // Check if the clicked location is masked continental land
-    const landCheck = checkLandLocation(coords.lat, coords.lon);
-    if (landCheck.isLand) {
-      setLandWarning({
-        lat: Math.round(coords.lat * 4) / 4,
-        lon: Math.round(coords.lon * 4) / 4,
-        name: landCheck.name || 'Continental Landmass',
+    // Add Scale Bar
+    L.control
+      .scale({
+        imperial: false,
+        metric: true,
+        position: 'bottomleft',
+      })
+      .addTo(map);
+
+    // Add Domain Boundary Rectangle
+    const boundary = L.rectangle(bounds, {
+      color: '#06b6d4',
+      weight: 1.5,
+      dashArray: '5, 5',
+      fill: false,
+      interactive: false,
+    }).addTo(map);
+    boundaryLayerRef.current = boundary;
+
+    // Layer group for vector glyphs
+    const vectorGroup = L.layerGroup().addTo(map);
+    vectorLayerGroupRef.current = vectorGroup;
+
+    // Fit Initial View to Research Basin Domain
+    map.fitBounds(bounds, { padding: [25, 25] });
+
+    // Handle Map Movement / Coordinate Hover
+    map.on('mousemove', (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      setHoverCoords({
+        lat: Math.round(lat * 100) / 100,
+        lon: Math.round(lng * 100) / 100,
       });
+    });
+
+    map.on('mouseout', () => {
+      setHoverCoords(null);
+    });
+
+    // Handle Map Clicks: Snap to 0.25° grid and select
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      const snapLat = Math.round(e.latlng.lat * 4) / 4;
+      const snapLon = Math.round(e.latlng.lng * 4) / 4;
+
+      // Bound to domain
+      const boundedLat = Math.max(5.0, Math.min(30.0, snapLat));
+      const boundedLon = Math.max(45.0, Math.min(105.0, snapLon));
+
+      onSelectCoordinates(boundedLat, boundedLon);
+    });
+
+    return () => {
+      map.remove();
+      leafletMapRef.current = null;
+    };
+  }, [onSelectCoordinates]);
+
+  // 3. Basemap Switcher
+  useEffect(() => {
+    if (!leafletMapRef.current) return;
+    const map = leafletMapRef.current;
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+    const tileConfig = BASEMAP_TILES[basemap];
+    const newTiles = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
+      maxZoom: tileConfig.maxZoom,
+      subdomains: 'abcd',
+    }).addTo(map);
+    tileLayerRef.current = newTiles;
+  }, [basemap]);
+
+  // 4. Update Boundary Visibility
+  useEffect(() => {
+    if (!boundaryLayerRef.current || !leafletMapRef.current) return;
+    if (showBoundary) {
+      boundaryLayerRef.current.addTo(leafletMapRef.current);
+    } else {
+      leafletMapRef.current.removeLayer(boundaryLayerRef.current);
+    }
+  }, [showBoundary]);
+
+  // 5. Update Selected Location Marker
+  useEffect(() => {
+    if (!leafletMapRef.current) return;
+    const map = leafletMapRef.current;
+
+    // Custom pulsing target marker icon
+    const customIcon = L.divIcon({
+      className: 'ocean-selected-marker',
+      html: `
+        <div class="relative flex items-center justify-center w-8 h-8">
+          <span class="absolute inline-flex w-7 h-7 rounded-full bg-cyan-400 opacity-75 animate-ping"></span>
+          <span class="relative inline-flex items-center justify-center w-5 h-5 rounded-full bg-cyan-500 border-2 border-white shadow-lg text-slate-950 font-bold text-[9px]">
+            +
+          </span>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng([selectedLat, selectedLon]);
+    } else {
+      markerRef.current = L.marker([selectedLat, selectedLon], {
+        icon: customIcon,
+        zIndexOffset: 1000,
+      }).addTo(map);
+    }
+  }, [selectedLat, selectedLon]);
+
+  // 6. Handle Date Changes & Load Scientific Daily Slice
+  useEffect(() => {
+    let mounted = true;
+    async function switchDate() {
+      if (!manifest) return;
+      try {
+        setIsLoading(true);
+        setLoadingMsg(`Loading Day Data: ${activeDate}...`);
+        const dayArr = await loadDayData(activeDate);
+        if (!mounted) return;
+        setCurrentDayData(dayArr);
+        setIsLoading(false);
+      } catch (err: any) {
+        if (!mounted) return;
+        console.error('Error switching date:', err);
+        setErrorMsg(`Failed to load ${activeDate}`);
+        setIsLoading(false);
+      }
+    }
+    switchDate();
+    return () => {
+      mounted = false;
+    };
+  }, [activeDate, manifest]);
+
+  // 7. Render Scientific Raster Overlay to Leaflet
+  useEffect(() => {
+    if (!leafletMapRef.current || !manifest || !currentDayData) return;
+    const map = leafletMapRef.current;
+
+    if (activeLayer === 'none') {
+      if (imageOverlayRef.current) {
+        map.removeLayer(imageOverlayRef.current);
+        imageOverlayRef.current = null;
+      }
       return;
     }
 
-    // Snap to canonical 0.25° grid
-    const snapLat = Math.round(coords.lat * 4) / 4;
-    const snapLon = Math.round(coords.lon * 4) / 4;
+    // Render scalar grid to offscreen canvas
+    const canvas = document.createElement('canvas');
+    renderScalarToCanvas(canvas, manifest, currentDayData, activeLayer, activeDepth, layerOpacity);
+    const dataUrl = canvas.toDataURL();
 
-    onSelectCoordinates(snapLat, snapLon);
-    setLandWarning(null);
-  };
+    const bounds = L.latLngBounds(
+      L.latLng(manifest.domain.latMin, manifest.domain.lonMin),
+      L.latLng(manifest.domain.latMax, manifest.domain.lonMax)
+    );
 
-  // Handle Mouse Move for Real-Time Coordinate Readout
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (isDragging) {
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
-      setPan((prev) => {
-        const maxPanX = (MAP_DOMAIN.width * (zoom - 1)) / 2;
-        const maxPanY = (MAP_DOMAIN.height * (zoom - 1)) / 2;
-        return {
-          x: Math.min(maxPanX + 150, Math.max(-maxPanX - 150, prev.x + dx)),
-          y: Math.min(maxPanY + 100, Math.max(-maxPanY - 100, prev.y + dy)),
-        };
-      });
-      setDragStart({ x: e.clientX, y: e.clientY });
+    if (imageOverlayRef.current) {
+      imageOverlayRef.current.setUrl(dataUrl);
+      imageOverlayRef.current.setOpacity(layerOpacity);
+    } else {
+      imageOverlayRef.current = L.imageOverlay(dataUrl, bounds, {
+        opacity: layerOpacity,
+        interactive: false,
+      }).addTo(map);
+    }
+  }, [activeLayer, activeDepth, layerOpacity, currentDayData, manifest]);
+
+  // 8. Render Vector Glyphs (Currents / Winds)
+  useEffect(() => {
+    if (!vectorLayerGroupRef.current || !manifest || !currentDayData) return;
+    const group = vectorLayerGroupRef.current;
+    group.clearLayers();
+
+    const isCurrents = activeLayer === 'currents';
+    const isWinds = activeLayer === 'winds';
+
+    if ((!isCurrents && !isWinds) || !showVectors) {
       return;
     }
 
-    const coords = getEventOceanCoords(e);
-    if (!coords) return;
+    const vectorLayerId = isCurrents ? 'currents' : 'winds';
+    const vectors = extractVectorArrows(manifest, currentDayData, vectorLayerId, 1.5);
 
-    const snapLat = Math.round(coords.lat * 4) / 4;
-    const snapLon = Math.round(coords.lon * 4) / 4;
-    const landCheck = checkLandLocation(snapLat, snapLon);
-    const depth = landCheck.isLand ? 0 : getEstimatedOceanDepth(snapLat, snapLon);
-    const region = resolveOceanRegion(snapLat, snapLon);
+    vectors.forEach((vec: VectorSample) => {
+      // Calculate arrow styling
+      const strokeColor = isCurrents ? '#38bdf8' : '#facc15';
+      const arrowLength = Math.min(22, Math.max(10, vec.speed * (isCurrents ? 14 : 1.2)));
 
-    setHoveredInfo({
-      lat: snapLat,
-      lon: snapLon,
-      depth,
-      region,
-      isLand: landCheck.isLand,
-      landName: landCheck.name,
+      // SVG Arrow icon rotated to angle
+      // Angle: 0 = East, 90 = North. SVG rotation is clockwise from Top (0 = North).
+      // Standard SVG transform: rotation in degrees clockwise from East is -angleDeg
+      const svgRot = -vec.angleDeg;
+
+      const arrowIcon = L.divIcon({
+        className: 'vector-glyph-marker',
+        html: `
+          <div style="transform: rotate(${svgRot}deg); transform-origin: 12px 12px; width: 24px; height: 24px; pointer-events: none;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <line x1="3" y1="12" x2="${3 + arrowLength}" y2="12" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round"/>
+              <polyline points="${3 + arrowLength - 5},8 ${3 + arrowLength},12 ${3 + arrowLength - 5},16" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      L.marker([vec.lat, vec.lon], {
+        icon: arrowIcon,
+        interactive: false,
+      }).addTo(group);
     });
+  }, [activeLayer, showVectors, currentDayData, manifest]);
+
+  // 9. Update Point Inspection on selection or date/depth change
+  useEffect(() => {
+    if (!manifest || !currentDayData) return;
+    const result = inspectPoint(
+      manifest,
+      currentDayData,
+      activeDate,
+      activeDepth,
+      selectedLat,
+      selectedLon,
+      activeLayer
+    );
+    setInspection(result);
+  }, [manifest, currentDayData, activeDate, activeDepth, selectedLat, selectedLon, activeLayer]);
+
+  // 10. Play / Pause Timeline Animation
+  useEffect(() => {
+    if (!isPlaying || !manifest) return;
+    const dates = manifest.availableDates;
+    const interval = setInterval(() => {
+      setActiveDate((prev) => {
+        const idx = dates.findIndex((d) => d.date === prev);
+        const nextIdx = (idx + 1) % dates.length;
+        return dates[nextIdx].date;
+      });
+    }, 1300);
+    return () => clearInterval(interval);
+  }, [isPlaying, manifest]);
+
+  // Controls Handlers
+  const handleResetView = useCallback(() => {
+    if (!leafletMapRef.current) return;
+    const southWest = L.latLng(5.0, 45.0);
+    const northEast = L.latLng(30.0, 105.0);
+    leafletMapRef.current.fitBounds(L.latLngBounds(southWest, northEast), { padding: [25, 25] });
+  }, []);
+
+  const handleZoomIn = () => leafletMapRef.current?.zoomIn();
+  const handleZoomOut = () => leafletMapRef.current?.zoomOut();
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev);
+    setTimeout(() => {
+      leafletMapRef.current?.invalidateSize();
+    }, 200);
   };
 
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.button === 0 && (e.shiftKey || zoom > 1.0)) {
-      setIsDragging(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
-    }
+  const handlePrevDate = () => {
+    if (!manifest) return;
+    const dates = manifest.availableDates;
+    const idx = dates.findIndex((d) => d.date === activeDate);
+    if (idx > 0) setActiveDate(dates[idx - 1].date);
+    else setActiveDate(dates[dates.length - 1].date);
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
+  const handleNextDate = () => {
+    if (!manifest) return;
+    const dates = manifest.availableDates;
+    const idx = dates.findIndex((d) => d.date === activeDate);
+    if (idx < dates.length - 1) setActiveDate(dates[idx + 1].date);
+    else setActiveDate(dates[0].date);
   };
 
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const zoomDelta = e.deltaY > 0 ? -0.2 : 0.2;
-    setZoom((prev) => {
-      const nextZoom = Math.min(4.0, Math.max(1.0, +(prev + zoomDelta).toFixed(1)));
-      if (nextZoom === 1.0) setPan({ x: 0, y: 0 });
-      return nextZoom;
-    });
-  };
-
-  // Zoom Controls
-  const zoomIn = () => setZoom((prev) => Math.min(4.0, +(prev + 0.3).toFixed(1)));
-  const zoomOut = () =>
-    setZoom((prev) => {
-      const next = Math.max(1.0, +(prev - 0.3).toFixed(1));
-      if (next === 1.0) setPan({ x: 0, y: 0 });
-      return next;
-    });
-  const resetView = () => {
-    setZoom(1.0);
-    setPan({ x: 0, y: 0 });
-  };
-
-  // Focus View on Current Selected Marker
-  const focusSelectedTarget = () => {
-    const targetX = lonToX(selectedLon);
-    const targetY = latToY(selectedLat);
-    const targetZoom = 2.0;
-    const nextPanX = MAP_DOMAIN.width / 2 - targetX * targetZoom;
-    const nextPanY = MAP_DOMAIN.height / 2 - targetY * targetZoom;
-    setZoom(targetZoom);
-    setPan({ x: nextPanX, y: nextPanY });
-  };
-
-  // Selected Marker Projected Coordinates
-  const markerX = lonToX(selectedLon);
-  const markerY = latToY(selectedLat);
-  const selectedRegion = resolveOceanRegion(selectedLat, selectedLon);
-  const selectedDepth = getEstimatedOceanDepth(selectedLat, selectedLon);
+  const isLayer3D = manifest?.layers[activeLayer]?.is3D ?? false;
+  const currentLayerMeta = manifest?.layers[activeLayer];
 
   return (
     <div
-      ref={containerRef}
-      className={`relative bg-[#030712] border border-slate-800 rounded-2xl overflow-hidden select-none shadow-2xl flex flex-col ${className}`}
+      className={`relative flex flex-col bg-[#070b14] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none' : className
+      }`}
     >
-      {/* ==================================================================== */}
-      {/* TOP SCIENTIFIC TOOLBAR: Controls, Mode Toggles & Presets            */}
-      {/* ==================================================================== */}
-      <div className="px-3.5 py-2.5 bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-2.5 z-20">
-        {/* Left Section: Resolution Badge & Layer Selector */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="px-2.5 py-1 rounded-md bg-cyan-950/50 border border-cyan-800/60 text-[11px] font-mono text-cyan-300 flex items-center gap-1.5 shadow-sm">
-            <Crosshair className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="font-semibold tracking-wide">0.25° Mesh</span>
-            <span className="text-[10px] text-cyan-400/70 border-l border-cyan-800/60 pl-1.5 font-sans">
-              24,341 points
-            </span>
+      {/* =========================================================================
+          GIS TOP BAR: RESEARCH BADGE & LAYER TOGGLE BAR
+      ========================================================================= */}
+      <div className="bg-[#090f1d] border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs z-10">
+        {/* Left: Study Basin Domain Badge & Active Date */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 font-mono text-[11px] font-bold">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span>5°N–30°N · 45°E–105°E (0.25° GIS Grid)</span>
           </div>
-
-          {/* Layer Selector */}
-          <div className="flex items-center rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-[11px]">
-            <button
-              onClick={() => setActiveLayer('none')}
-              className={`px-2 py-1 rounded-md transition font-medium ${
-                activeLayer === 'none'
-                  ? 'bg-slate-800 text-cyan-300 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Bathymetry
-            </button>
-            <button
-              onClick={() => setActiveLayer('sst')}
-              className={`px-2 py-1 rounded-md transition font-medium flex items-center gap-1 ${
-                activeLayer === 'sst'
-                  ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>SST</span>
-              <span className="text-[9px] font-mono opacity-80">(°C)</span>
-            </button>
-            <button
-              onClick={() => setActiveLayer('sss')}
-              className={`px-2 py-1 rounded-md transition font-medium flex items-center gap-1 ${
-                activeLayer === 'sss'
-                  ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>SSS</span>
-              <span className="text-[9px] font-mono opacity-80">(PSU)</span>
-            </button>
-            <button
-              onClick={() => setActiveLayer('ssh')}
-              className={`px-2 py-1 rounded-md transition font-medium flex items-center gap-1 ${
-                activeLayer === 'ssh'
-                  ? 'bg-purple-950/80 text-purple-300 border border-purple-800/60 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>SSH</span>
-              <span className="text-[9px] font-mono opacity-80">(m)</span>
-            </button>
-            <button
-              onClick={() => setActiveLayer('recon')}
-              className={`px-2 py-1 rounded-md transition font-medium flex items-center gap-1 ${
-                activeLayer === 'recon'
-                  ? 'bg-cyan-950/90 text-cyan-300 border border-cyan-700/80 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>B8 Recon</span>
-            </button>
-          </div>
+          <span className="text-slate-400 font-medium hidden md:inline">|</span>
+          <span className="text-slate-400 text-[11px] hidden md:inline">
+            Historical research dataset · 2020
+          </span>
         </div>
 
-        {/* Right Section: Toggles & Navigation Presets */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Quick Basin Presets */}
-          {showPresets && (
-            <div className="hidden xl:flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-lg p-0.5">
-              <span className="text-[10px] text-slate-500 font-mono px-1.5 uppercase tracking-wider">
-                Basin:
-              </span>
+        {/* Right: Quick GIS View Actions */}
+        <div className="flex items-center gap-2">
+          {/* Basemap Switcher */}
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+            {(['carto-dark', 'carto-light', 'esri-ocean', 'osm'] as BasemapProvider[]).map((bm) => (
               <button
-                onClick={() => onSelectCoordinates(15.25, 68.5)}
-                className="px-2 py-0.5 rounded text-[10px] font-medium text-cyan-300 hover:bg-slate-800 transition"
+                key={bm}
+                onClick={() => setBasemap(bm)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  basemap === bm
+                    ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+                title={BASEMAP_TILES[bm].name}
               >
-                Arabian
+                {bm === 'carto-dark' ? 'Dark' : bm === 'carto-light' ? 'Light' : bm === 'esri-ocean' ? 'Ocean' : 'OSM'}
               </button>
-              <button
-                onClick={() => onSelectCoordinates(16.5, 88.5)}
-                className="px-2 py-0.5 rounded text-[10px] font-medium text-blue-300 hover:bg-slate-800 transition"
-              >
-                Bay of Bengal
-              </button>
-              <button
-                onClick={() => onSelectCoordinates(6.5, 78.5)}
-                className="px-2 py-0.5 rounded text-[10px] font-medium text-indigo-300 hover:bg-slate-800 transition"
-              >
-                Equatorial
-              </button>
-              <button
-                onClick={() => onSelectCoordinates(11.25, 54.5)}
-                className="px-2 py-0.5 rounded text-[10px] font-medium text-emerald-300 hover:bg-slate-800 transition"
-              >
-                Somali
-              </button>
-              <button
-                onClick={() => onSelectCoordinates(11.5, 93.25)}
-                className="px-2 py-0.5 rounded text-[10px] font-medium text-teal-300 hover:bg-slate-800 transition"
-              >
-                Andaman
-              </button>
-            </div>
-          )}
-
-          {/* View Toggles */}
-          <div className="flex items-center gap-1">
-            {/* Currents Toggle */}
-            <button
-              onClick={() => setShowCurrents((v) => !v)}
-              title="Toggle Monsoon Surface Circulation Vectors"
-              className={`p-1.5 rounded-lg border text-xs transition flex items-center gap-1 ${
-                showCurrents
-                  ? 'bg-cyan-950/70 border-cyan-800 text-cyan-300'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Wind className="w-3.5 h-3.5" />
-              <span className="text-[10px] hidden md:inline">Vectors</span>
-            </button>
-
-            {/* Grid Toggle */}
-            <button
-              onClick={() =>
-                setGridMode((m) => (m === 'graticule' ? 'dense' : m === 'dense' ? 'none' : 'graticule'))
-              }
-              title={`Grid mode: ${gridMode.toUpperCase()}`}
-              className={`p-1.5 rounded-lg border text-xs transition flex items-center gap-1 ${
-                gridMode !== 'none'
-                  ? 'bg-slate-800 border-slate-700 text-cyan-300'
-                  : 'bg-slate-900 border-slate-800 text-slate-500'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-mono hidden md:inline">
-                {gridMode === 'graticule' ? '5° Grid' : gridMode === 'dense' ? '0.25° Mesh' : 'Grid Off'}
-              </span>
-            </button>
-
-            {/* Labels Toggle */}
-            <button
-              onClick={() => setShowLabels((v) => !v)}
-              title="Toggle Oceanographic Geographical Labels"
-              className={`p-1.5 rounded-lg border text-xs transition ${
-                showLabels
-                  ? 'bg-slate-800 border-slate-700 text-slate-200'
-                  : 'bg-slate-900 border-slate-800 text-slate-500'
-              }`}
-            >
-              <span className="text-[10px] font-mono px-0.5">ABC</span>
-            </button>
+            ))}
           </div>
+
+          {/* Fullscreen Toggle */}
+          <button
+            onClick={handleToggleFullscreen}
+            className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
         </div>
       </div>
 
-      {/* ==================================================================== */}
-      {/* INTERACTIVE OCEANOGRAPHIC MAP CANVAS (SVG)                           */}
-      {/* ==================================================================== */}
-      <div className="relative w-full overflow-hidden bg-[#020610] cursor-crosshair">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${MAP_DOMAIN.width} ${MAP_DOMAIN.height}`}
-          className="w-full h-auto block select-none"
-          onClick={handleSvgClick}
-          onMouseMove={handleMouseMove}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onWheel={handleWheel}
-          onMouseLeave={() => setHoveredInfo(null)}
-        >
-          <defs>
-            {/* Deep Bathymetric Ocean Basin Gradients */}
-            <radialGradient id="arabianDeepGrad" cx="30%" cy="40%" r="55%">
-              <stop offset="0%" stopColor="#041830" />
-              <stop offset="60%" stopColor="#031024" />
-              <stop offset="100%" stopColor="#020814" />
-            </radialGradient>
+      {/* =========================================================================
+          INTERACTIVE LAYER SELECTOR STRIP
+      ========================================================================= */}
+      <div className="bg-[#060a14] border-b border-slate-800/80 px-4 py-2 flex items-center gap-1.5 overflow-x-auto text-xs z-10 no-scrollbar">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-1 shrink-0">
+          <Layers className="w-3 h-3 text-cyan-400" />
+          Layer:
+        </span>
 
-            <radialGradient id="bobDeepGrad" cx="70%" cy="45%" r="55%">
-              <stop offset="0%" stopColor="#041a35" />
-              <stop offset="65%" stopColor="#031024" />
-              <stop offset="100%" stopColor="#020814" />
-            </radialGradient>
-
-            {/* Continental Landmass Gradient (Scientific Charcoal/Slate) */}
-            <linearGradient id="landTopographyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#141f30" />
-              <stop offset="50%" stopColor="#101a28" />
-              <stop offset="100%" stopColor="#0a121c" />
-            </linearGradient>
-
-            {/* Continental Shelf Gradient (0 - 200m depth isobath rim) */}
-            <linearGradient id="shelfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#0284c7" stopOpacity="0.05" />
-            </linearGradient>
-
-            {/* Surface Variable Layer Shaders */}
-            {/* SST Thermal Gradient */}
-            <linearGradient id="sstFieldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.45" /> {/* Cool Somali Upwelling 23°C */}
-              <stop offset="25%" stopColor="#06b6d4" stopOpacity="0.5" />
-              <stop offset="50%" stopColor="#10b981" stopOpacity="0.45" /> {/* 27°C */}
-              <stop offset="75%" stopColor="#f59e0b" stopOpacity="0.5" /> {/* 28.5°C */}
-              <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.6" /> {/* Warm Pool 30.2°C */}
-            </linearGradient>
-
-            {/* SSS Haline Gradient */}
-            <linearGradient id="sssFieldGrad" x1="0%" y1="30%" x2="100%" y2="70%">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.55" /> {/* Arabian Hypersaline 36.8 */}
-              <stop offset="45%" stopColor="#06b6d4" stopOpacity="0.45" /> {/* 35.0 PSU */}
-              <stop offset="85%" stopColor="#10b981" stopOpacity="0.55" /> {/* Fresher BoB Plume 31.5 */}
-              <stop offset="100%" stopColor="#eab308" stopOpacity="0.6" /> {/* Ganges Runoff Dilution 29 */}
-            </linearGradient>
-
-            {/* SSH Dynamic Altimetry Gradient */}
-            <linearGradient id="sshFieldGrad" x1="20%" y1="0%" x2="80%" y2="100%">
-              <stop offset="0%" stopColor="#1d4ed8" stopOpacity="0.5" /> {/* Cyclonic Dip -0.15m */}
-              <stop offset="50%" stopColor="#475569" stopOpacity="0.25" /> {/* Neutral 0.00m */}
-              <stop offset="100%" stopColor="#ec4899" stopOpacity="0.55" /> {/* Anticyclonic High +0.22m */}
-            </linearGradient>
-
-            {/* B8 Reconstruction Subsurface Gradient */}
-            <linearGradient id="b8ReconGrad" x1="30%" y1="100%" x2="70%" y2="0%">
-              <stop offset="0%" stopColor="#0369a1" stopOpacity="0.55" />
-              <stop offset="35%" stopColor="#0891b2" stopOpacity="0.5" />
-              <stop offset="70%" stopColor="#d97706" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#e11d48" stopOpacity="0.6" />
-            </linearGradient>
-
-            {/* Vector Arrow Markers */}
-            <marker id="currentArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#22d3ee" fillOpacity="0.6" />
-            </marker>
-
-            {/* High-Precision Marker Glow */}
-            <filter id="sonarGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Transformable Map Group for Zoom & Pan */}
-          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-            {/* ============================================================== */}
-            {/* 1. DEEP OCEAN BASE LAYER                                       */}
-            {/* ============================================================== */}
-            <rect width={MAP_DOMAIN.width} height={MAP_DOMAIN.height} fill="#020814" />
-            <rect width={MAP_DOMAIN.width} height={MAP_DOMAIN.height} fill="url(#arabianDeepGrad)" />
-            <rect width={MAP_DOMAIN.width} height={MAP_DOMAIN.height} fill="url(#bobDeepGrad)" opacity="0.8" />
-
-            {/* ============================================================== */}
-            {/* 2. REALISTIC BATHYMETRIC FEATURES (SUBSEA RIDGES & SHELVES)   */}
-            {/* ============================================================== */}
-            {showBathymetry && (
-              <g id="bathymetricFeatures" opacity="0.9">
-                {/* Abyssal Plains Subtle Shading */}
-                <ellipse cx="280" cy="270" rx="140" ry="110" fill="#010610" opacity="0.7" />
-                <ellipse cx="800" cy="280" rx="130" ry="120" fill="#010610" opacity="0.7" />
-                <ellipse cx="540" cy="420" rx="280" ry="80" fill="#01050e" opacity="0.8" />
-
-                {/* Continental Shelf 200m Fringe Ribbon */}
-                <path
-                  d={coordsToSvgPath(CONTINENTAL_SHELF_200M, false)}
-                  stroke="#0284c7"
-                  strokeWidth="6"
-                  strokeOpacity="0.12"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d={coordsToSvgPath(CONTINENTAL_SHELF_200M, false)}
-                  stroke="#38bdf8"
-                  strokeWidth="1"
-                  strokeOpacity="0.25"
-                  strokeDasharray="4 3"
-                  fill="none"
-                />
-
-                {/* Submarine Ridges & Trenches */}
-                {OCEAN_RIDGES.map((ridge) => (
-                  <g key={ridge.name} className="pointer-events-none">
-                    {/* Ridge Glow Envelope */}
-                    <path
-                      d={coordsToSvgPath(ridge.coords, false)}
-                      stroke="#06b6d4"
-                      strokeWidth="5"
-                      strokeOpacity="0.1"
-                      strokeLinecap="round"
-                      fill="none"
-                    />
-                    {/* Ridge Axis Line */}
-                    <path
-                      d={coordsToSvgPath(ridge.coords, false)}
-                      stroke="#38bdf8"
-                      strokeWidth="1.2"
-                      strokeDasharray="2 3"
-                      strokeOpacity="0.38"
-                      fill="none"
-                    />
-                    {/* Ridge Label */}
-                    {showLabels && (
-                      <text
-                        x={lonToX(ridge.labelPos[0])}
-                        y={latToY(ridge.labelPos[1])}
-                        fill="#0284c7"
-                        fontSize="8.5"
-                        fontFamily="monospace"
-                        fontWeight="600"
-                        letterSpacing="0.8"
-                        textAnchor="middle"
-                        opacity="0.7"
-                      >
-                        {ridge.name.toUpperCase()}
-                      </text>
-                    )}
-                  </g>
-                ))}
-              </g>
-            )}
-
-            {/* ============================================================== */}
-            {/* 3. ACTIVE SURFACE VARIABLE / RECONSTRUCTION OVERLAY LAYER      */}
-            {/* ============================================================== */}
-            {activeLayer !== 'none' && (
-              <g id="surfaceOverlayLayer" className="transition-opacity duration-300">
-                {activeLayer === 'sst' && (
-                  <rect
-                    width={MAP_DOMAIN.width}
-                    height={MAP_DOMAIN.height}
-                    fill="url(#sstFieldGrad)"
-                    className="mix-blend-screen"
-                  />
-                )}
-                {activeLayer === 'sss' && (
-                  <rect
-                    width={MAP_DOMAIN.width}
-                    height={MAP_DOMAIN.height}
-                    fill="url(#sssFieldGrad)"
-                    className="mix-blend-screen"
-                  />
-                )}
-                {activeLayer === 'ssh' && (
-                  <rect
-                    width={MAP_DOMAIN.width}
-                    height={MAP_DOMAIN.height}
-                    fill="url(#sshFieldGrad)"
-                    className="mix-blend-screen"
-                  />
-                )}
-                {activeLayer === 'recon' && (
-                  <rect
-                    width={MAP_DOMAIN.width}
-                    height={MAP_DOMAIN.height}
-                    fill="url(#b8ReconGrad)"
-                    className="mix-blend-screen"
-                  />
-                )}
-              </g>
-            )}
-
-            {/* ============================================================== */}
-            {/* 4. MONSOON SURFACE CIRCULATION VECTORS (CURRENTS)              */}
-            {/* ============================================================== */}
-            {showCurrents && (
-              <g id="circulationVectors" stroke="#06b6d4" strokeWidth="1.3" strokeOpacity="0.45" fill="none">
-                {MONSOON_CURRENTS.map((c) => (
-                  <path
-                    key={c.id}
-                    d={c.path}
-                    markerEnd="url(#currentArrow)"
-                    strokeDasharray="6 3"
-                    className="animate-pulse"
-                  />
-                ))}
-              </g>
-            )}
-
-            {/* ============================================================== */}
-            {/* 5. CANONICAL COORDINATE GRATICULE & 0.25° RESEARCH MESH        */}
-            {/* ============================================================== */}
-            {gridMode !== 'none' && (
-              <g id="coordinateGraticule">
-                {/* Dense 0.25° Mesh (Fine scientific dot lattice when zoomed) */}
-                {gridMode === 'dense' && (
-                  <g stroke="#1e293b" strokeWidth="0.3" strokeDasharray="1 3" opacity="0.35">
-                    {Array.from({ length: 60 * 4 + 1 }, (_, i) => 45 + i * 0.25)
-                      .filter((lon) => lon % 5 !== 0)
-                      .map((lon) => (
-                        <line
-                          key={`sublon-${lon}`}
-                          x1={lonToX(lon)}
-                          y1={0}
-                          x2={lonToX(lon)}
-                          y2={MAP_DOMAIN.height}
-                        />
-                      ))}
-                    {Array.from({ length: 25 * 4 + 1 }, (_, i) => 5 + i * 0.25)
-                      .filter((lat) => lat % 5 !== 0)
-                      .map((lat) => (
-                        <line
-                          key={`sublat-${lat}`}
-                          x1={0}
-                          y1={latToY(lat)}
-                          x2={MAP_DOMAIN.width}
-                          y2={latToY(lat)}
-                        />
-                      ))}
-                  </g>
-                )}
-
-                {/* Major 5° Graticule Lines */}
-                <g stroke="#334155" strokeWidth="0.6" strokeDasharray="4 3" opacity="0.55">
-                  {[50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map((lon) => (
-                    <line
-                      key={`major-lon-${lon}`}
-                      x1={lonToX(lon)}
-                      y1={0}
-                      x2={lonToX(lon)}
-                      y2={MAP_DOMAIN.height}
-                    />
-                  ))}
-                  {[10, 15, 20, 25].map((lat) => (
-                    <line
-                      key={`major-lat-${lat}`}
-                      x1={0}
-                      y1={latToY(lat)}
-                      x2={MAP_DOMAIN.width}
-                      y2={latToY(lat)}
-                    />
-                  ))}
-                </g>
-
-                {/* Latitude & Longitude Numeric Scientific Callouts */}
-                <g fill="#64748b" fontSize="9.5" fontFamily="monospace" fontWeight="500" textAnchor="middle">
-                  {[50, 60, 70, 80, 90, 100].map((lon) => (
-                    <text key={`lbl-lon-${lon}`} x={lonToX(lon)} y={MAP_DOMAIN.height - 10}>
-                      {lon}°E
-                    </text>
-                  ))}
-                  {[10, 15, 20, 25].map((lat) => (
-                    <text key={`lbl-lat-${lat}`} x={24} y={latToY(lat) + 3} textAnchor="start">
-                      {lat}°N
-                    </text>
-                  ))}
-                </g>
-              </g>
-            )}
-
-            {/* ============================================================== */}
-            {/* 6. CONTINENTAL LANDMASSES & ISLANDS (GEBCO MASKED LAND)        */}
-            {/* ============================================================== */}
-            <g
-              id="continentalLandmasses"
-              fill="url(#landTopographyGrad)"
-              stroke="#29394f"
-              strokeWidth="1.2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
+        {[
+          { id: 'sst', label: 'SST (OISST)', is3D: false, color: 'text-amber-300' },
+          { id: 'sss', label: 'SSS (SMAP)', is3D: false, color: 'text-emerald-300' },
+          { id: 'ssh', label: 'SSH (AVISO)', is3D: false, color: 'text-blue-300' },
+          { id: 'currents', label: 'Currents (OSCAR)', is3D: false, color: 'text-cyan-300' },
+          { id: 'winds', label: 'Winds (CCMP)', is3D: false, color: 'text-yellow-300' },
+          { id: 'thetao_ref', label: 'GLORYS Ref θo', is3D: true, color: 'text-indigo-300' },
+          { id: 'b2_recon', label: 'B2 Ridge Recon', is3D: true, color: 'text-purple-300' },
+          { id: 'b2_residual', label: 'Residual |Recon - Ref|', is3D: true, color: 'text-rose-300' },
+          { id: 'none', label: 'None (Basemap)', is3D: false, color: 'text-slate-400' },
+        ].map((layer) => {
+          const isActive = activeLayer === layer.id;
+          return (
+            <button
+              key={layer.id}
+              onClick={() => setActiveLayer(layer.id)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium shrink-0 transition-all flex items-center gap-1.5 ${
+                isActive
+                  ? 'bg-cyan-500/15 border border-cyan-400/80 text-white font-bold shadow-sm shadow-cyan-950'
+                  : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+              }`}
             >
-              {/* Indian Subcontinent */}
-              <path d={coordsToSvgPath(INDIA_COASTLINE)} />
-
-              {/* Sri Lanka */}
-              <path d={coordsToSvgPath(SRI_LANKA_COASTLINE)} />
-
-              {/* Pakistan & Makran */}
-              <path d={coordsToSvgPath(PAKISTAN_COASTLINE)} />
-
-              {/* Arabian Peninsula */}
-              <path d={coordsToSvgPath(ARABIA_COASTLINE)} />
-
-              {/* Iran / Persian Gulf */}
-              <path d={coordsToSvgPath(IRAN_COASTLINE)} />
-
-              {/* Horn of Africa (Somalia) */}
-              <path d={coordsToSvgPath(SOMALIA_COASTLINE)} />
-
-              {/* Socotra Island & Archipelago */}
-              <path d={coordsToSvgPath(SOCOTRA_ISLAND)} />
-              <path d={coordsToSvgPath(ABD_AL_KURI)} />
-
-              {/* Bangladesh */}
-              <path d={coordsToSvgPath(BANGLADESH_COASTLINE)} />
-
-              {/* Southeast Asia (Myanmar, Thailand, Malacca) */}
-              <path d={coordsToSvgPath(SE_ASIA_COASTLINE)} />
-
-              {/* Northern Sumatra Tip */}
-              <path d={coordsToSvgPath(SUMATRA_TIP)} />
-
-              {/* Andaman & Nicobar Archipelago */}
-              {ANDAMAN_ISLANDS.map((island, idx) => (
-                <path key={`andaman-${idx}`} d={coordsToSvgPath(island)} />
-              ))}
-
-              {/* Lakshadweep Coral Atolls */}
-              <g fill="#334155" stroke="#475569" strokeWidth="0.8">
-                {LAKSHADWEEP_ATOLLS.map(([lon, lat], idx) => (
-                  <circle
-                    key={`laksh-${idx}`}
-                    cx={lonToX(lon)}
-                    cy={latToY(lat)}
-                    r="2.2"
-                  />
-                ))}
-              </g>
-
-              {/* Maldives Atolls (>= 5°N) */}
-              <g fill="#334155" stroke="#475569" strokeWidth="0.8">
-                {MALDIVES_ATOLLS.map(([lon, lat], idx) => (
-                  <circle
-                    key={`maldives-${idx}`}
-                    cx={lonToX(lon)}
-                    cy={latToY(lat)}
-                    r="2.2"
-                  />
-                ))}
-              </g>
-            </g>
-
-            {/* ============================================================== */}
-            {/* 7. OCEANOGRAPHIC BASIN & REGIONAL TYPOGRAPHY                   */}
-            {/* ============================================================== */}
-            {showLabels && (
-              <g id="basinLabels" textAnchor="middle" className="pointer-events-none select-none">
-                {OCEAN_BASINS.map((basin) => (
-                  <text
-                    key={basin.name}
-                    x={lonToX(basin.lon)}
-                    y={latToY(basin.lat)}
-                    fill="#38bdf8"
-                    fillOpacity="0.32"
-                    fontSize={basin.size}
-                    fontFamily="sans-serif"
-                    fontWeight={basin.weight}
-                    letterSpacing="2.5"
-                  >
-                    {basin.name}
-                  </text>
-                ))}
-              </g>
-            )}
-
-            {/* ============================================================== */}
-            {/* 8. STUDY DOMAIN EXACT BOUNDARY RECTANGLE & CORNER CALLOUTS     */}
-            {/* ============================================================== */}
-            <rect
-              x={1}
-              y={1}
-              width={MAP_DOMAIN.width - 2}
-              height={MAP_DOMAIN.height - 2}
-              fill="none"
-              stroke="#0ea5e9"
-              strokeWidth="1.5"
-              strokeOpacity="0.4"
-            />
-
-            {/* Corner Precision Crosshairs */}
-            <g stroke="#38bdf8" strokeWidth="1.2" opacity="0.6">
-              {/* NW: 30°N, 45°E */}
-              <path d="M 0,14 L 14,14 L 14,0" fill="none" />
-              {/* NE: 30°N, 105°E */}
-              <path d={`M ${MAP_DOMAIN.width},14 L ${MAP_DOMAIN.width - 14},14 L ${MAP_DOMAIN.width - 14},0`} fill="none" />
-              {/* SW: 5°N, 45°E */}
-              <path d={`M 0,${MAP_DOMAIN.height - 14} L 14,${MAP_DOMAIN.height - 14} L 14,${MAP_DOMAIN.height}`} fill="none" />
-              {/* SE: 5°N, 105°E */}
-              <path d={`M ${MAP_DOMAIN.width},${MAP_DOMAIN.height - 14} L ${MAP_DOMAIN.width - 14},${MAP_DOMAIN.height - 14} L ${MAP_DOMAIN.width - 14},${MAP_DOMAIN.height}`} fill="none" />
-            </g>
-
-            {/* Corner Geographic Coordinates Badges */}
-            <g fill="#0ea5e9" fontSize="9" fontFamily="monospace" fontWeight="bold" opacity="0.65">
-              <text x={18} y={16}>30°N, 45°E</text>
-              <text x={MAP_DOMAIN.width - 18} y={16} textAnchor="end">30°N, 105°E</text>
-              <text x={18} y={MAP_DOMAIN.height - 8}>5°N, 45°E</text>
-              <text x={MAP_DOMAIN.width - 18} y={MAP_DOMAIN.height - 8} textAnchor="end">5°N, 105°E</text>
-            </g>
-
-            {/* ============================================================== */}
-            {/* 9. SELECTED OBSERVATION POINT RETICLE & RADAR PULSE            */}
-            {/* ============================================================== */}
-            {/* Crosshair guidelines across domain */}
-            <g stroke="#06b6d4" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.5">
-              <line x1={markerX} y1={0} x2={markerX} y2={MAP_DOMAIN.height} />
-              <line x1={0} y1={markerY} x2={MAP_DOMAIN.width} y2={markerY} />
-            </g>
-
-            {/* Sonar / Radar Reticle */}
-            <g transform={`translate(${markerX}, ${markerY})`} className="pointer-events-none">
-              {/* Expanding ping wave */}
-              <circle r="18" fill="#06b6d4" fillOpacity="0.12" className="animate-ping" />
-              {/* Outer reticle ring */}
-              <circle r="9" fill="#0891b2" fillOpacity="0.3" stroke="#22d3ee" strokeWidth="1.5" />
-              {/* Inner core */}
-              <circle r="3.5" fill="#ffffff" filter="url(#sonarGlow)" />
-            </g>
-
-            {/* Floating Coordinate Pill Next to Marker */}
-            <g
-              transform={`translate(${
-                Math.min(MAP_DOMAIN.width - 140, Math.max(75, markerX))
-              }, ${markerY > 45 ? markerY - 18 : markerY + 28})`}
-              className="pointer-events-none"
-            >
-              <rect
-                x="-65"
-                y="-13"
-                width="130"
-                height="22"
-                rx="6"
-                fill="#07111e"
-                stroke="#06b6d4"
-                strokeWidth="1.2"
-                opacity="0.95"
-              />
-              <text
-                x="0"
-                y="2"
-                fill="#22d3ee"
-                fontSize="10"
-                fontFamily="monospace"
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                {selectedLat.toFixed(2)}°N, {selectedLon.toFixed(2)}°E
-              </text>
-            </g>
-          </g>
-        </svg>
-
-        {/* ================================================================== */}
-        {/* FLOATING HUD CONTROLS: Zoom Buttons & Reset View                   */}
-        {/* ================================================================== */}
-        <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center gap-1.5 bg-slate-900/90 border border-slate-800/90 rounded-xl p-1.5 backdrop-blur-md shadow-2xl">
-          <button
-            onClick={zoomIn}
-            title="Zoom In (+)"
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <div className="text-[10px] font-mono text-cyan-400 font-bold px-1 select-none">
-            {zoom.toFixed(1)}×
-          </div>
-          <button
-            onClick={zoomOut}
-            title="Zoom Out (-)"
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
-          <div className="w-full h-px bg-slate-800 my-0.5" />
-          <button
-            onClick={focusSelectedTarget}
-            title="Focus Target Marker"
-            className="p-1.5 rounded-lg text-cyan-400 hover:text-cyan-200 hover:bg-slate-800 transition"
-          >
-            <Navigation className="w-4 h-4" />
-          </button>
-          <button
-            onClick={resetView}
-            title="Reset View Extent"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* ================================================================== */}
-        {/* LAND CLICK INTERACTION WARNING TOAST                               */}
-        {/* ================================================================== */}
-        {landWarning && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-950/95 border border-amber-700/80 text-amber-200 text-xs shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-            <div>
-              <span className="font-semibold">{landWarning.name}</span>
-              <span className="text-amber-300/80 font-mono text-[11px] ml-1.5">
-                [{landWarning.lat.toFixed(2)}°N, {landWarning.lon.toFixed(2)}°E]
-              </span>
-              <span className="block text-[10px] text-amber-300/70">
-                Land cell masked by model bathymetry. Ocean ML framework operates only on marine grid points.
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* FLOATING SCALAR COLORBAR LEGEND (WHEN A LAYER IS ACTIVE)          */}
-        {/* ================================================================== */}
-        {activeLayer !== 'none' && (
-          <div className="absolute bottom-4 left-4 z-20 bg-slate-950/95 border border-slate-800/90 rounded-xl p-2.5 backdrop-blur-md shadow-2xl text-[11px] font-mono space-y-1.5 min-w-[210px]">
-            <div className="flex items-center justify-between text-slate-300 text-[10px] font-semibold uppercase tracking-wider">
-              <span>
-                {activeLayer === 'sst' && 'SST Thermal Field'}
-                {activeLayer === 'sss' && 'SSS Haline Field'}
-                {activeLayer === 'ssh' && 'SSH Anomaly Field'}
-                {activeLayer === 'recon' && 'B8 Subsurface T(z)'}
-              </span>
-              <span className="text-cyan-400">
-                {activeLayer === 'sst' && '°C'}
-                {activeLayer === 'sss' && 'PSU'}
-                {activeLayer === 'ssh' && 'm'}
-                {activeLayer === 'recon' && '°C'}
-              </span>
-            </div>
-
-            {/* Colormap bar */}
-            <div className="h-2.5 w-full rounded-sm overflow-hidden border border-slate-700/60">
-              {activeLayer === 'sst' && (
-                <div className="w-full h-full bg-gradient-to-r from-sky-600 via-cyan-400 via-emerald-400 via-amber-400 to-rose-600" />
+              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-cyan-400' : 'bg-slate-600'}`}></span>
+              <span>{layer.label}</span>
+              {layer.is3D && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-indigo-300 font-mono">3D</span>
               )}
-              {activeLayer === 'sss' && (
-                <div className="w-full h-full bg-gradient-to-r from-purple-600 via-cyan-500 via-emerald-500 to-amber-500" />
-              )}
-              {activeLayer === 'ssh' && (
-                <div className="w-full h-full bg-gradient-to-r from-blue-700 via-slate-500 to-pink-600" />
-              )}
-              {activeLayer === 'recon' && (
-                <div className="w-full h-full bg-gradient-to-r from-sky-700 via-cyan-500 via-amber-500 to-rose-600" />
-              )}
-            </div>
-
-            {/* Min / Mid / Max Tick Labels */}
-            <div className="flex justify-between text-[10px] text-slate-400">
-              <span>
-                {activeLayer === 'sst' && '22.0'}
-                {activeLayer === 'sss' && '28.0'}
-                {activeLayer === 'ssh' && '-0.20'}
-                {activeLayer === 'recon' && '0.50'}
-              </span>
-              <span>
-                {activeLayer === 'sst' && '27.5'}
-                {activeLayer === 'sss' && '34.5'}
-                {activeLayer === 'ssh' && '0.00'}
-                {activeLayer === 'recon' && '15.0'}
-              </span>
-              <span>
-                {activeLayer === 'sst' && '30.5'}
-                {activeLayer === 'sss' && '37.0'}
-                {activeLayer === 'ssh' && '+0.25'}
-                {activeLayer === 'recon' && '29.5'}
-              </span>
-            </div>
-            <div className="text-[9px] text-slate-500 pt-0.5 border-t border-slate-800/80">
-              Prototype Oceanographic Visualization
-            </div>
-          </div>
-        )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ==================================================================== */}
-      {/* BOTTOM SCIENTIFIC STATUS FOOTER & LIVE COORDINATE HUD                */}
-      {/* ==================================================================== */}
-      <div className="px-3.5 py-2.5 bg-slate-950/95 border-t border-slate-800/90 text-xs flex flex-col md:flex-row md:items-center justify-between gap-2 z-20">
-        {/* Left: Active Selection Summary */}
-        <div className="flex items-center gap-3 text-slate-300 text-[11px]">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 ring-2 ring-cyan-400/30"></span>
-            <span className="font-semibold text-white">Target:</span>
-            <span className="font-mono text-cyan-300 font-bold">
-              {selectedLat.toFixed(2)}°N, {selectedLon.toFixed(2)}°E
-            </span>
-          </div>
+      {/* =========================================================================
+          MAP WORKSPACE CONTAINER
+      ========================================================================= */}
+      <div className="relative flex-1 min-h-[500px] h-[600px] w-full bg-[#050912]">
+        {/* Leaflet DOM Anchor */}
+        <div ref={mapContainerRef} className="absolute inset-0 z-0" />
 
-          <div className="hidden sm:flex items-center gap-1 text-slate-400 border-l border-slate-800 pl-3">
-            <span>Region:</span>
-            <span className="text-white font-medium">{selectedRegion}</span>
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 z-30 bg-[#05080e]/75 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+            <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+            <span className="text-xs font-mono text-cyan-300">{loadingMsg}</span>
           </div>
+        )}
 
-          <div className="hidden lg:flex items-center gap-1 text-slate-400 border-l border-slate-800 pl-3">
-            <span>Seafloor Depth:</span>
-            <span className="text-slate-200 font-mono">~{selectedDepth.toLocaleString()} m</span>
-          </div>
-        </div>
-
-        {/* Right: Live Cursor Coordinate Readout */}
-        <div className="flex items-center gap-3 text-[11px] font-mono">
-          {hoveredInfo ? (
+        {/* Error Alert Overlay */}
+        {errorMsg && (
+          <div className="absolute top-4 left-4 right-4 z-40 bg-rose-950/90 border border-rose-800 text-rose-200 p-3 rounded-xl text-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">CURSOR:</span>
-              <span
-                className={
-                  hoveredInfo.isLand ? 'text-amber-400 font-semibold' : 'text-slate-200'
-                }
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+            <button
+              onClick={() => setErrorMsg(null)}
+              className="px-2 py-1 rounded bg-rose-900/60 hover:bg-rose-800 text-rose-100 text-[10px]"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* MAP ON-CANVAS FLOATING TOOLBOX (TOP LEFT) */}
+        <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+          {/* Zoom & Reset Controls */}
+          <div className="bg-[#070d18]/90 backdrop-blur-md border border-slate-800 rounded-xl p-1 flex flex-col gap-1 shadow-xl">
+            <button
+              onClick={handleZoomIn}
+              className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <div className="h-px bg-slate-800 my-0.5" />
+            <button
+              onClick={handleResetView}
+              className="p-2 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+              title="Reset to Study Basin (5°N–30°N, 45°E–105°E)"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Layer Display Controls: Vectors & Boundary */}
+          <div className="bg-[#070d18]/90 backdrop-blur-md border border-slate-800 rounded-xl p-1 flex flex-col gap-1 shadow-xl">
+            {(activeLayer === 'currents' || activeLayer === 'winds') && (
+              <button
+                onClick={() => setShowVectors((p) => !p)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showVectors ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title={showVectors ? 'Hide Vector Glyphs' : 'Show Vector Glyphs'}
               >
-                {hoveredInfo.lat.toFixed(2)}°N, {hoveredInfo.lon.toFixed(2)}°E
+                <Wind className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={() => setShowBoundary((p) => !p)}
+              className={`p-2 rounded-lg transition-colors ${
+                showBoundary ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title={showBoundary ? 'Hide 0.25° Study Boundary' : 'Show 0.25° Study Boundary'}
+            >
+              <Layers3 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* FLOATING POINT INSPECTOR POPUP CARD (TOP RIGHT) */}
+        {showInspector && inspection && (
+          <div className="absolute top-4 right-4 z-20 w-80 max-w-[calc(100vw-2rem)] bg-[#070d18]/95 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold text-white">Grid Point Inspection</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-cyan-300 border border-slate-800">
+                {inspection.lat.toFixed(2)}°N, {inspection.lon.toFixed(2)}°E
               </span>
-              {hoveredInfo.isLand ? (
-                <span className="text-[10px] text-amber-500 bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800/60">
-                  LAND ({hoveredInfo.landName})
+            </div>
+
+            {/* Region & Seafloor Status */}
+            <div className="space-y-1.5 text-[11px]">
+              <div className="flex justify-between text-slate-400">
+                <span>Ocean Sub-basin:</span>
+                <span className="text-slate-200 font-medium">{inspection.region}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Local Bathymetry:</span>
+                <span className="text-slate-200 font-mono font-medium">
+                  {inspection.isLand ? 'Landmass' : `${inspection.bathymetryDepth}m bottom`}
                 </span>
-              ) : (
-                <span className="text-[10px] text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50">
-                  ~{hoveredInfo.depth}m • {hoveredInfo.region}
-                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Selected Date:</span>
+                <span className="text-cyan-300 font-mono">{inspection.date}</span>
+              </div>
+              {isLayer3D && (
+                <div className="flex justify-between text-slate-400">
+                  <span>Selected Depth:</span>
+                  <span className="text-indigo-300 font-mono font-bold">{inspection.depth}m</span>
+                </div>
               )}
             </div>
-          ) : (
-            <div className="text-slate-500 text-[10px]">
-              Click any marine coordinate to update 15-depth profile reconstruction
+
+            {/* Primary Active Value Showcase */}
+            <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {inspection.activeLayer.name}
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-mono font-black text-white">
+                  {inspection.isLand
+                    ? 'LAND'
+                    : inspection.isBelowSeafloor
+                    ? 'BELOW SEAFLOOR'
+                    : inspection.activeValue !== null
+                    ? `${inspection.activeValue.toFixed(2)}`
+                    : 'N/A'}
+                </span>
+                {!inspection.isLand && !inspection.isBelowSeafloor && inspection.activeValue !== null && (
+                  <span className="text-xs font-bold text-cyan-400">{inspection.activeLayer.unit}</span>
+                )}
+              </div>
+              <div className="text-[10px] text-slate-400 leading-tight">
+                Source: {inspection.activeLayer.source}
+              </div>
             </div>
-          )}
+
+            {/* Comprehensive Multi-Variable Breakdown Table */}
+            {!inspection.isLand && (
+              <div className="space-y-1 pt-1 text-[10px] font-mono border-t border-slate-800/80">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans mb-1">
+                  Co-Located Scientific Readings:
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">SST:</span>
+                    <span className="text-amber-300">{inspection.allVariables.sst?.toFixed(2) ?? 'N/A'}°C</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">SSS:</span>
+                    <span className="text-emerald-300">{inspection.allVariables.sss?.toFixed(2) ?? 'N/A'} PSU</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">SSH:</span>
+                    <span className="text-blue-300">{inspection.allVariables.ssh?.toFixed(3) ?? 'N/A'} m</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">Current:</span>
+                    <span className="text-cyan-300">{inspection.allVariables.currentSpeed?.toFixed(2) ?? 'N/A'} m/s</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">Wind:</span>
+                    <span className="text-yellow-300">{inspection.allVariables.windSpeed?.toFixed(1) ?? 'N/A'} m/s</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">GLORYS θo:</span>
+                    <span className="text-indigo-300">{inspection.allVariables.refThetao?.toFixed(2) ?? 'N/A'}°C</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">B2 Recon:</span>
+                    <span className="text-purple-300">{inspection.allVariables.b2ReconThetao?.toFixed(2) ?? 'N/A'}°C</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60 flex justify-between">
+                    <span className="text-slate-400">Residual:</span>
+                    <span className="text-rose-300">{inspection.allVariables.b2Residual?.toFixed(2) ?? 'N/A'}°C</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scientific Integrity Note */}
+            <p className="text-[9px] text-slate-500 leading-tight italic">
+              {inspection.dataSourceNotes}
+            </p>
+          </div>
+        )}
+
+        {/* LIVE MOUSE COORDINATE FOOTER READOUT (BOTTOM RIGHT) */}
+        <div className="absolute bottom-3 right-3 z-20 pointer-events-none">
+          <div className="bg-[#070d18]/90 backdrop-blur-md border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-300 shadow-lg flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>
+              {hoverCoords ? `Lat: ${hoverCoords.lat.toFixed(2)}°N  Lon: ${hoverCoords.lon.toFixed(2)}°E` : 'Hover map for coordinates'}
+            </span>
+          </div>
         </div>
+      </div>
+
+      {/* =========================================================================
+          GIS BOTTOM CONTROL BAR: DEPTH SELECTOR, DATE TIMELINE, COLORBAR
+      ========================================================================= */}
+      <div className="bg-[#070d18] border-t border-slate-800 p-4 space-y-4 z-10">
+        {/* ROW 1: 15-DEPTH SELECTOR STRIP */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>🌊</span> Depth Level:
+            </span>
+            {!isLayer3D && (
+              <span className="text-[10px] text-amber-400/90 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded">
+                Surface variable (0m only) • Vertical depths apply to GLORYS θo, B2 Recon, and Residual
+              </span>
+            )}
+          </div>
+
+          {/* Depth Buttons / Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {manifest?.canonicalDepths.map((d) => {
+              const isSelected = activeDepth === d;
+              return (
+                <button
+                  key={d}
+                  disabled={!isLayer3D}
+                  onClick={() => setActiveDepth(d)}
+                  className={`px-2 py-1 rounded-md text-[10px] font-mono font-medium transition-all shrink-0 ${
+                    !isLayer3D
+                      ? 'opacity-40 cursor-not-allowed bg-slate-900 text-slate-500 border border-slate-800/50'
+                      : isSelected
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold shadow-md shadow-cyan-950'
+                      : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {d}m
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ROW 2: TIME NAVIGATOR & DATE SLIDER */}
+        <div className="bg-[#050912] border border-slate-800/80 rounded-xl p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="font-bold text-white">Date Exploration (2020):</span>
+              <span className="font-mono text-cyan-300 font-bold px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-[11px]">
+                {activeDate}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                ({manifest?.availableDates.find((d) => d.date === activeDate)?.split.toUpperCase()} SPLIT)
+              </span>
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handlePrevDate}
+                className="p-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
+                title="Previous Day"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setIsPlaying((p) => !p)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all ${
+                  isPlaying
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
+                }`}
+                title={isPlaying ? 'Pause Animation' : 'Auto-Play Daily Sequence'}
+              >
+                {isPlaying ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                <span>{isPlaying ? 'Pause' : 'Play'}</span>
+              </button>
+              <button
+                onClick={handleNextDate}
+                className="p-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
+                title="Next Day"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Slider across available dates */}
+          <div className="pt-1">
+            <input
+              type="range"
+              min={0}
+              max={(manifest?.availableDates.length ?? 1) - 1}
+              value={manifest?.availableDates.findIndex((d) => d.date === activeDate) ?? 0}
+              onChange={(e) => {
+                const idx = parseInt(e.target.value, 10);
+                if (manifest?.availableDates[idx]) {
+                  setActiveDate(manifest.availableDates[idx].date);
+                }
+              }}
+              className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+            />
+          </div>
+        </div>
+
+        {/* ROW 3: COLORBAR LEGEND & LAYER DESCRIPTION */}
+        {currentLayerMeta && activeLayer !== 'none' && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+            {/* Colorbar Graphic */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                <span>{currentLayerMeta.min} {currentLayerMeta.unit}</span>
+                <span className="font-bold text-slate-300">{currentLayerMeta.name} ({currentLayerMeta.unit})</span>
+                <span>{currentLayerMeta.max} {currentLayerMeta.unit}</span>
+              </div>
+              <div
+                className="h-3 w-72 max-w-full rounded-md border border-slate-700/80 shadow-inner"
+                style={{
+                  background:
+                    activeLayer === 'sss'
+                      ? 'linear-gradient(to right, rgb(20,10,60), rgb(20,80,140), rgb(20,150,140), rgb(100,200,100), rgb(240,240,120))'
+                      : activeLayer === 'ssh'
+                      ? 'linear-gradient(to right, rgb(15,65,170), rgb(85,160,230), rgb(240,240,245), rgb(240,140,90), rgb(180,20,30))'
+                      : activeLayer === 'b2_residual'
+                      ? 'linear-gradient(to right, rgb(245,245,245), rgb(254,224,139), rgb(244,109,67), rgb(213,62,79), rgb(110,10,70))'
+                      : activeLayer === 'currents' || activeLayer === 'winds'
+                      ? 'linear-gradient(to right, rgb(10,20,50), rgb(15,90,160), rgb(0,180,160), rgb(140,220,80), rgb(250,230,50))'
+                      : 'linear-gradient(to right, rgb(4,3,15), rgb(24,40,110), rgb(0,130,180), rgb(60,190,120), rgb(230,200,50), rgb(235,110,30), rgb(180,10,30))',
+                }}
+              />
+            </div>
+
+            {/* Opacity Slider */}
+            <div className="flex items-center gap-2 text-xs">
+              <Sliders className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] text-slate-400">Opacity:</span>
+              <input
+                type="range"
+                min={0.3}
+                max={1.0}
+                step={0.05}
+                value={layerOpacity}
+                onChange={(e) => setLayerOpacity(parseFloat(e.target.value))}
+                className="w-24 accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+              />
+              <span className="text-[10px] font-mono text-cyan-300">{Math.round(layerOpacity * 100)}%</span>
+            </div>
+          </div>
+        )}
+
+        {/* ROW 4: OCEANOGRAPHIC PRESET QUICK JUMP */}
+        {showPresets && (
+          <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>📍</span> Oceanographic Landmark Presets:
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {OCEAN_PRESETS.map((p) => (
+                <button
+                  key={p.name}
+                  onClick={() => onSelectCoordinates(p.lat, p.lon)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 hover:text-cyan-300 transition-all flex items-center gap-1"
+                  title={`${p.desc} (${p.lat}°N, ${p.lon}°E)`}
+                >
+                  <MapPin className="w-2.5 h-2.5 text-cyan-400" />
+                  <span>{p.name}</span>
+                  <span className="text-[9px] font-mono text-slate-500">
+                    ({p.lat}°, {p.lon}°)
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
