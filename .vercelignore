@@ -1,5 +1,6 @@
 # Ignore all python code and heavy data directories
-data/
+/data/
+!public/data/
 models/
 preprocessing/
 scripts/
