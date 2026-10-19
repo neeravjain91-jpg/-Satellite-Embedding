@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useOceanState } from './state/useOceanState';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 
-import { DashboardView } from './components/views/DashboardView';
-import { OceanExplorerView } from './components/views/OceanExplorerView';
-import { ReconstructionView } from './components/views/ReconstructionView';
-import { DepthProfileView } from './components/views/DepthProfileView';
-import { EmbeddingView } from './components/views/EmbeddingView';
-import { BenchmarksView } from './components/views/BenchmarksView';
-import { ValidationView } from './components/views/ValidationView';
-import { MethodologyView } from './components/views/MethodologyView';
+// Lazy-loaded modular views for optimal initial bundle performance
+const DashboardView = lazy(() => import('./components/views/DashboardView').then(m => ({ default: m.DashboardView })));
+const OceanExplorerView = lazy(() => import('./components/views/OceanExplorerView').then(m => ({ default: m.OceanExplorerView })));
+const ReconstructionView = lazy(() => import('./components/views/ReconstructionView').then(m => ({ default: m.ReconstructionView })));
+const DepthProfileView = lazy(() => import('./components/views/DepthProfileView').then(m => ({ default: m.DepthProfileView })));
+const EmbeddingView = lazy(() => import('./components/views/EmbeddingView').then(m => ({ default: m.EmbeddingView })));
+const BenchmarksView = lazy(() => import('./components/views/BenchmarksView').then(m => ({ default: m.BenchmarksView })));
+const ValidationView = lazy(() => import('./components/views/ValidationView').then(m => ({ default: m.ValidationView })));
+const MethodologyView = lazy(() => import('./components/views/MethodologyView').then(m => ({ default: m.MethodologyView })));
 
 export function App() {
   const oceanState = useOceanState();
@@ -61,7 +62,16 @@ export function App() {
         {/* Scrollable View Container */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto pb-12">
-            {renderActiveView()}
+            <Suspense
+              fallback={
+                <div className="flex flex-col items-center justify-center min-h-[450px] gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                  <span className="text-xs font-mono text-cyan-400 font-medium">Loading Module...</span>
+                </div>
+              }
+            >
+              {renderActiveView()}
+            </Suspense>
           </div>
         </main>
 
@@ -78,7 +88,7 @@ export function App() {
 
           <div className="flex items-center gap-4 font-mono text-[10px]">
             <span className="text-slate-500">Domain: 5°N–30°N, 45°E–105°E</span>
-            <span className="text-cyan-400">B8 Active (0.9800 °C Column-Avg RMSE)</span>
+            <span className="text-cyan-400 font-bold">B8 Active (0.9800 °C Column-Avg RMSE)</span>
           </div>
         </footer>
       </div>

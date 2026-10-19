@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Calendar, Layers, Activity, ChevronDown } from 'lucide-react';
-import { NavigationTab, CanonicalDepth } from '../../types';
+import { NavigationTab, CanonicalDepth, PUBLISHED_BENCHMARK_DATES } from '../../types';
 import { OceanStateReturn } from '../../state/useOceanState';
 import { CANONICAL_DEPTHS } from '../../mock/oceanData';
 
@@ -88,11 +88,11 @@ export const Header: React.FC<HeaderProps> = ({
             onChange={(e) => onUpdateDate(e.target.value)}
             className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
           >
-            <option value="2020-12-15" className="bg-slate-900">15 Dec 2020 (Test)</option>
-            <option value="2020-11-20" className="bg-slate-900">20 Nov 2020 (Late Fall)</option>
-            <option value="2020-10-15" className="bg-slate-900">15 Oct 2020 (Validation)</option>
-            <option value="2020-07-15" className="bg-slate-900">15 Jul 2020 (SW Monsoon)</option>
-            <option value="2020-03-15" className="bg-slate-900">15 Mar 2020 (Spring Inter)</option>
+            {PUBLISHED_BENCHMARK_DATES.map((d) => (
+              <option key={d.date} value={d.date} className="bg-slate-900">
+                {d.label}
+              </option>
+            ))}
           </select>
         </div>
 

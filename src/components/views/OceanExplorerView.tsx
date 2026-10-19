@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import { OceanStateReturn } from '../../state/useOceanState';
 import { getSurfaceObservations, CANONICAL_DEPTHS } from '../../mock/oceanData';
-import { CanonicalDepth } from '../../types';
-import { OceanMap } from '../shared/OceanMap';
+import { CanonicalDepth, PUBLISHED_BENCHMARK_DATES } from '../../types';
+
+// Lazy load MapLibre-powered OceanMap component
+const OceanMap = React.lazy(() => import('../shared/OceanMap').then(m => ({ default: m.OceanMap })));
 
 interface OceanExplorerViewProps {
   oceanState: OceanStateReturn;
@@ -123,12 +125,11 @@ export const OceanExplorerView: React.FC<OceanExplorerViewProps> = ({ oceanState
               onChange={(e) => updateDate(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none cursor-pointer"
             >
-              <option value="2020-12-15">2020-12-15 (Official Test Partition)</option>
-              <option value="2020-11-20">2020-11-20 (Late Fall Transition)</option>
-              <option value="2020-10-15">2020-10-15 (Validation Split)</option>
-              <option value="2020-07-15">2020-07-15 (Southwest Summer Monsoon)</option>
-              <option value="2020-04-10">2020-04-10 (Pre-Monsoon Heating)</option>
-              <option value="2020-01-15">2020-01-15 (Winter Baseline)</option>
+              {PUBLISHED_BENCHMARK_DATES.map((d) => (
+                <option key={d.date} value={d.date}>
+                  {d.label}
+                </option>
+              ))}
             </select>
             <div className="text-[10px] text-slate-500 font-mono">
               Certified Full-Year 2020 Temporal Range
@@ -299,11 +300,20 @@ export const OceanExplorerView: React.FC<OceanExplorerViewProps> = ({ oceanState
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <span>🗺️</span> Interactive Geographical Grid Picker
         </h3>
-        <OceanMap
-          selectedLat={location.lat}
-          selectedLon={location.lon}
-          onSelectCoordinates={updateCoordinates}
-        />
+        <React.Suspense
+          fallback={
+            <div className="w-full h-[600px] min-h-[500px] rounded-2xl bg-[#050912] border border-slate-800 flex flex-col items-center justify-center gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+              <span className="text-xs font-mono text-cyan-400 font-medium">Initializing Oceanographic GIS...</span>
+            </div>
+          }
+        >
+          <OceanMap
+            selectedLat={location.lat}
+            selectedLon={location.lon}
+            onSelectCoordinates={updateCoordinates}
+          />
+        </React.Suspense>
       </div>
     </div>
   );

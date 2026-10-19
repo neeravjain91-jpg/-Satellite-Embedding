@@ -5,8 +5,10 @@ import {
   Compass
 } from 'lucide-react';
 import { OceanStateReturn } from '../../state/useOceanState';
-import { OceanMap } from '../shared/OceanMap';
 import { getDepthProfile } from '../../mock/profiles';
+
+// Lazy load MapLibre-powered OceanMap component
+const OceanMap = React.lazy(() => import('../shared/OceanMap').then(m => ({ default: m.OceanMap })));
 
 interface DashboardViewProps {
   oceanState: OceanStateReturn;
@@ -126,11 +128,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ oceanState }) => {
             </div>
           </div>
 
-          <OceanMap
-            selectedLat={location.lat}
-            selectedLon={location.lon}
-            onSelectCoordinates={updateCoordinates}
-          />
+          <React.Suspense
+            fallback={
+              <div className="w-full h-[600px] min-h-[500px] rounded-2xl bg-[#050912] border border-slate-800 flex flex-col items-center justify-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                <span className="text-xs font-mono text-cyan-400 font-medium">Initializing Oceanographic GIS...</span>
+              </div>
+            }
+          >
+            <OceanMap
+              selectedLat={location.lat}
+              selectedLon={location.lon}
+              onSelectCoordinates={updateCoordinates}
+            />
+          </React.Suspense>
         </div>
 
         {/* Current Target Status & Reconstruction Card */}

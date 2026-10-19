@@ -89,3 +89,26 @@ export interface EmbeddingPoint {
   thermoclineDepth: number;
   date: string;
 }
+
+export interface AvailableDateOption {
+  date: string;
+  label: string;
+}
+
+export const PUBLISHED_BENCHMARK_DATES: AvailableDateOption[] = [
+  { date: '2020-12-31', label: '31 Dec 2020 (Test End)' },
+  { date: '2020-12-15', label: '15 Dec 2020 (Test Mid)' },
+  { date: '2020-12-01', label: '01 Dec 2020 (Test Milestone)' },
+  { date: '2020-11-22', label: '22 Nov 2020 (Test Sequence)' },
+  { date: '2020-11-20', label: '20 Nov 2020 (Late Fall Test)' },
+  { date: '2020-11-15', label: '15 Nov 2020 (Test Sequence)' },
+  { date: '2020-11-09', label: '09 Nov 2020 (Test Start)' },
+  { date: '2020-11-02', label: '02 Nov 2020 (Validation End)' },
+  { date: '2020-10-15', label: '15 Oct 2020 (Validation Mid)' },
+  { date: '2020-10-01', label: '01 Oct 2020 (Post-Monsoon Val)' },
+  { date: '2020-09-16', label: '16 Sep 2020 (Validation Start)' },
+  { date: '2020-09-01', label: '01 Sep 2020 (Late Summer Train)' },
+  { date: '2020-07-15', label: '15 Jul 2020 (SW Monsoon Peak)' },
+  { date: '2020-04-15', label: '15 Apr 2020 (Spring Transition)' },
+  { date: '2020-01-15', label: '15 Jan 2020 (Winter NE Monsoon)' },
+];
